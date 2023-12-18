@@ -46,7 +46,7 @@ echo:
 	@echo LIBS=$(LIBS)
 
 all: $(OBJECTS) $(SHADEROBJS)
-	$(CC) -L../lib $(EXTOBJECTS) $(OBJECTS) -o $(SG_E) $(LIBS)
+	$(CC) -L../lib $(OBJECTS) $(EXTOBJECTS) -o $(SG_E) $(LIBS)
 	@mv $(SG_E) ../build/$(SG_E)
 
 %.o: %.c 

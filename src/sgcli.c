@@ -83,12 +83,14 @@ int doTheDoThing (SGstate* sgs, int argc, char** argv) {
       }
     }
   }
-  FILE* projectFile = fopen ("project.json", "r");
-  if (!projectFile) {
+  char const* projectFile = str_append (sgs->projectDir, "/project.json", npos);
+
+  h_buffer projectContent = io_read (projectFile);
+  if (!projectContent.data) {
     errorf ("Could not open project.json in (%s)\n", sgs->projectDir);
     return 1;
   }
-  fclose (projectFile);
+  sgs->projectFileContent = projectContent;
 
   return 0;
 }

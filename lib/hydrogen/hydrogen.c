@@ -1,10 +1,40 @@
+/*
+MIT License
+
+Copyright (c) 2023 Kody Stanley
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+See github at https://github.com/MerianBerry/hydrogen
+*/
+
+/*
+  hydrogen.c
+  Hydrogen source file
+*/
+
 #define _XOPEN_SOURCE 700
 #define HYDROGEN_ALL
 #include <assert.h>
-#include <dirent.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -13,6 +43,7 @@
 #ifdef _WIN32
 #  include <windows.h>
 #else
+/* #  include <dirent.h> */
 #  include <unistd.h>
 #endif
 
@@ -785,9 +816,72 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount) {
 
 #ifdef _WIN32
 #  include <WinBase.h>
+#elif defined(__unix__)
+#  include <dirent.h>
 #endif
 
 typedef struct stat stat_t;
+typedef char       *dirToken;
+
+dirToken *io_parseDirectory (char const *path, int *count) {
+  int          i;
+  const size_t l = strlen (path);
+
+  dirToken *tokens = NULL;
+
+  int c = 0;
+  for (i = 0; i < l; ++i) {
+    size_t   p = MIN (str_ffo (path + i, '\\'), str_ffo (path + i, '/'));
+    dirToken t = (dirToken)str_substr (path, i, p);
+    tokens     = mem_grow (tokens, sizeof (dirToken), c, &t, 1);
+    ++c;
+    if (p == npos)
+      break;
+    i += p;
+  }
+}
+
+/*char *io_fullpath (char const *path) {
+  int       i;
+  char     *fpath  = NULL;
+  int       c      = 0;
+  dirToken *tokens = NULL;
+  if (!path)
+    return NULL;
+  if (path[0] == '~' || path[0] == '/') {}
+
+  io_parseDirectory (path, &c);
+#if defined(_WIN32)
+  char  var[PATH_MAX + 1] = {0};
+  DWORD l                 = GetEnvironmentVariable ("HOMEDRIVE", var, PATH_MAX);
+  GetEnvironmentVariable ("HOMEPATH", var + l, PATH_MAX - l);
+#elif defined(__unix__)
+  char *var   = getenv ("HOME");
+#endif
+  fpath = str_append (var, "/", npos);
+  if (!strcmp (tokens[0], "~")) {
+    free ((void *)tokens[0]);
+    tokens = &tokens[1];
+    --c;
+  }
+  for (i = 0; i < c; ++i) {
+    if (!strcmp (tokens[i], "~")) {
+      free ((void *)fpath);
+      fpath = NULL;
+      goto cleanup;
+    }
+  }
+  for (i = 0; i < c; ++i) {
+    printf ("dir token: %s\n", tokens[i]);
+    if (!strcmp (tokens[i], "..")) {}
+  }
+cleanup:
+  for (i = 0; i < c; ++i) {
+    free ((void *)tokens[i]);
+  }
+  free ((void *)tokens);
+  return NULL;
+}*/
 
 char *io_fixhome (char const *path) {
 #if defined(_WIN32)

@@ -9,19 +9,23 @@
 #define SG_MINOR 1
 
 #define binary(name)                           \
-  extern char        _binary_##name##_start[]; \
-  extern char        _binary_##name##_end[];   \
+  extern char        _binary_shaders_##name##_start[]; \
+  extern char        _binary_shaders_##name##_end[];   \
   static int         name##_size;              \
-  static char const* name##_start = _binary_##name##_start
+  static char const* name##_start = _binary_shaders_##name##_start
 
 #define resolve_binary_size(name) \
-  name##_size = _binary_##name##_end - _binary_##name##_start
+  name##_size = _binary_shaders_##name##_end - _binary_shaders_##name##_start
 
 typedef struct SGstate {
   int         runstate;
   GLFWwindow* win;
   char*       projectDir;
+  h_buffer    projectFileContent;
+  char*       name;
   double      tfps;
+  int         width;
+  int         height;
   char        keys[GLFW_KEY_LAST];
   char        buttons[GLFW_MOUSE_BUTTON_LAST];
 } SGstate;

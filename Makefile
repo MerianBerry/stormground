@@ -36,7 +36,7 @@ all:
 	@echo #===========STORMGROUND============#
 	
 #	@$(MAKE) $(MKCLIFLAGS) -C src PLAT=$(PLAT) ALL=echo
-	@$(MAKE) $(MKCLIFLAGS) -C src PLAT=$(PLAT)
+	$(MAKE) $(MKCLIFLAGS) -C src PLAT=$(PLAT)
 
 clean:
 	rm -rf build

@@ -24,7 +24,7 @@ Linux linux:
 
 mingw:
 	@echo Building $(SG_N).exe for Windows
-	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw CC="x86_64-w64-mingw32-gcc" CFLAGS="-O3 -std=c89" LIB_EXT=".lib" EXE_EXT=".exe"
+	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw CC="x86_64-w64-mingw32-gcc" CFLAGS="-O3 -std=c89 -Wno-overflow" LIB_EXT=".lib" EXE_EXT=".exe"
 
 #======================BUILD=======================#
 

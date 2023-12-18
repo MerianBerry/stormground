@@ -54,7 +54,7 @@ int main (int argc, char** argv) {
     exit (2);
   }
   if (!projectJSON->child) {
-    error ("project json root does not have a child node\n");
+    errorf ("project json root does not have a child node\n");
     exit (2);
   }
   cJSON* itr = projectJSON->child;
@@ -191,6 +191,11 @@ int main (int argc, char** argv) {
    * buffer object IS stored in the VAO; keep the EBO bound.
    */
 
+  /*h_timepoint s = timenow();
+  waitms (5.53);
+  double t = timeduration (timenow(), s, milliseconds_e);
+  printf ("%lf\n", t);*/
+
   h_timepoint ls      = timenow();
   double      cputime = 0.0;
   float       delta   = 0.0;
@@ -216,13 +221,14 @@ int main (int argc, char** argv) {
     waitms (maxf ((1.0 / state.tfps) * 1000.0 - cputime, 0));
     double _t = timeduration (timenow(), ls, milliseconds_e);
     fps       = fps * 0.95 + (1.0 / _t * 1000.0) * 0.05;
-    /*if (frame % 180 == 0) {
+    if (frame % 180 == 0) {
       printf ("FPS: %0.0lf\nCPU time: %0.03lfms\n", fps, cputime);
-    }*/
+    }
     delta = _t;
     time += _t;
     ls = timenow();
   }
+
 
   glDeleteVertexArrays (1, &VAO);
   glDeleteBuffers (1, &VBO);

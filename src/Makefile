@@ -33,7 +33,7 @@ Linux linux:
 
 mingw:
 	@echo Building $(SG_N).exe for Windows
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=mingw SG_E=$(SG_N).exe LIB_EXT=.lib CC="x86_64-w64-mingw32-gcc" LIBS="-lglfw3mingw -lm"
+	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=mingw SG_E=$(SG_N).exe LIB_EXT=.lib CC="x86_64-w64-mingw32-gcc" CFLAGS="-O3 -std=c89 -Wno-overflow" LIBS="-lglfw3mingw -lm -lopengl32 -lgdi32"
 
 #======================BUILD=======================#
 

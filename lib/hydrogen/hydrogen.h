@@ -58,7 +58,7 @@ enum {
 
 typedef struct h_timepoint {
 #  if defined(_WIN32)
-  double freq;
+  long s;
   long   c;
 #  elif defined(__GNUC__)
   long s;
@@ -215,7 +215,7 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount);
 
 char *io_fixhome (char const *path);
 
-char io_direxists (char const *path);
+/* char io_direxists (char const *path); */
 
 char io_exists (char const *path);
 

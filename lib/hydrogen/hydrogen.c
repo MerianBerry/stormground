@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-See github at https://github.com/MerianBerry/hydrogen
+See github at https:/*github.com/MerianBerry/hydrogen
 */
 
 /*
@@ -64,11 +64,9 @@ See github at https://github.com/MerianBerry/hydrogen
 h_timepoint timenow() {
 #if defined(_WIN32)
   h_timepoint   tp;
-  LARGE_INTEGER li;
-  QueryPerformanceFrequency (&li);
-  tp.freq = (double)(li.QuadPart) / 1000.0;
-  QueryPerformanceCounter (&li);
-  tp.c = li.QuadPart;
+  LARGE_INTEGER pc;
+  QueryPerformanceCounter (&pc);
+  tp.c = pc.QuadPart;
   return tp;
 #elif defined(__GNUC__)
   timespec_t ts;
@@ -87,8 +85,8 @@ void microsleep (long usec) {
   HANDLE        timer;
   LARGE_INTEGER ft;
 
-  ft.QuadPart = -(10 * usec); // Convert to 100 nanosecond interval, negative
-                              // value indicates relative time
+  ft.QuadPart = -(10 * usec); /* Convert to 100 nanosecond interval, negative */
+  /* value indicates relative time */
 
   timer = CreateWaitableTimer (NULL, TRUE, NULL);
   SetWaitableTimer (timer, &ft, 0, NULL, NULL, 0);
@@ -99,7 +97,9 @@ void microsleep (long usec) {
 
 double timeduration (h_timepoint end, h_timepoint start, double ratio) {
 #if defined(_WIN32)
-  double ndif = (double)(end.c - end.c) / end.freq;
+  LARGE_INTEGER pf;
+  QueryPerformanceFrequency (&pf);
+  double ndif = (double)(end.c - start.c) / (double)pf.QuadPart;
   return ndif * ratio;
 #elif defined(__GNUC__)
   double t1 = (double)end.s + (double)end.ns / 1000000000.0;
@@ -109,6 +109,30 @@ double timeduration (h_timepoint end, h_timepoint start, double ratio) {
 #endif
 }
 
+#if defined(_WIN32)
+/* Windows sleep in 100ns units */
+BOOLEAN _nanosleep (LONGLONG ns) {
+  /* Declarations */
+  HANDLE        timer; /* Timer handle */
+  LARGE_INTEGER li; /* Time defintion */
+  /* Create timer */
+  if (!(timer = CreateWaitableTimer (NULL, TRUE, NULL)))
+    return FALSE;
+  /* Set timer properties */
+  li.QuadPart = -ns;
+  if (!SetWaitableTimer (timer, &li, 0, NULL, NULL, FALSE)) {
+    CloseHandle (timer);
+    return FALSE;
+  }
+  /* Start & wait for timer */
+  WaitForSingleObject (timer, INFINITE);
+  /* Clean resources */
+  CloseHandle (timer);
+  /* Slept without problems */
+  return TRUE;
+}
+#endif
+
 void wait (double seconds) {
 #ifdef __unix__
   h_timepoint s = timenow();
@@ -117,14 +141,10 @@ void wait (double seconds) {
     nanosleep (&ts, &tsr);
   }
 #elif defined(_WIN32)
-  __int64       us = (__int64)(seconds * 1000000.0);
-  HANDLE        timer;
-  LARGE_INTEGER ft;
-  ft.QuadPart = -(10 * us);
-  timer       = CreateWaitableTimer (NULL, TRUE, NULL);
-  SetWaitableTimer (timer, &ft, 0, NULL, NULL, 0);
-  WaitForSingleObject (timer, INFINITE);
-  CloseHandle (timer);
+  h_timepoint s = timenow();
+  while (timeduration (timenow(), s, seconds_e) < seconds) {
+    _nanosleep (10);
+  }
 #endif
 }
 
@@ -137,14 +157,9 @@ void waitms (double ms) {
   while (nanosleep (&ts, &ts) == -1)
     ;
 #elif defined(_WIN32)
-  __int64       us = (__int64)(ms * 1000.0);
-  HANDLE        timer;
-  LARGE_INTEGER ft;
-  ft.QuadPart = -(10 * us);
-  timer       = CreateWaitableTimer (NULL, TRUE, NULL);
-  SetWaitableTimer (timer, &ft, 0, NULL, NULL, 0);
-  WaitForSingleObject (timer, INFINITE);
-  CloseHandle (timer);
+  LONGLONG ns = ms * 1000 * 10;
+  /* printf("%li\n", ns); */
+  _nanosleep (ns);
 #endif
 }
 
@@ -494,12 +509,16 @@ char *utf8_tostring (int utf8) {
 }
 
 int errorfv (char const *fmt, va_list args) {
-  int   r    = 1;
+  int r = 1;
+#if defined(__unix__)
   char *str  = str_append ("&c(bright_red)", fmt, npos);
   char *str2 = str_append (str, "&c(reset)", npos);
   free (str);
   str = str_colorfmtv (str2, args);
   free ((void *)str2);
+#elif defined(_WIN32)
+  char *str   = (char *)str_fmtv (fmt, args);
+#endif
   if (!str) {
     r = 0;
     goto errorfEnd;
@@ -815,7 +834,7 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount) {
 #endif
 
 #ifdef _WIN32
-#  include <WinBase.h>
+#  include <winbase.h>
 #elif defined(__unix__)
 #  include <dirent.h>
 #endif
@@ -899,6 +918,7 @@ char *io_fixhome (char const *path) {
   return (char *)str_cpy (path, strlen (path));
 }
 
+/*
 char io_direxists (char const *path) {
   char *npath = io_fixhome (path);
   DIR  *d     = opendir (npath);
@@ -908,6 +928,7 @@ char io_direxists (char const *path) {
   closedir (d);
   return 1;
 }
+*/
 
 char io_exists (char const *path) {
   char *npath = io_fixhome (path);

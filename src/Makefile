@@ -29,11 +29,11 @@ target: $(PLAT)
 
 Linux linux:
 	@echo Building $(SG_N) for linux
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=linux SG_E=$(SG_N) LIB_PREF=lib LIB_EXT=.a LIBS="-lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm" 
+	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=linux SG_E=$(SG_N) LIB_PREF=lib LIB_EXT=.a CFLAGS="-O3 -std=c89 -I../include -I../lib" LIBS="-lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm" 
 
 mingw:
 	@echo Building $(SG_N).exe for Windows
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=mingw SG_E=$(SG_N).exe LIB_EXT=.lib CC="x86_64-w64-mingw32-gcc" CFLAGS="-O3 -std=c89 -Wno-overflow" LIBS="-lglfw3mingw -lm -lopengl32 -lgdi32"
+	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=mingw SG_E=$(SG_N).exe LIB_EXT=.lib CC="x86_64-w64-mingw32-gcc" CFLAGS="-O3 -std=c89 -Wno-overflow -I../include -I../lib" LIBS="-lglfw3mingw -lm -lopengl32 -lgdi32"
 
 #======================BUILD=======================#
 
@@ -49,9 +49,9 @@ all: $(OBJECTS) $(SHADEROBJS)
 	$(CC) -L../lib $(OBJECTS) $(EXTOBJECTS) -o $(SG_E) $(LIBS)
 	@mv $(SG_E) ../build/$(SG_E)
 
-%.o: %.c 
+format: $(SOURCES) 
 	$(if $(value $(CFMT)),,$(shell $(CFMT) -i -style=file $<))
-	$(CC) $(CFLAGS) -I../include -I../lib -c $< -o $@
+	$(CC) $(CFLAGS)  -c $< -o $@
 
 shaders/%.o: shaders/%
 	ld -r -b binary $< -o $@
@@ -59,5 +59,10 @@ shaders/%.o: shaders/%
 clean:
 	rm -f $(OBJECTS) $(SG_E) shaders/*.o
 
-.PHONY: target
+.PHONY: target format
+
+sg.o: sg.c sg.h sgshader.h sgcallbacks.h sgcli.h 
+sgcallbacks.o: sgcallbacks.c sgcallbacks.h sg.h
+sgcli.o: sgcli.c sgcli.h sg.h
+sgshader.o: sgshader.c sgshader.h sg.h
 #end of file

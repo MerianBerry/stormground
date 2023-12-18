@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-See github at https:/*github.com/MerianBerry/hydrogen
+See github at https://github.com/MerianBerry/hydrogen
 */
 
 /*
@@ -42,6 +42,22 @@ See github at https:/*github.com/MerianBerry/hydrogen
 
 #ifdef _WIN32
 #  include <windows.h>
+typedef HANDLE(WINAPI *cwtexw)(LPSECURITY_ATTRIBUTES, LPCWSTR, DWORD, DWORD);
+static HMODULE k32 = NULL;
+static cwtexw CreateWaitableTimerExW = NULL;
+
+void h_loadWinAPI() {
+  /* char s = !k32 || !CreateWaitableTimerExW; */
+  if (!k32)
+    k32 = GetModuleHandle(TEXT("kernel32.dll"));
+  assert(k32 && "Failed to load kernel32.dll");
+  if (!CreateWaitableTimerExW)
+    CreateWaitableTimerExW = (cwtexw)GetProcAddress(k32, "CreateWaitableTimerExW");
+  assert (CreateWaitableTimerExW && "Failed to load CreateWaitableTimerExW from kernel32.dll");
+  /*if (s) {
+    printf("Loaded kernel32.dll and CreateWaitableTimerExW\n");
+  }*/
+}
 #else
 /* #  include <dirent.h> */
 #  include <unistd.h>
@@ -60,6 +76,34 @@ See github at https:/*github.com/MerianBerry/hydrogen
 #endif
 
 #pragma region "TIME"
+#if defined(_WIN32)
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+/* Windows sleep in 100ns units */
+BOOLEAN _nanosleep (LONGLONG ns) {
+  h_loadWinAPI();
+  ns /= 100;
+  /* Declarations */
+  HANDLE        timer; /* Timer handle */
+  LARGE_INTEGER li; /* Time defintion */
+  /* Create timer */
+  if (!(timer = CreateWaitableTimerExW (NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS)))
+    return FALSE;
+  /* Set timer properties */
+  li.QuadPart = -ns;
+  if (!SetWaitableTimer (timer, &li, 0, NULL, NULL, FALSE)) {
+    CloseHandle (timer);
+    return FALSE;
+  }
+  /* Start & wait for timer */
+  WaitForSingleObject (timer, INFINITE);
+  /* Clean resources */
+  CloseHandle (timer);
+  /* Slept without problems */
+  return TRUE;
+}
+#endif
 
 h_timepoint timenow() {
 #if defined(_WIN32)
@@ -82,16 +126,7 @@ void microsleep (long usec) {
 #ifdef __unix__
   usleep (usec);
 #elif defined(_WIN32)
-  HANDLE        timer;
-  LARGE_INTEGER ft;
-
-  ft.QuadPart = -(10 * usec); /* Convert to 100 nanosecond interval, negative */
-  /* value indicates relative time */
-
-  timer = CreateWaitableTimer (NULL, TRUE, NULL);
-  SetWaitableTimer (timer, &ft, 0, NULL, NULL, 0);
-  WaitForSingleObject (timer, INFINITE);
-  CloseHandle (timer);
+  _nanosleep(usec*1000);
 #endif
 }
 
@@ -109,30 +144,6 @@ double timeduration (h_timepoint end, h_timepoint start, double ratio) {
 #endif
 }
 
-#if defined(_WIN32)
-/* Windows sleep in 100ns units */
-BOOLEAN _nanosleep (LONGLONG ns) {
-  /* Declarations */
-  HANDLE        timer; /* Timer handle */
-  LARGE_INTEGER li; /* Time defintion */
-  /* Create timer */
-  if (!(timer = CreateWaitableTimer (NULL, TRUE, NULL)))
-    return FALSE;
-  /* Set timer properties */
-  li.QuadPart = -ns;
-  if (!SetWaitableTimer (timer, &li, 0, NULL, NULL, FALSE)) {
-    CloseHandle (timer);
-    return FALSE;
-  }
-  /* Start & wait for timer */
-  WaitForSingleObject (timer, INFINITE);
-  /* Clean resources */
-  CloseHandle (timer);
-  /* Slept without problems */
-  return TRUE;
-}
-#endif
-
 void wait (double seconds) {
 #ifdef __unix__
   h_timepoint s = timenow();
@@ -141,10 +152,7 @@ void wait (double seconds) {
     nanosleep (&ts, &tsr);
   }
 #elif defined(_WIN32)
-  h_timepoint s = timenow();
-  while (timeduration (timenow(), s, seconds_e) < seconds) {
-    _nanosleep (10);
-  }
+  waitms(seconds*1000.0);
 #endif
 }
 
@@ -157,9 +165,16 @@ void waitms (double ms) {
   while (nanosleep (&ts, &ts) == -1)
     ;
 #elif defined(_WIN32)
-  LONGLONG ns = ms * 1000 * 10;
-  /* printf("%li\n", ns); */
-  _nanosleep (ns);
+  LARGE_INTEGER li;
+  QueryPerformanceCounter(&li);
+  LARGE_INTEGER lf;
+  QueryPerformanceFrequency(&lf);
+  while (1) {
+    LARGE_INTEGER li2;
+    QueryPerformanceCounter(&li2);
+    if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 > ms) break;
+    _nanosleep(1000);
+  }
 #endif
 }
 

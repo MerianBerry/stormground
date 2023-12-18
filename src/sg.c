@@ -210,6 +210,7 @@ int main (int argc, char** argv) {
       break;
 
     ++frame;
+
     glClearColor (.1f, .1f, .1f, 1.f);
     glClear (GL_COLOR_BUFFER_BIT);
 
@@ -218,7 +219,7 @@ int main (int argc, char** argv) {
     glfwPollEvents();
 
     cputime = timeduration (timenow(), ls, milliseconds_e);
-    waitms (maxf ((1.0 / state.tfps) * 1000.0 - cputime, 0));
+    waitms (maxf ((1.0 / (state.tfps * 1.01)) * 1000.0 - cputime, 0));
     double _t = timeduration (timenow(), ls, milliseconds_e);
     fps       = fps * 0.95 + (1.0 / _t * 1000.0) * 0.05;
     if (frame % 180 == 0) {

@@ -85,7 +85,6 @@ typedef struct PackedVert {
 }*/
 
 int main (int argc, char** argv) {
-  printf("What the fuck\n");
   resolve_binary_size (main_vert);
   resolve_binary_size (main_frag);
   resolve_binary_size (main_comp);
@@ -275,8 +274,6 @@ int main (int argc, char** argv) {
                 GL_DYNAMIC_READ);
   glBindBufferBase (GL_SHADER_STORAGE_BUFFER, 1, ssbo);
   glBindBuffer (GL_SHADER_STORAGE_BUFFER, 0);
-
-  printf ("Where am i\n");
 
   h_timepoint ls      = timenow();
   double      cputime = 0.0;

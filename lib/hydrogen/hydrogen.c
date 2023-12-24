@@ -922,10 +922,8 @@ cleanup:
 
 char *io_fullpath(const char *path) {
   #if defined(_WIN32)
-  printf("%i\n", PATH_MAX);
   char fpath[PATH_MAX];
   char *_fpath = _fullpath(fpath, path, PATH_MAX);
-  printf("%s\n", _fpath);
   return _fpath;
   #elif defined(__unix__)
   return realpath(path, NULL);

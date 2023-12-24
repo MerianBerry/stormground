@@ -1,8 +1,16 @@
+#define _XOPEN_SOURCE 700
 #include "sgcli.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+
+#if defined(__unix__)
+#  include <unistd.h>
+#elif defined(_WIN32)
+
+#endif
 
 typedef int (*FlagCallback) (SGstate*, int, char**);
 
@@ -83,14 +91,28 @@ int doTheDoThing (SGstate* sgs, int argc, char** argv) {
       }
     }
   }
-  char const* projectFile = str_append (sgs->projectDir, "/project.json", npos);
+  char* realreal = io_fullpath (sgs->projectDir);
+  free ((void*)sgs->projectDir);
+  sgs->projectDir = realreal;
 
-  h_buffer projectContent = io_read (projectFile);
+  if (io_changedir (sgs->projectDir)) {
+    errorf ("Failed to change directory\n");
+    return 1;
+  }
+
+  h_buffer projectContent = io_read ("project.json");
   if (!projectContent.data) {
     errorf ("Could not open project.json in (%s)\n", sgs->projectDir);
     return 1;
   }
   sgs->projectFileContent = projectContent;
+
+  FILE* pmain = fopen ("main.lua", "r");
+  if (!pmain) {
+    errorf ("Could not open main.lua in (%s)\n", sgs->projectDir);
+    return 1;
+  }
+  fclose (pmain);
 
   return 0;
 }

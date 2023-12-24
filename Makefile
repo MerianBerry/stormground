@@ -7,9 +7,11 @@ PLAT= guess
 
 #===================BUILD SETTINGS=================#
 
+SOURCES := $(wildcard src/*.c)
 MKCLIFLAGS= "--no-print-directory"
 PLATS := guess linux mingw
 UNAME = uname
+WHICH= which
 
 #==================TARGET SETTINGS=================#
 
@@ -23,11 +25,11 @@ Linux linux:
 	$(MAKE) $(MKCLIFLAGS) all PLAT=linux
 
 mingw:
-	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw
+	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw WHICH=where
 
 #=======================BUILD======================#
 
-all:
+all: format
 	mkdir -p build
 	@echo #============LIB stage=============#
 
@@ -38,8 +40,13 @@ all:
 #	@$(MAKE) $(MKCLIFLAGS) -C src PLAT=$(PLAT) ALL=echo
 	$(MAKE) $(MKCLIFLAGS) -C src PLAT=$(PLAT)
 
+format: $(SOURCES)
+	$(if $(shell $(WHICH) clang-format), $(shell clang-format -i -style=file $(SOURCES)))
+
 clean:
 	rm -rf build
 	$(MAKE) -C lib clean
 	$(MAKE) -C src clean
+
+.PHONY: format
 #end of file

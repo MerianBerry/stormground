@@ -39,9 +39,13 @@ See github at https://github.com/MerianBerry/hydrogen
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <limits.h>
 
 #ifdef _WIN32
 #  include <windows.h>
+#if !defined(PATH_MAX)
+#define PATH_MAX 256
+#endif
 typedef HANDLE(WINAPI *cwtexw)(LPSECURITY_ATTRIBUTES, LPCWSTR, DWORD, DWORD);
 static HMODULE k32 = NULL;
 static cwtexw CreateWaitableTimerExW = NULL;
@@ -59,7 +63,6 @@ void h_loadWinAPI() {
   }*/
 }
 #else
-/* #  include <dirent.h> */
 #  include <unistd.h>
 #endif
 
@@ -112,7 +115,7 @@ h_timepoint timenow() {
   QueryPerformanceCounter (&pc);
   tp.c = pc.QuadPart;
   return tp;
-#elif defined(__GNUC__)
+#elif defined(__unix__)
   timespec_t ts;
   timespec_get (&ts, 1);
   h_timepoint tp;
@@ -136,7 +139,7 @@ double timeduration (h_timepoint end, h_timepoint start, double ratio) {
   QueryPerformanceFrequency (&pf);
   double ndif = (double)(end.c - start.c) / (double)pf.QuadPart;
   return ndif * ratio;
-#elif defined(__GNUC__)
+#elif defined(__unix__)
   double t1 = (double)end.s + (double)end.ns / 1000000000.0;
   double t2 = (double)start.s + (double)start.ns / 1000000000.0;
 
@@ -917,6 +920,26 @@ cleanup:
   return NULL;
 }*/
 
+char *io_fullpath(const char *path) {
+  #if defined(_WIN32)
+  printf("%i\n", PATH_MAX);
+  char fpath[PATH_MAX];
+  char *_fpath = _fullpath(fpath, path, PATH_MAX);
+  printf("%s\n", _fpath);
+  return _fpath;
+  #elif defined(__unix__)
+  return realpath(path, NULL);
+  #endif
+}
+
+int io_changedir(const char *path) {
+  #if defined(_WIN32)
+  return SetCurrentDirectory(path);
+  #elif defined(__unix__)
+  return chdir (path);
+  #endif
+}
+
 char *io_fixhome (char const *path) {
 #if defined(_WIN32)
   char  var[PATH_MAX + 1] = {0};
@@ -1087,5 +1110,9 @@ int mini (int x, int y) { return (x < y) ? x : y; }
 int maxi (int x, int y) { return (x > y) ? x : y; }
 
 int clampi (int x, int y, int z) { return (x < y) ? y : ((x > z) ? z : x); }
+
+char signf(float x) {
+  return (x>0)*2 - 1;
+}
 
 #pragma endregion "MATH"

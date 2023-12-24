@@ -43,11 +43,6 @@ See github at https://github.com/MerianBerry/hydrogen
 #  define HYDROGEN_MATH
 #endif
 
-/* Opaque module structure */
-typedef struct fu_module fu_module;
-
-typedef unsigned char fu_byte;
-
 #ifdef HYDROGEN_TIME
 enum {
   seconds_e      = 1,
@@ -169,7 +164,7 @@ char *str_colorfmtv (char const *src, va_list args);
 
 char *str_colorfmt (char const *src, ...);
 
-int utf8_charsize (fu_byte c);
+int utf8_charsize (uint8_t c);
 
 long utf8_strlen (char const *str);
 
@@ -212,6 +207,10 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount);
 #  endif
 
 /* char *io_fullpath (char const *path); */
+
+char *io_fullpath(const char *path);
+
+int io_changedir(const char *path);
 
 char *io_fixhome (char const *path);
 
@@ -281,4 +280,6 @@ int mini (int x, int y);
 int maxi (int x, int y);
 
 int clampi (int x, int y, int z);
+
+char signf(float x);
 #endif

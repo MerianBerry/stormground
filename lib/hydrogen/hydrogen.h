@@ -282,4 +282,10 @@ int maxi (int x, int y);
 int clampi (int x, int y, int z);
 
 char signf(float x);
+
+float floorf(float x);
+
+float ceilf(float x);
+
+float roundf(float x);
 #endif

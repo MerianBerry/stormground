@@ -51,16 +51,16 @@ static HMODULE k32 = NULL;
 static cwtexw CreateWaitableTimerExW = NULL;
 
 void h_loadWinAPI() {
-  /* char s = !k32 || !CreateWaitableTimerExW; */
+  char s = !k32 || !CreateWaitableTimerExW;
   if (!k32)
     k32 = GetModuleHandle(TEXT("kernel32.dll"));
   assert(k32 && "Failed to load kernel32.dll");
   if (!CreateWaitableTimerExW)
     CreateWaitableTimerExW = (cwtexw)GetProcAddress(k32, "CreateWaitableTimerExW");
   assert (CreateWaitableTimerExW && "Failed to load CreateWaitableTimerExW from kernel32.dll");
-  /*if (s) {
+  if (s) {
     printf("Loaded kernel32.dll and CreateWaitableTimerExW\n");
-  }*/
+  }
 }
 #else
 #  include <unistd.h>
@@ -924,7 +924,7 @@ char *io_fullpath(const char *path) {
   #if defined(_WIN32)
   char fpath[PATH_MAX];
   char *_fpath = _fullpath(fpath, path, PATH_MAX);
-  return _fpath;
+  return (char*)str_cpy(_fpath, PATH_MAX);
   #elif defined(__unix__)
   return realpath(path, NULL);
   #endif
@@ -932,7 +932,7 @@ char *io_fullpath(const char *path) {
 
 int io_changedir(const char *path) {
   #if defined(_WIN32)
-  return SetCurrentDirectory(path);
+  return !SetCurrentDirectory(path);
   #elif defined(__unix__)
   return chdir (path);
   #endif
@@ -1111,6 +1111,18 @@ int clampi (int x, int y, int z) { return (x < y) ? y : ((x > z) ? z : x); }
 
 char signf(float x) {
   return (x>0)*2 - 1;
+}
+
+float floorf(float x) {
+  return (float)(int)x;
+}
+
+float ceilf(float x) {
+  return (float)(int)(x+.99999f);
+}
+
+float roundf(float x) {
+  return (float)(int)(x+0.5f);
 }
 
 #pragma endregion "MATH"

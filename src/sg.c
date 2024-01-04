@@ -16,7 +16,7 @@ binary (main_vert);
 binary (main_frag);
 binary (main_comp);
 
-SGstate state = {0};
+static SGstate state;
 
 static int W = 1280;
 static int H = 720;
@@ -33,7 +33,7 @@ static unsigned int indices[] = {
     1, 2, 3 /* second Triangle */
 };
 
-SSBO ssboBuf;
+SSBO* ssboBuf;
 
 struct SSBONOPRIM {
   float time;
@@ -89,12 +89,20 @@ int main (int argc, char** argv) {
   resolve_binary_size (main_frag);
   resolve_binary_size (main_comp);
 
-  ssboBuf          = (struct SSBO){0};
-  ssboBuf.primv[0] = tprim;
+  state = (SGstate){0};
+
+  ssboBuf = malloc (sizeof (struct SSBO));
+  if (!ssboBuf) {
+    errorf ("Failed to allocate ssbo buffer.\n");
+    return 1;
+  }
+  memset (ssboBuf, 0, sizeof (struct SSBO));
+
+  ssboBuf->primv[0] = tprim;
 
   state.tfps       = 60.f;
   state.projectDir = (char*)str_cpy (".", npos);
-  state.ssbo       = &ssboBuf;
+  state.ssbo       = ssboBuf;
 
   if (doTheDoThing (&state, argc, argv)) {
     return 1;
@@ -270,7 +278,7 @@ int main (int argc, char** argv) {
   uint32_t ssbo;
   glGenBuffers (1, &ssbo);
   glBindBuffer (GL_SHADER_STORAGE_BUFFER, ssbo);
-  glBufferData (GL_SHADER_STORAGE_BUFFER, sizeof (struct SSBO), &ssboBuf,
+  glBufferData (GL_SHADER_STORAGE_BUFFER, sizeof (struct SSBO), ssboBuf,
                 GL_DYNAMIC_READ);
   glBindBufferBase (GL_SHADER_STORAGE_BUFFER, 1, ssbo);
   glBindBuffer (GL_SHADER_STORAGE_BUFFER, 0);
@@ -302,13 +310,13 @@ int main (int argc, char** argv) {
       exit (5);
     }
 
-    ssboBuf.time = state.time / 1000.0;
+    ssboBuf->time = state.time / 1000.0;
 
     glBindBuffer (GL_SHADER_STORAGE_BUFFER, ssbo);
     glBufferSubData (
         GL_SHADER_STORAGE_BUFFER, 0,
-        sizeof (struct SSBONOPRIM) + sizeof (SGprimitive) * ssboBuf.primc,
-        &ssboBuf);
+        sizeof (struct SSBONOPRIM) + sizeof (SGprimitive) * ssboBuf->primc,
+        ssboBuf);
     glBindBuffer (GL_SHADER_STORAGE_BUFFER, ssbo);
 
     glUseProgram (computeProgram);
@@ -316,7 +324,7 @@ int main (int argc, char** argv) {
     glMemoryBarrier (GL_ALL_BARRIER_BITS);
     glBindBuffer (GL_SHADER_STORAGE_BUFFER, 0);
 
-    ssboBuf.primc = 0;
+    ssboBuf->primc = 0;
 
     glUseProgram (shaderProgram);
     glBindTextureUnit (0, state.mon.tex);
@@ -354,6 +362,7 @@ int main (int argc, char** argv) {
 
   glfwDestroyWindow (state.win);
   glfwTerminate();
+  free (ssboBuf);
 
   return 0;
 }

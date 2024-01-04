@@ -7,6 +7,7 @@
 
 #define SG_MAJOR 0
 #define SG_MINOR 1
+#define SG_VERNAME "beta.0.1"
 
 #define binary(name)                                   \
   extern char        _binary_shaders_##name##_start[]; \

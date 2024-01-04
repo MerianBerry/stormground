@@ -2,7 +2,6 @@ build
 .vscode
 .cache
 *.o
-*
 *.exe
 *.dll
 *.a

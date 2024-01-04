@@ -52,9 +52,9 @@ int sg_dir (SGstate* sgs, int argc, char** argv) {
 }
 
 int sg_ver (SGstate* sgs, int argc, char** argv) {
-  printf (
-      "Stormground (sg) version " SG_VERNAME "\nA Stormworks Lua render api replica "
-      "made by Merian\n");
+  printf ("Stormground (sg) version " SG_VERNAME
+          "\nA Stormworks Lua render api replica "
+          "made by Merian\n");
   return 0;
 }
 

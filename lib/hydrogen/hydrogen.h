@@ -33,6 +33,10 @@ See github at https://github.com/MerianBerry/hydrogen
 #include <stddef.h>
 #include <stdint.h>
 
+#if !defined(__LONG_LONG_MAX__) || !defined(__STDC_VERSION__)
+#  pragma message "Hydrogen may not work in 32 bit mode :shrug:"
+#endif
+
 #ifdef HYDROGEN_ALL
 #  define HYDROGEN_TIME
 #  define HYDROGEN_AVL
@@ -54,7 +58,7 @@ enum {
 typedef struct h_timepoint {
 #  if defined(_WIN32)
   long s;
-  long   c;
+  long c;
 #  elif defined(__GNUC__)
   long s;
   long ns;
@@ -141,7 +145,7 @@ size_t str_ffi (char const *str, char const *cmp);
 
 size_t str_fli (char const *str, char const *cmp);
 
-unsigned long str_hash (char const *str);
+unsigned int str_hash (char const *str);
 
 char *str_fmtv (char const *fmt, va_list args);
 
@@ -185,7 +189,7 @@ char *utf8_tostring (int utf8);
 
 int errorfv (char const *fmt, va_list args);
 
-int errorf(const char* fmt, ...);
+int errorf (char const *fmt, ...);
 
 int warningfv (char const *fmt, va_list args);
 
@@ -208,9 +212,9 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount);
 
 /* char *io_fullpath (char const *path); */
 
-char *io_fullpath(const char *path);
+char *io_fullpath (char const *path);
 
-int io_changedir(const char *path);
+int io_changedir (char const *path);
 
 char *io_fixhome (char const *path);
 
@@ -281,11 +285,11 @@ int maxi (int x, int y);
 
 int clampi (int x, int y, int z);
 
-char signf(float x);
+char signf (float x);
 
-float floorf(float x);
+float floorf (float x);
 
-float ceilf(float x);
+float ceilf (float x);
 
-float roundf(float x);
+float roundf (float x);
 #endif

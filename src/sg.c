@@ -84,10 +84,71 @@ typedef struct PackedVert {
   return pvc;
 }*/
 
+#define funny(name)                                              \
+  printf ("case %u: /* " name " */ return GLFW_MOUSE_BUTTON_\n", \
+          str_hash (name))
+
 int main (int argc, char** argv) {
   resolve_binary_size (main_vert);
   resolve_binary_size (main_frag);
   resolve_binary_size (main_comp);
+
+#if 0
+  funny ("left");
+  funny ("right");
+  funny ("middle");
+  funny ("button1");
+  funny ("button2");
+  funny ("button3");
+  funny ("button4");
+  funny ("button5");
+  funny ("button6");
+  funny ("button7");
+  funny ("button8");
+
+#endif
+#if 0
+  funny ("lshift");
+  funny ("rshift");
+  funny ("lcontrol");
+  funny ("rcontrol");
+  funny ("lalt");
+  funny ("ralt");
+  funny ("lbracket");
+  funny ("rbracket");
+  funny ("space");
+  funny ("backspace");
+  funny ("tab");
+  funny ("enter");
+  funny ("minus");
+  funny ("equal");
+  funny ("up");
+  funny ("down");
+  funny ("left");
+  funny ("right");
+  funny ("comma");
+  funny ("period");
+  funny ("escape");
+  funny ("slash");
+  funny ("backslash");
+  funny ("semicolon");
+  funny ("delete");
+  funny ("page up");
+  funny ("page down");
+  funny ("home");
+  funny ("end");
+  funny ("insert");
+
+
+
+  int ii;
+  for (ii = 48; ii <= 57; ++ii) {
+    char const s[2] = {(char)ii, '\0'};
+    printf ("case %u: /* %c */ return GLFW_KEY_%c;\n", str_hash (s), ii, ii);
+    /*uint32_t   hash = str_hash (s);
+    printf ("%c = %u\n", (char)ii, hash);*/
+  }
+#endif
 
   state = (SGstate){0};
 
@@ -301,10 +362,32 @@ int main (int argc, char** argv) {
     glClear (GL_COLOR_BUFFER_BIT);
 
     glfwGetWindowSize (state.win, &W, &H);
-    float aspect1 = (float)W / (float)H;
-    float aspect2 = (float)state.width / (float)state.height;
-    float daspect = aspect1 / aspect2;
-    int   i;
+    float  aspect1 = (float)W / (float)H;
+    float  aspect2 = (float)state.width / (float)state.height;
+    float  daspect = aspect1 / aspect2;
+    double x, y;
+    glfwGetCursorPos (state.win, &x, &y);
+    y = -(y - H);
+    float fx, fy, fx2, fy2, fw, fh;
+    if (daspect > 1.0) {
+      fw = (float)W / daspect;
+      fh = H;
+      fx = ((float)W - fw) / 2.f;
+      fy = 0;
+    } else if (daspect < 1.0) {
+      fw = W;
+      fh = (float)H * daspect;
+      fx = 0;
+      fy = ((float)H - fh) / 2.f;
+    }
+    fx2        = (x - fx) / fw * state.width;
+    fy2        = (y - fy) / fh * state.height;
+    fx2        = floorf ((fx2 < 0) ? fx2 - 1.f : fx2);
+    fy2        = floorf ((fy2 < 0) ? fy2 - 1.f : fy2);
+    state.curx = fx2;
+    state.cury = fy2;
+
+    int i;
 
     if (sgCallGlobal (&sgscr, "onTick")) {
       exit (5);
@@ -345,6 +428,9 @@ int main (int argc, char** argv) {
     double _t = timeduration (timenow(), ls, milliseconds_e);
     fps       = fps * 0.95 + (1.0 / _t * 1000.0) * 0.05;
     if (frame % 180 == 0) {
+      /*printf ("x: %lf, y: %lf\n", x, y);
+      printf ("fx: %f, fy: %f\n", fx, fy);
+      printf ("fx2: %f, fy2: %f\n", fx2, fy2);*/
       /* printf ("FPS: %0.0lf\nCPU time: %0.03lfms\n", fps, cputime); */
     }
     delta = _t;

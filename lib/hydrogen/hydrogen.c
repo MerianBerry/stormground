@@ -32,6 +32,7 @@ See github at https://github.com/MerianBerry/hydrogen
 #define _XOPEN_SOURCE 700
 #define HYDROGEN_ALL
 #include <assert.h>
+#include <limits.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -39,27 +40,28 @@ See github at https://github.com/MerianBerry/hydrogen
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <limits.h>
 
 #ifdef _WIN32
 #  include <windows.h>
-#if !defined(PATH_MAX)
-#define PATH_MAX 256
-#endif
-typedef HANDLE(WINAPI *cwtexw)(LPSECURITY_ATTRIBUTES, LPCWSTR, DWORD, DWORD);
-static HMODULE k32 = NULL;
-static cwtexw CreateWaitableTimerExW = NULL;
+#  if !defined(PATH_MAX)
+#    define PATH_MAX 256
+#  endif
+typedef HANDLE (WINAPI *cwtexw) (LPSECURITY_ATTRIBUTES, LPCWSTR, DWORD, DWORD);
+static HMODULE k32                    = NULL;
+static cwtexw  CreateWaitableTimerExW = NULL;
 
 void h_loadWinAPI() {
   char s = !k32 || !CreateWaitableTimerExW;
   if (!k32)
-    k32 = GetModuleHandle(TEXT("kernel32.dll"));
-  assert(k32 && "Failed to load kernel32.dll");
+    k32 = GetModuleHandle (TEXT ("kernel32.dll"));
+  assert (k32 && "Failed to load kernel32.dll");
   if (!CreateWaitableTimerExW)
-    CreateWaitableTimerExW = (cwtexw)GetProcAddress(k32, "CreateWaitableTimerExW");
-  assert (CreateWaitableTimerExW && "Failed to load CreateWaitableTimerExW from kernel32.dll");
+    CreateWaitableTimerExW =
+        (cwtexw)GetProcAddress (k32, "CreateWaitableTimerExW");
+  assert (CreateWaitableTimerExW &&
+          "Failed to load CreateWaitableTimerExW from kernel32.dll");
   if (s) {
-    printf("Loaded kernel32.dll and CreateWaitableTimerExW\n");
+    printf ("Loaded kernel32.dll and CreateWaitableTimerExW\n");
   }
 }
 #else
@@ -80,9 +82,9 @@ void h_loadWinAPI() {
 
 #pragma region "TIME"
 #if defined(_WIN32)
-#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
-#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
-#endif
+#  ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#    define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#  endif
 /* Windows sleep in 100ns units */
 BOOLEAN _nanosleep (LONGLONG ns) {
   h_loadWinAPI();
@@ -91,7 +93,9 @@ BOOLEAN _nanosleep (LONGLONG ns) {
   HANDLE        timer; /* Timer handle */
   LARGE_INTEGER li; /* Time defintion */
   /* Create timer */
-  if (!(timer = CreateWaitableTimerExW (NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS)))
+  if (!(timer = CreateWaitableTimerExW (NULL, NULL,
+                                        CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+                                        TIMER_ALL_ACCESS)))
     return FALSE;
   /* Set timer properties */
   li.QuadPart = -ns;
@@ -127,9 +131,12 @@ h_timepoint timenow() {
 
 void microsleep (long usec) {
 #ifdef __unix__
-  usleep (usec);
+  timespec_t t = {0};
+  t.tv_sec     = usec / 1000000;
+  t.tv_nsec    = (usec % 1000000) * 1000;
+  nanosleep (&t, &t);
 #elif defined(_WIN32)
-  _nanosleep(usec*1000);
+  _nanosleep (usec * 1000);
 #endif
 }
 
@@ -155,7 +162,7 @@ void wait (double seconds) {
     nanosleep (&ts, &tsr);
   }
 #elif defined(_WIN32)
-  waitms(seconds*1000.0);
+  waitms (seconds * 1000.0);
 #endif
 }
 
@@ -169,14 +176,16 @@ void waitms (double ms) {
     ;
 #elif defined(_WIN32)
   LARGE_INTEGER li;
-  QueryPerformanceCounter(&li);
+  QueryPerformanceCounter (&li);
   LARGE_INTEGER lf;
-  QueryPerformanceFrequency(&lf);
+  QueryPerformanceFrequency (&lf);
   while (1) {
     LARGE_INTEGER li2;
-    QueryPerformanceCounter(&li2);
-    if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 > ms) break;
-    _nanosleep(1000);
+    QueryPerformanceCounter (&li2);
+    if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 >
+        ms)
+      break;
+    _nanosleep (1000);
   }
 #endif
 }
@@ -282,9 +291,9 @@ size_t str_fli (char const *str, char const *cmp) {
   return npos;
 }
 
-unsigned long str_hash (char const *str) {
-  unsigned long hash = 5381;
-  int           c;
+unsigned int str_hash (char const *str) {
+  unsigned int hash = 5381;
+  int          c;
 
   while (c = *(str++)) hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
@@ -371,33 +380,49 @@ char *str_colorfmtv (char const *src, va_list args) {
     if (p == npos)
       break;
     if (((p > 0 && cpy[p - 1] != '\\') || !p) && cpy[p + 2] == '(') {
-      size_t eb    = str_ffo (cpy + p, ')') + p;
-      char  *color = (char *)str_substr (cpy, p + 3, eb - (p + 3));
+      size_t color_desc_start = p + 3;
+      size_t eb               = str_ffo (cpy + p, ')') + p;
+      if (eb == npos)
+        break;
+      int    color_code = 0;
+      size_t ground_desc =
+          (!str_ffi (cpy + color_desc_start, "fg_"))
+              ? 1
+              : (!str_ffi (cpy + color_desc_start, "bg_") ? 0 : npos);
+      char is_bright = 0;
+      if (!ground_desc)
+        color_code += 10;
+      is_bright = (str_ffi (cpy + color_desc_start + 3 * (ground_desc != npos),
+                            "bright_") == 0);
+      color_code += 60 * is_bright;
+      size_t color_offset = 3 * (ground_desc != npos) + 7 * is_bright;
+      char  *color = (char *)str_substr (cpy, color_desc_start + color_offset,
+                                         eb - (color_desc_start + color_offset));
       if (color) {
         char *ocolor = NULL;
         switch (str_hash (color)) {
-        case 210707760194U: ocolor = "\x1B[30m"; break;
-        case 14928609233751675713U: ocolor = "\x1B[90m"; break;
-        case 193504576U: ocolor = "\x1B[31m"; break;
-        case 8246139787930773631U: ocolor = "\x1B[91m"; break;
-        case 210713909846U: ocolor = "\x1B[32m"; break;
-        case 14928609233757825365U: ocolor = "\x1B[92m"; break;
-        case 6954248304353U: ocolor = "\x1B[33m"; break;
-        case 13028758798249174464U: ocolor = "\x1B[93m"; break;
-        case 6385084301U: ocolor = "\x1B[34m"; break;
-        case 13868195969781240492U: ocolor = "\x1B[94m"; break;
-        case 229474533704194U: ocolor = "\x1B[35m"; break;
-        case 5673926631242730689U: ocolor = "\x1B[95m"; break;
-        case 6385133744U: ocolor = "\x1B[36m"; break;
-        case 13868195969781289935U: ocolor = "\x1B[96m"; break;
-        case 210726503048: ocolor = "\x1B[0m"; break;
+        case 254362690U: color_code += 30; break; /* black */
+        case 193504576U: color_code += 31; break; /* red */
+        case 260512342U: color_code += 32; break; /* green */
+        case 696252129U: color_code += 33; break; /* yellow */
+        case 2090117005U: color_code += 34; break; /* blue */
+        case 3021013506U: color_code += 35; break; /* magenta */
+        case 2090166448U: color_code += 36; break; /* cyan */
+        case 279132550U: color_code += 36; break; /* white */
+        case 273105544U:
+          (!ground_desc)
+              ? color_code = 49
+              : ((ground_desc == 1) ? color_code = 39 : (color_code = 0));
+          break; /* reset */
         }
+        ocolor = str_fmt ("\033[%im", color_code);
         if (!ocolor) {
-          printf ("\x1B[91mInvalid color name used. %s\n\x1B[0m", color);
+          printf ("\033[91mInvalid color name used. %s\n\033[0m", color);
           ocolor = "";
         }
         free (color);
         cpy = str_replace (cpy, p, eb - p + 1, ocolor);
+        free (ocolor);
       }
     }
     ++itr;
@@ -535,7 +560,7 @@ int errorfv (char const *fmt, va_list args) {
   str = str_colorfmtv (str2, args);
   free ((void *)str2);
 #elif defined(_WIN32)
-  char *str   = (char *)str_fmtv (fmt, args);
+  char *str = (char *)str_fmtv (fmt, args);
 #endif
   if (!str) {
     r = 0;
@@ -920,22 +945,22 @@ cleanup:
   return NULL;
 }*/
 
-char *io_fullpath(const char *path) {
-  #if defined(_WIN32)
-  char fpath[PATH_MAX];
-  char *_fpath = _fullpath(fpath, path, PATH_MAX);
-  return (char*)str_cpy(_fpath, PATH_MAX);
-  #elif defined(__unix__)
-  return realpath(path, NULL);
-  #endif
+char *io_fullpath (char const *path) {
+#if defined(_WIN32)
+  char  fpath[PATH_MAX];
+  char *_fpath = _fullpath (fpath, path, PATH_MAX);
+  return (char *)str_cpy (_fpath, PATH_MAX);
+#elif defined(__unix__)
+  return realpath (path, NULL);
+#endif
 }
 
-int io_changedir(const char *path) {
-  #if defined(_WIN32)
-  return !SetCurrentDirectory(path);
-  #elif defined(__unix__)
+int io_changedir (char const *path) {
+#if defined(_WIN32)
+  return !SetCurrentDirectory (path);
+#elif defined(__unix__)
   return chdir (path);
-  #endif
+#endif
 }
 
 char *io_fixhome (char const *path) {
@@ -1109,20 +1134,12 @@ int maxi (int x, int y) { return (x > y) ? x : y; }
 
 int clampi (int x, int y, int z) { return (x < y) ? y : ((x > z) ? z : x); }
 
-char signf(float x) {
-  return (x>0)*2 - 1;
-}
+char signf (float x) { return (x > 0) * 2 - 1; }
 
-float floorf(float x) {
-  return (float)(int)x;
-}
+float floorf (float x) { return (float)(int)x; }
 
-float ceilf(float x) {
-  return (float)(int)(x+.99999f);
-}
+float ceilf (float x) { return (float)(int)(x + .99999f); }
 
-float roundf(float x) {
-  return (float)(int)(x+0.5f);
-}
+float roundf (float x) { return (float)(int)(x + 0.5f); }
 
 #pragma endregion "MATH"

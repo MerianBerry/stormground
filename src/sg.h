@@ -5,9 +5,9 @@
 #define HYDROGEN_ALL
 #include "hydrogen/hydrogen.h"
 
-#define SG_MAJOR 0
-#define SG_MINOR 1
-#define SG_VERNAME "beta.0.1"
+#define SG_MAJOR   0
+#define SG_MINOR   1
+#define SG_VERNAME "beta.0.1.2"
 
 #define binary(name)                                   \
   extern char        _binary_shaders_##name##_start[]; \
@@ -89,6 +89,8 @@ typedef struct SGstate {
   int         runstate;
   int         width;
   int         height;
+  int         curx;
+  int         cury;
   SGcolor     col;
   float       delta;
   char        keys[GLFW_KEY_LAST];

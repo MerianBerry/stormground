@@ -139,122 +139,81 @@ Sets the draw color of any shapes from the call of the function, and then on. If
 
 ### API key names
 
-`0-9` zero to nine
+- `0-9` zero to nine
+- `A-Z` OR `a-z` (can be upper or lower case), a to z
+- `lshift` left shift
+- `rshift` right shift
+- `lcontrol` left control
+- `lalt` left alt
+- `ralt` right alt
+- `lbracket` left bracket
+- `rbracket` right bracket
+- `space` space
+- `backspace` backspace
+- `tab` tab
+- `enter` enter
+- `minus` minus sign
+- `equal` equals sign
+- `up` up arrow
+- `down` down arrow
+- `left` left arrow
+- `right` right arrow
+- `comma` comma
+- `period` period
+- `escape` escape
+- `slash` slash
+- `backslash` backslash
+- `semicolon` semicolon
+- `delete` delete
+- `page up` page up
+- `page down` page down
+- `home` home
+- `end` end
+- `insert` insert
 
-`A-Z` OR `a-z` (can be upper or lower case), a to z
+### API button name
 
-`lshift` left shift
-
-`rshift` right shift
-
-`lcontrol` left control
-
-`lalt` left alt
-
-`ralt` right alt
-
-`lbracket` left bracket
-
-`rbracket` right bracket
-
-`space` space
-
-`backspace` backspace
-
-`tab` tab
-
-`enter` enter
-
-`minus` minus sign
-
-`equal` equals sign
-
-`up` up arrow
-
-`down` down arrow
-
-`left` left arrow
-
-`right` right arrow
-
-`comma` comma
-
-`period` period
-
-`escape` escape
-
-`slash` slash
-
-`backslash` backslash
-
-`semicolon` semicolon
-
-`delete` delete
-
-`page up` page up
-
-`page down` page down
-
-`home` home
-
-`end` end
-
-`insert` insert
-
-### API button names
-
-`left` left mouse button
-
-`right` right mouse button
-
-`middle` middle mouse button
-
-`button1` mouse button 1
-
-`button2` mouse button 2
-
-`button3` mouse button 3
-
-`button4` mouse button 4
-
-`button5` mouse button 5
-
-`button6` mouse button 6
-
-`button7` mouse button 7
-
-`button8` mouse button 8
+- `left` left mouse button
+- `right` right mouse button
+- `middle` middle mouse button
+- `button1` mouse button 1
+- `button2` mouse button 2
+- `button3` mouse button 3
+- `button4` mouse button 4
+- `button5` mouse button 5
+- `button6` mouse button 6
+- `button7` mouse button 7
+- `button8` mouse button 8
 
 ### API gamepad table
 
-`name` field (string): Name of the gamepad (will be `nil` if error occurs).
+- `name` field (string): Name of the gamepad (will be `nil` if error occurs).
 
-`axes` field (table): Table with the accessable axes.
+- `axes` field (table): Table with the accessable axes.
 
-- `rightTrigger` field (number): Right trigger axis.
-- `leftTrigger` field (number): Left trigger axis.
-- `leftX` field (number): Left joystick X axis.
-- `leftY` field (number): Left joystick Y axis.
-- `rightX` field (number): Right joystick X axis.
-- `rightY` field (number): Right joystick Y axis.
+  - `rightTrigger` field (number): Right trigger axis.
+  - `leftTrigger` field (number): Left trigger axis.
+  - `leftX` field (number): Left joystick X axis.
+  - `leftY` field (number): Left joystick Y axis.
+  - `rightX` field (number): Right joystick X axis.
+  - `rightY` field (number): Right joystick Y axis.
 
-`buttons` field (table): Table with the accessable buttons.
+- `buttons` field (table): Table with the accessable buttons.
 
-(button fields hold `pressed`, `released`, `held` or `not pressed`, just like return values of the `getKey` and `getButton` functions)
+  - `a` field (string): A/Cross button.
+  - `b` field (string): B/Circle button.
+  - `x` field (string): X/Square button.
+  - `y` field (string): Y/Triangle button.
+  - `leftBumper` field (string): Left bumper button.
+  - `rightBumber` field (string): Right bumper button.
+  - `back` field (string): Back/Share button.
+  - `start` field (string): Start/Options button.
+  - `guide` field (string): Guide/PS button.
+  - `leftThumb` field (string): Left Joystick/Thumbstick button.
+  - `rightThumb` field (string): Right Joystick/Thumbstick button.
+  - `dpadUp` field (string): DPAD up button.
+  - `dpadRight` field (string): DPAD right button.
+  - `dpadDown` field (string): DPAD down button.
+  - `dpadLeft` field (string): DPAD left button.
 
-- `a` field (string): A/Cross button.
-- `b` field (string): B/Circle button.
-- `x` field (string): X/Square button.
-- `y` field (string): Y/Triangle button.
-- `leftBumper` field (string): Left bumper button.
-- `rightBumber` field (string): Right bumper button.
-- `back` field (string): Back/Share button.
-- `start` field (string): Start/Options button.
-- `guide` field (string): Guide/PS button.
-- `leftThumb` field (string): Left Joystick/Thumbstick button.
-- `rightThumb` field (string): Right Joystick/Thumbstick button.
-- `dpadUp` field (string): DPAD up button.
-- `dpadRight` field (string): DPAD right button.
-- `dpadDown` field (string): DPAD down button.
-- `dpadLeft` field (string): DPAD left button.
-
+Button fields hold `pressed`, `released`, `held` or `not pressed`, just like return values of the `getKey` and `getButton` functions

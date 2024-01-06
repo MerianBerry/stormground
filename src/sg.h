@@ -7,7 +7,7 @@
 
 #define SG_MAJOR   0
 #define SG_MINOR   1
-#define SG_VERNAME "beta.0.1.2"
+#define SG_VERNAME "beta.0.2"
 
 #define binary(name)                                   \
   extern char        _binary_shaders_##name##_start[]; \
@@ -46,6 +46,10 @@ typedef struct SGtexture {
   int      format;
   int      w;
   int      h;
+  short    min_filt;
+  short    mag_filt;
+  short    wrap_s;
+  short    wrap_t;
 } SGtexture;
 
 typedef struct SGtriangle {
@@ -98,5 +102,5 @@ typedef struct SGstate {
 } SGstate;
 
 enum {
-  runstate_stop = 1,
+  SG_RUNSTATE_STOP = 1,
 };

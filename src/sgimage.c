@@ -115,10 +115,14 @@ int sgGenTextures2D (int min_filter, int mag_filter, int wrap_s, int wrap_t,
     glTextureParameteri (texv[i], GL_TEXTURE_WRAP_S, wrap_s);
     glTextureParameteri (texv[i], GL_TEXTURE_WRAP_T, wrap_t);
     glTextureStorage2D (texv[i], 1, format, w, h);
-    texturev[i].tex    = texv[i];
-    texturev[i].w      = w;
-    texturev[i].h      = h;
-    texturev[i].format = format;
+    texturev[i].tex      = texv[i];
+    texturev[i].w        = w;
+    texturev[i].h        = h;
+    texturev[i].format   = format;
+    texturev[i].min_filt = min_filter;
+    texturev[i].mag_filt = mag_filter;
+    texturev[i].wrap_s   = wrap_s;
+    texturev[i].wrap_t   = wrap_t;
   }
   return 1;
 }
@@ -129,4 +133,23 @@ void sgBindTexture (SGtexture tex, int rw) {
 
 void sgUnbindTexture (void) {
   glBindImageTexture (0, 0, 0, 0, 0, GL_READ_ONLY, 0);
+}
+
+void sgRegenerateTexture (SGtexture *tex) {
+  glBindImageTexture (0, 0, 0, 0, 0, GL_READ_ONLY, 0);
+
+  sgFreeTextures (tex, 1);
+  glCreateTextures (GL_TEXTURE_2D, 1, &tex->tex);
+  glTextureParameteri (tex->tex, GL_TEXTURE_MIN_FILTER, tex->min_filt);
+  glTextureParameteri (tex->tex, GL_TEXTURE_MAG_FILTER, tex->mag_filt);
+  glTextureParameteri (tex->tex, GL_TEXTURE_WRAP_S, tex->wrap_s);
+  glTextureParameteri (tex->tex, GL_TEXTURE_WRAP_T, tex->wrap_t);
+  glTextureStorage2D (tex->tex, 1, tex->format, tex->w, tex->h);
+}
+
+void sgFreeTextures (SGtexture *texv, int texc) {
+  int i;
+  for (i = 0; i < texc; ++i) {
+    glDeleteTextures (1, &texv->tex);
+  }
 }

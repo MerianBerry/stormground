@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "sgcallbacks.h"
+#include "sgimage.h"
 
 #include "lua-5.4.6/src/luaconf.h"
 #include "lua-5.4.6/src/lauxlib.h"
@@ -128,35 +129,34 @@ int strToButtonCode (char const* str) {
   }
 }
 
-int l_getdelta (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+#define CommonAPIHeader(state)                          \
+  lua_getglobal ((state), "__SGSTATE");                 \
+  SGstate* sgs = (SGstate*)lua_tointeger ((state), -1); \
+  lua_pop ((state), 1)
+
+/*           INPUT API           */
+
+int l_getDelta (lua_State* L) {
+  CommonAPIHeader (L);
   lua_pushnumber (L, sgs->delta);
   return 1;
 }
 
-int l_gettime (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+int l_getTime (lua_State* L) {
+  CommonAPIHeader (L);
   lua_pushnumber (L, sgs->time);
   return 1;
 }
 
 int l_getCursor (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+  CommonAPIHeader (L);
   lua_pushnumber (L, (double)sgs->curx);
   lua_pushnumber (L, (double)sgs->cury);
   return 2;
 }
 
 int l_getKey (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+  CommonAPIHeader (L);
   if (lua_type (L, -1) != LUA_TSTRING) {
     errorf ("Argument to getKey is not a string\n");
     lua_pushstring (L, "Argument to getButton is not a string");
@@ -181,11 +181,8 @@ int l_getKey (lua_State* L) {
 }
 
 int l_getButton (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+  CommonAPIHeader (L);
   if (lua_type (L, -1) != LUA_TSTRING) {
-    errorf ("Argument to getButton is not a string\n");
     lua_pushstring (L, "Argument to getButton is not a string");
     lua_error (L);
     return 1;
@@ -207,10 +204,51 @@ int l_getButton (lua_State* L) {
   return 1;
 }
 
-int l_drawtriangle (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+int l_getScreen (lua_State* L) {
+  CommonAPIHeader (L);
+  lua_pushnumber (L, (double)sgs->width);
+  lua_pushnumber (L, (double)sgs->height);
+  return 2;
+}
+
+/*            OUTPUT API             */
+
+int l_close (lua_State* L) {
+  CommonAPIHeader (L);
+  sgs->runstate = SG_RUNSTATE_STOP;
+  return 0;
+}
+
+int l_setScreen (lua_State* L) {
+  CommonAPIHeader (L);
+  int   i;
+  float vs[2] = {0};
+  for (i = 1; i <= 2; ++i) {
+    if (lua_type (L, -1) != LUA_INT_TYPE) {
+      lua_pushstring (L,
+                      "Expected 2 integer types as arguments to "
+                      "stormground.setScreen\n");
+      lua_error (L);
+      return 1;
+    }
+    vs[2 - i] = lua_tonumber (L, -1);
+    lua_pop (L, 1);
+  }
+  vs[0]      = clampf (vs[0], 6.f, 960.f);
+  vs[1]      = clampf (vs[1], 6.f, 540.f);
+  sgs->mon.w = (int)vs[0];
+  sgs->mon.h = (int)vs[1];
+  sgRegenerateTexture (&sgs->mon);
+  sgBindTexture (sgs->mon, GL_READ_WRITE);
+  sgs->width  = (int)vs[0];
+  sgs->height = (int)vs[1];
+  return 0;
+}
+
+/*            DRAWING API            */
+
+int l_drawTriangle (lua_State* L) {
+  CommonAPIHeader (L);
   int   i;
   float vs[6] = {0};
   for (i = 1; i <= 6; ++i) {
@@ -230,7 +268,7 @@ int l_drawtriangle (lua_State* L) {
     vs[i] = (vs[i]);
   }
   for (i = 1; i < 6; i += 2) {
-    vs[i] = sgs->height - (vs[i]);
+    vs[i] = (vs[i]);
   }
   SGprimitive t                      = {0};
   t.t                                = SG_PRIMITIVE_TRIANGLE;
@@ -248,10 +286,8 @@ int l_drawtriangle (lua_State* L) {
   return 0;
 }
 
-int l_drawrectangle (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+int l_drawRectangle (lua_State* L) {
+  CommonAPIHeader (L);
   int   i;
   float vs[4] = {0};
   for (i = 1; i <= 4; ++i) {
@@ -270,9 +306,9 @@ int l_drawrectangle (lua_State* L) {
   /*vs[2] += .001;
   vs[3] += .001;*/
   vs[2]                              = (vs[0] + vs[2]);
-  vs[3]                              = (float)sgs->height - (vs[1] + vs[3]);
+  vs[3]                              = (vs[1] + vs[3]);
   vs[0]                              = (vs[0]);
-  vs[1]                              = ((float)sgs->height - vs[1]);
+  vs[1]                              = (vs[1]);
   SGprimitive r                      = {0};
   r.t                                = SG_PRIMITIVE_RECT;
   r.c[0]                             = (float)sgs->col.r / 255.f;
@@ -287,10 +323,8 @@ int l_drawrectangle (lua_State* L) {
   return 0;
 }
 
-int l_setcolor (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+int l_setColor (lua_State* L) {
+  CommonAPIHeader (L);
   int i;
   int cs[3] = {0};
   for (i = 1; i <= 3; ++i) {
@@ -307,49 +341,58 @@ int l_setcolor (lua_State* L) {
   return 0;
 }
 
+#define CommonAPIFun(L, i, name)     \
+  lua_pushcfunction ((L), l_##name); \
+  lua_setfield ((L), (i), #name)
+
 int sgPrepState (SGscript* script, SGstate* sgs) {
-  script->L = luaL_newstate();
-  luaL_openlibs (script->L);
+  script->L    = luaL_newstate();
+  lua_State* L = script->L;
+  luaL_openlibs (L);
 
-  lua_getglobal (script->L, "os");
-  lua_pushnil (script->L);
-  lua_setfield (script->L, -2, "execute");
-  lua_pushnil (script->L);
-  lua_setfield (script->L, -2, "exit");
-  lua_pop (script->L, 1);
-  lua_pushnil (script->L);
-  lua_setglobal (script->L, "assert");
+  lua_getglobal (L, "os");
+  lua_pushnil (L);
+  lua_setfield (L, -2, "execute");
+  lua_pushnil (L);
+  lua_setfield (L, -2, "exit");
+  lua_pop (L, 1);
+  lua_pushnil (L);
+  lua_setglobal (L, "assert");
 
-  lua_createtable (script->L, 0, 1);
+  lua_createtable (L, 0, 1);
 
-  lua_pushinteger (script->L, (intptr_t)sgs);
-  lua_setglobal (script->L, "__SGSTATE");
+  lua_pushinteger (L, (intptr_t)sgs);
+  lua_setglobal (L, "__SGSTATE");
 
-  lua_pushcfunction (script->L, l_getdelta);
-  lua_setfield (script->L, -2, "getDelta");
 
-  lua_pushcfunction (script->L, l_gettime);
-  lua_setfield (script->L, -2, "getTime");
+  /* INPUT API */
+  CommonAPIFun (L, -2, getDelta);
 
-  lua_pushcfunction (script->L, l_getCursor);
-  lua_setfield (script->L, -2, "getCursor");
+  CommonAPIFun (L, -2, getTime);
 
-  lua_pushcfunction (script->L, l_getKey);
-  lua_setfield (script->L, -2, "getKey");
+  CommonAPIFun (L, -2, getCursor);
 
-  lua_pushcfunction (script->L, l_getButton);
-  lua_setfield (script->L, -2, "getButton");
+  CommonAPIFun (L, -2, getKey);
 
-  lua_pushcfunction (script->L, l_drawtriangle);
-  lua_setfield (script->L, -2, "drawTriangle");
+  CommonAPIFun (L, -2, getButton);
 
-  lua_pushcfunction (script->L, l_drawrectangle);
-  lua_setfield (script->L, -2, "drawRectangle");
+  CommonAPIFun (L, -2, getScreen);
 
-  lua_pushcfunction (script->L, l_setcolor);
-  lua_setfield (script->L, -2, "setColor");
+  /* OUTPUT API */
 
-  lua_setglobal (script->L, "stormground");
+  CommonAPIFun (L, -2, close);
+
+  CommonAPIFun (L, -2, setScreen);
+
+  /* DRAWING API */
+
+  CommonAPIFun (L, -2, drawTriangle);
+
+  CommonAPIFun (L, -2, drawRectangle);
+
+  CommonAPIFun (L, -2, setColor);
+
+  lua_setglobal (L, "stormground");
   return SG_API_OK;
 }
 

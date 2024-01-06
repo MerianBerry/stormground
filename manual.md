@@ -1,6 +1,6 @@
 <h1>
   <center>
-  Stormground manual (beta.0.1.2)
+  Stormground manual (beta.0.2)
   </center>
 </h1>
 
@@ -37,9 +37,9 @@ You are able to set some settings for the program using `project.json`, which is
 
 Your settings available is:
 
-`monitorWidth`: 1 < integer < 1080 : Defines the width of the "monitor", or the emulated display for the program.
+`monitorWidth`: 1 < integer < 960 : Defines the width of the "monitor", or the emulated display for the program.
 
-`monitorHeight`: 1 < integer < 1080 : Defines the height of the "monitor", or the emulated display for the program.
+`monitorHeight`: 1 < integer < 540 : Defines the height of the "monitor", or the emulated display for the program.
 
 `name`: string : Defines the name of the project. Isn't used for anything despite the name of the window created.
 

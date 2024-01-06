@@ -351,9 +351,9 @@ int main (int argc, char** argv) {
   double      fps     = 0.0;
   while (1) {
     if (glfwWindowShouldClose (state.win)) {
-      state.runstate = runstate_stop;
+      state.runstate = SG_RUNSTATE_STOP;
     }
-    if (state.runstate == runstate_stop)
+    if (state.runstate == SG_RUNSTATE_STOP)
       break;
 
     ++frame;
@@ -367,7 +367,7 @@ int main (int argc, char** argv) {
     float  daspect = aspect1 / aspect2;
     double x, y;
     glfwGetCursorPos (state.win, &x, &y);
-    y = -(y - H);
+    /* y = -(y - H); */
     float fx, fy, fx2, fy2, fw, fh;
     if (daspect > 1.0) {
       fw = (float)W / daspect;

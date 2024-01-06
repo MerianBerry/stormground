@@ -324,7 +324,7 @@ char *str_fmt (char const *fmt, ...) {
   return msg;
 }
 
-char const *str_cpy (char const *src, size_t bytes) {
+char *str_cpy (char const *src, size_t bytes) {
   size_t len = MIN (strlen (src), bytes);
   char  *cpy = malloc (len + 1);
   memset (cpy, 0, len + 1);
@@ -601,6 +601,31 @@ int warningf (char const *fmt, ...) {
   va_list args;
   va_start (args, fmt);
   int r = warningfv (fmt, args);
+  va_end (args);
+  return r;
+}
+
+int notefv (char const *fmt, va_list args) {
+  int   r    = 1;
+  char *str  = str_append ("&c(bright_magenta)", fmt, npos);
+  char *str2 = str_append (str, "&c(reset)", npos);
+  free (str);
+  str = str_colorfmtv (str2, args);
+  free ((void *)str2);
+  if (!str) {
+    r = 0;
+    goto notefEnd;
+  }
+  fprintf (stderr, "%s", str);
+  free ((void *)str);
+notefEnd:
+  return r;
+}
+
+int notef (char const *fmt, ...) {
+  va_list args;
+  va_start (args, fmt);
+  int r = notefv (fmt, args);
   va_end (args);
   return r;
 }

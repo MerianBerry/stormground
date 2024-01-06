@@ -9,6 +9,8 @@ enum {
   SG_RELEASE,
 };
 
+void sgSetCallbackState(SGstate *state);
+
 void sgFramebufSizeCallback(GLFWwindow *win, int width, int height);
 
 void sgMouseButtonCallback(GLFWwindow *win, int button, int action, int mods);
@@ -17,4 +19,8 @@ void sgKeyCallback(GLFWwindow *win, int key, int scancode, int action, int mods)
 
 void sgScrollCallback(GLFWwindow *win, double x, double y);
 
-void sgAdvanceInputs(SGstate *state);
+/* void sgJoystickCallback(int jid, int event); */
+
+int sgNumActiveGamepads();
+
+void sgAdvanceInputs();

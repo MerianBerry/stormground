@@ -28,3 +28,7 @@ int sgGenTextures2D (int min_filter, int mag_filter, int wrap_s, int wrap_t,
 void sgBindTexture (SGtexture tex, int rw);
 
 void sgUnbindTexture (void);
+
+void sgRegenerateTexture(SGtexture *tex);
+
+void sgFreeTextures(SGtexture *texv, int texc);

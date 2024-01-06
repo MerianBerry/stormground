@@ -7,7 +7,7 @@
 
 #define SG_MAJOR   0
 #define SG_MINOR   1
-#define SG_VERNAME "beta.0.1.2"
+#define SG_VERNAME "beta.0.2"
 
 #define binary(name)                                   \
   extern char        _binary_shaders_##name##_start[]; \
@@ -46,6 +46,10 @@ typedef struct SGtexture {
   int      format;
   int      w;
   int      h;
+  short    min_filt;
+  short    mag_filt;
+  short    wrap_s;
+  short    wrap_t;
 } SGtexture;
 
 typedef struct SGtriangle {
@@ -76,6 +80,13 @@ typedef struct SSBO {
   SGprimitive primv[0xffff];
 } SSBO;
 
+typedef struct Gamepad {
+  GLFWgamepadstate gstate;
+  char             buttons[GLFW_GAMEPAD_BUTTON_LAST + 1];
+  char*            name;
+  char             connected;
+} Gamepad;
+
 typedef struct SGstate {
   SGtexture   mon;
   GLFWwindow* win;
@@ -91,12 +102,15 @@ typedef struct SGstate {
   int         height;
   int         curx;
   int         cury;
+  int         scrollx;
+  int         scrolly;
   SGcolor     col;
   float       delta;
   char        keys[GLFW_KEY_LAST];
   char        buttons[GLFW_MOUSE_BUTTON_LAST];
+  Gamepad     gpads[GLFW_JOYSTICK_LAST+1];
 } SGstate;
 
 enum {
-  runstate_stop = 1,
+  SG_RUNSTATE_STOP = 1,
 };

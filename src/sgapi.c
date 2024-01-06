@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "sgcallbacks.h"
+#include "sgimage.h"
 
 #include "lua-5.4.6/src/luaconf.h"
 #include "lua-5.4.6/src/lauxlib.h"
@@ -128,35 +129,69 @@ int strToButtonCode (char const* str) {
   }
 }
 
-int l_getdelta (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+char* sgStateToString (char state) {
+  switch (state) {
+  case SG_PRESS: return str_cpy ("pressed", npos);
+  case SG_RELEASE: return str_cpy ("released", npos);
+  case SG_HOLD: return str_cpy ("held", npos);
+  case SG_NOHOLD: return str_cpy ("not pressed", npos);
+  default: return NULL;
+  }
+}
+
+int sgRealGamepadID (SGstate* sgs, int fakeID) {
+  int i;
+  int n = 0;
+  for (i = 0; i < GLFW_JOYSTICK_LAST + 1; ++i) {
+    if (sgs->gpads[i].connected) {
+      ++n;
+      if (n == fakeID)
+        return i;
+    }
+  }
+  return -1;
+}
+
+void sgPushAndSetGPButton (lua_State* L, Gamepad gp, int tbind, int glfwID,
+                           char const* name) {
+  char* str = sgStateToString (gp.buttons[glfwID]);
+  if (!str) {
+    lua_pushnil (L);
+  } else {
+    lua_pushstring (L, str);
+    free (str);
+  }
+  lua_setfield (L, tbind, name);
+}
+
+#define CommonAPIHeader(state)                          \
+  lua_getglobal ((state), "__SGSTATE");                 \
+  SGstate* sgs = (SGstate*)lua_tointeger ((state), -1); \
+  lua_pop ((state), 1)
+
+/*           INPUT API           */
+
+int l_getDelta (lua_State* L) {
+  CommonAPIHeader (L);
   lua_pushnumber (L, sgs->delta);
   return 1;
 }
 
-int l_gettime (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+int l_getTime (lua_State* L) {
+  CommonAPIHeader (L);
   lua_pushnumber (L, sgs->time);
   return 1;
 }
 
 int l_getCursor (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+  CommonAPIHeader (L);
   lua_pushnumber (L, (double)sgs->curx);
   lua_pushnumber (L, (double)sgs->cury);
   return 2;
 }
 
 int l_getKey (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+  CommonAPIHeader (L);
   if (lua_type (L, -1) != LUA_TSTRING) {
     errorf ("Argument to getKey is not a string\n");
     lua_pushstring (L, "Argument to getButton is not a string");
@@ -167,13 +202,15 @@ int l_getKey (lua_State* L) {
   lua_pop (L, 1);
   int code = strToKeyCode (str);
   if (code >= 0) {
-    char state = sgs->keys[code];
-    switch (state) {
-    case SG_PRESS: lua_pushstring (L, "pressed"); return 1;
-    case SG_RELEASE: lua_pushstring (L, "released"); return 1;
-    case SG_HOLD: lua_pushstring (L, "held"); return 1;
-    case SG_NOHOLD: lua_pushstring (L, "not pressed"); return 1;
-    default: return 0;
+    char  state = sgs->keys[code];
+    char* str   = sgStateToString (state);
+    if (str) {
+      lua_pushstring (L, str);
+      free (str);
+      return 1;
+    } else {
+      lua_pushnil (L);
+      return 1;
     }
   }
   lua_pushnil (L);
@@ -181,11 +218,8 @@ int l_getKey (lua_State* L) {
 }
 
 int l_getButton (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+  CommonAPIHeader (L);
   if (lua_type (L, -1) != LUA_TSTRING) {
-    errorf ("Argument to getButton is not a string\n");
     lua_pushstring (L, "Argument to getButton is not a string");
     lua_error (L);
     return 1;
@@ -194,23 +228,156 @@ int l_getButton (lua_State* L) {
   lua_pop (L, 1);
   int code = strToButtonCode (str);
   if (code >= 0) {
-    char state = sgs->buttons[code];
-    switch (state) {
-    case SG_PRESS: lua_pushstring (L, "pressed"); return 1;
-    case SG_RELEASE: lua_pushstring (L, "released"); return 1;
-    case SG_HOLD: lua_pushstring (L, "held"); return 1;
-    case SG_NOHOLD: lua_pushstring (L, "not pressed"); return 1;
-    default: return 0;
+    char  state = sgs->buttons[code];
+    char* str   = sgStateToString (state);
+    if (str) {
+      lua_pushstring (L, str);
+      free (str);
+      return 1;
+    } else {
+      lua_pushnil (L);
+      return 1;
     }
   }
   lua_pushnil (L);
   return 1;
 }
 
-int l_drawtriangle (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
+int l_getGamepad (lua_State* L) {
+  CommonAPIHeader (L);
+  if (lua_type (L, -1) != LUA_INT_TYPE) {
+    lua_pushstring (
+        L, "stormground.getGamepad expects an integer type argument\n");
+    lua_error (L);
+    return 1;
+  }
+  float id = lua_tonumber (L, -1);
   lua_pop (L, 1);
+  if ((int)id < 0 || (int)id > sgNumActiveGamepads()) {
+    id = -1;
+  }
+  int     realid = (id < 0) ? -1 : sgRealGamepadID (sgs, (int)id);
+  Gamepad gp     = (realid < 0) ? (Gamepad){0} : sgs->gpads[realid];
+  lua_createtable (L, 0, 1); /* gamepad */
+
+  lua_createtable (L, 0, 1); /* axes */
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
+  lua_setfield (L, -2, "leftY");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
+  lua_setfield (L, -2, "leftX");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
+  lua_setfield (L, -2, "rightY");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]);
+  lua_setfield (L, -2, "rightX");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER]);
+  lua_setfield (L, -2, "leftTrigger");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]);
+  lua_setfield (L, -2, "rightTrigger");
+
+  lua_setfield (L, -2, "axes"); /* end axes */
+
+  lua_createtable (L, 0, 1); /* buttons */
+
+  /* right hand side buttons */
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_A, "a");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_B, "b");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_X, "x");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_Y, "y");
+
+  /* bumpers */
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_LEFT_BUMPER,
+                        "leftBumper");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER,
+                        "rightBumper");
+
+  /* special */
+
+  sgPushAndSetGPButton(L, gp, -2, GLFW_GAMEPAD_BUTTON_BACK, "back");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_START, "start");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_GUIDE, "guide");
+
+  
+  /* joystick buttons */
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_LEFT_THUMB, "leftThumb");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_RIGHT_THUMB,
+                        "rightThumb");
+
+  /* Dpad */
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_UP, "dpadUp");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_RIGHT, "dpadRight");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_DOWN, "dpadDown");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_LEFT, "dpadLeft");
+
+
+  lua_setfield (L, -2, "buttons"); /* end buttons */
+
+  return 1; /* end gamepad */
+}
+
+int l_getScreen (lua_State* L) {
+  CommonAPIHeader (L);
+  lua_pushnumber (L, (double)sgs->width);
+  lua_pushnumber (L, (double)sgs->height);
+  return 2;
+}
+
+/*            OUTPUT API             */
+
+int l_close (lua_State* L) {
+  CommonAPIHeader (L);
+  sgs->runstate = SG_RUNSTATE_STOP;
+  return 0;
+}
+
+int l_setScreen (lua_State* L) {
+  CommonAPIHeader (L);
+  int   i;
+  float vs[2] = {0};
+  for (i = 1; i <= 2; ++i) {
+    if (lua_type (L, -1) != LUA_INT_TYPE) {
+      lua_pushstring (L,
+                      "Expected 2 integer types as arguments to "
+                      "stormground.setScreen\n");
+      lua_error (L);
+      return 1;
+    }
+    vs[2 - i] = lua_tonumber (L, -1);
+    lua_pop (L, 1);
+  }
+  vs[0]      = clampf (vs[0], 6.f, 960.f);
+  vs[1]      = clampf (vs[1], 6.f, 540.f);
+  sgs->mon.w = (int)vs[0];
+  sgs->mon.h = (int)vs[1];
+  sgRegenerateTexture (&sgs->mon);
+  sgBindTexture (sgs->mon, GL_READ_WRITE);
+  sgs->width  = (int)vs[0];
+  sgs->height = (int)vs[1];
+  return 0;
+}
+
+/*            DRAWING API            */
+
+int l_drawTriangle (lua_State* L) {
+  CommonAPIHeader (L);
   int   i;
   float vs[6] = {0};
   for (i = 1; i <= 6; ++i) {
@@ -230,7 +397,7 @@ int l_drawtriangle (lua_State* L) {
     vs[i] = (vs[i]);
   }
   for (i = 1; i < 6; i += 2) {
-    vs[i] = sgs->height - (vs[i]);
+    vs[i] = (vs[i]);
   }
   SGprimitive t                      = {0};
   t.t                                = SG_PRIMITIVE_TRIANGLE;
@@ -248,10 +415,8 @@ int l_drawtriangle (lua_State* L) {
   return 0;
 }
 
-int l_drawrectangle (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+int l_drawRectangle (lua_State* L) {
+  CommonAPIHeader (L);
   int   i;
   float vs[4] = {0};
   for (i = 1; i <= 4; ++i) {
@@ -270,9 +435,9 @@ int l_drawrectangle (lua_State* L) {
   /*vs[2] += .001;
   vs[3] += .001;*/
   vs[2]                              = (vs[0] + vs[2]);
-  vs[3]                              = (float)sgs->height - (vs[1] + vs[3]);
+  vs[3]                              = (vs[1] + vs[3]);
   vs[0]                              = (vs[0]);
-  vs[1]                              = ((float)sgs->height - vs[1]);
+  vs[1]                              = (vs[1]);
   SGprimitive r                      = {0};
   r.t                                = SG_PRIMITIVE_RECT;
   r.c[0]                             = (float)sgs->col.r / 255.f;
@@ -287,10 +452,8 @@ int l_drawrectangle (lua_State* L) {
   return 0;
 }
 
-int l_setcolor (lua_State* L) {
-  lua_getglobal (L, "__SGSTATE");
-  SGstate* sgs = (SGstate*)lua_tointeger (L, -1);
-  lua_pop (L, 1);
+int l_setColor (lua_State* L) {
+  CommonAPIHeader (L);
   int i;
   int cs[3] = {0};
   for (i = 1; i <= 3; ++i) {
@@ -307,49 +470,59 @@ int l_setcolor (lua_State* L) {
   return 0;
 }
 
+#define CommonAPIFun(L, i, name)     \
+  lua_pushcfunction ((L), l_##name); \
+  lua_setfield ((L), (i), #name)
+
 int sgPrepState (SGscript* script, SGstate* sgs) {
-  script->L = luaL_newstate();
-  luaL_openlibs (script->L);
+  script->L    = luaL_newstate();
+  lua_State* L = script->L;
+  luaL_openlibs (L);
 
-  lua_getglobal (script->L, "os");
-  lua_pushnil (script->L);
-  lua_setfield (script->L, -2, "execute");
-  lua_pushnil (script->L);
-  lua_setfield (script->L, -2, "exit");
-  lua_pop (script->L, 1);
-  lua_pushnil (script->L);
-  lua_setglobal (script->L, "assert");
+  lua_getglobal (L, "os");
+  lua_pushnil (L);
+  lua_setfield (L, -2, "execute");
+  lua_pushnil (L);
+  lua_setfield (L, -2, "exit");
+  lua_pop (L, 1);
+  lua_pushnil (L);
+  lua_setglobal (L, "assert");
 
-  lua_createtable (script->L, 0, 1);
+  lua_createtable (L, 0, 1);
 
-  lua_pushinteger (script->L, (intptr_t)sgs);
-  lua_setglobal (script->L, "__SGSTATE");
+  lua_pushinteger (L, (intptr_t)sgs);
+  lua_setglobal (L, "__SGSTATE");
 
-  lua_pushcfunction (script->L, l_getdelta);
-  lua_setfield (script->L, -2, "getDelta");
+  /* INPUT API */
+  CommonAPIFun (L, -2, getDelta);
 
-  lua_pushcfunction (script->L, l_gettime);
-  lua_setfield (script->L, -2, "getTime");
+  CommonAPIFun (L, -2, getTime);
 
-  lua_pushcfunction (script->L, l_getCursor);
-  lua_setfield (script->L, -2, "getCursor");
+  CommonAPIFun (L, -2, getCursor);
 
-  lua_pushcfunction (script->L, l_getKey);
-  lua_setfield (script->L, -2, "getKey");
+  CommonAPIFun (L, -2, getScreen);
 
-  lua_pushcfunction (script->L, l_getButton);
-  lua_setfield (script->L, -2, "getButton");
+  CommonAPIFun (L, -2, getKey);
 
-  lua_pushcfunction (script->L, l_drawtriangle);
-  lua_setfield (script->L, -2, "drawTriangle");
+  CommonAPIFun (L, -2, getButton);
 
-  lua_pushcfunction (script->L, l_drawrectangle);
-  lua_setfield (script->L, -2, "drawRectangle");
+  CommonAPIFun (L, -2, getGamepad);
 
-  lua_pushcfunction (script->L, l_setcolor);
-  lua_setfield (script->L, -2, "setColor");
+  /* OUTPUT API */
 
-  lua_setglobal (script->L, "stormground");
+  CommonAPIFun (L, -2, close);
+
+  CommonAPIFun (L, -2, setScreen);
+
+  /* DRAWING API */
+
+  CommonAPIFun (L, -2, drawTriangle);
+
+  CommonAPIFun (L, -2, drawRectangle);
+
+  CommonAPIFun (L, -2, setColor);
+
+  lua_setglobal (L, "stormground");
   return SG_API_OK;
 }
 

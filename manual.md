@@ -89,48 +89,89 @@ NOTE: may not be perfectly accurate.
 
 ### API key names
 
-`0-9`
-`A-Z` OR `a-z`, returns the same thing
+`0-9` zero to nine
+
+`A-Z` OR `a-z`, a to z returns the same thing
+
 `lshift` left shift
+
 `rshift` right shift
+
 `lcontrol` left control
+
 `lalt` left alt
+
 `ralt` right alt
+
 `lbracket` left bracket
+
 `rbracket` right bracket
+
 `space` space
+
 `backspace` backspace
+
 `tab` tab
+
 `enter` enter
+
 `minus` minus sign
+
 `equal` equals sign
+
 `up` up arrow
+
 `down` down arrow
+
 `left` left arrow
+
 `right` right arrow
+
 `comma` comma
+
 `period` period
+
 `escape` escape
+
 `slash` slash
+
 `backslash` backslash
+
 `semicolon` semicolon
+
 `delete` delete
+
 `page up` page up
+
 `page down` page down
+
 `home` home
+
 `end` end
+
 `insert` insert
 
 ### API button names
 
 `left` left mouse button
+
 `right` right mouse button
+
 `middle` middle mouse button
+
 `button1` mouse button 1
+
 `button2` mouse button 2
+
 `button3` mouse button 3
+
 `button4` mouse button 4
+
 `button5` mouse button 5
+
 `button6` mouse button 6
+
 `button7` mouse button 7
+
 `button8` mouse button 8
+

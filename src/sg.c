@@ -239,6 +239,7 @@ int main (int argc, char** argv) {
   glfwMakeContextCurrent (state.win);
   glfwSwapInterval (0);
 
+  sgSetCallbackState (&state);
   glfwSetWindowUserPointer (state.win, &state);
 
   if (!gladLoadGLLoader ((GLADloadproc)glfwGetProcAddress)) {
@@ -252,6 +253,7 @@ int main (int argc, char** argv) {
   glfwSetKeyCallback (state.win, sgKeyCallback);
   glfwSetScrollCallback (state.win, sgScrollCallback);
   glfwSetMouseButtonCallback (state.win, sgMouseButtonCallback);
+  // glfwSetJoystickCallback (sgJoystickCallback);
 
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable (GL_BLEND);
@@ -388,6 +390,11 @@ int main (int argc, char** argv) {
     state.cury = fy2;
 
     int i;
+    /*if (state.gpads[1].connected &&
+        state.gpads[1].buttons[GLFW_GAMEPAD_BUTTON_A] == SG_HOLD) {
+      notef ("Pressed A! %.3f\n",
+             state.gpads[1].gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
+    }*/
 
     if (sgCallGlobal (&sgscr, "onTick")) {
       exit (5);
@@ -420,7 +427,7 @@ int main (int argc, char** argv) {
 
 
     glfwSwapBuffers (state.win);
-    sgAdvanceInputs (&state);
+    sgAdvanceInputs();
     glfwPollEvents();
 
     cputime = timeduration (timenow(), ls, milliseconds_e);

@@ -5,21 +5,30 @@
 </h1>
 
 - [Welcome](#welcome-to-stormground)
+- [Some stuff](#some-stuff)
 - [Command line options](#command-line-options)
 - [Project settings](#project-settings)
 - [API reference](#lua-api)
+  - [Input](#input)
+  - [Output](#output)
+  - [Drawing](#drawing)
+  - [Key names](#api-key-names)
+  - [Button names](#api-button-names)
+  - [Gamepad table](#api-gamepad-table)
 
 ### Welcome to Stormground!
 
 A project created to use a Stormworks-ish lua API to run as a playground on your PC instead of the game!
 
-The lua API that Stormground indends to imitate is specifically the drawing API, used to draw to monitors in the game. For the purposes of making the API easier to work with however, some new functions are added, and some are not, and some are changed.
+The Lua API that Stormground indends to imitate is specifically the drawing API, used to draw to monitors in the game. For the purposes of making the API easier to work with however, some new functions are added, and some are not, and some are changed.
+
+If you are familiar with Stormworks' Lua API, chances are you wont have much trouble learning Stormground's Lua API.
 
 Stormground uses "projects" (directories/folders) as its organization method, and requires `project.json` and `main.lua` to be present in the given project directory.
 
 ## Some stuff
 
-The "virtual display" is a term describing the display that your lua code is drawing to, not the physical display of your computer. This virtual display sits inside of the Stormground window, and has the resolution defined in your project settings.
+The "virtual display" is a term describing the display that your Lua code is drawing to, not the physical display of your computer. This virtual display sits inside of the Stormground window, and has the resolution defined in your project settings.
 
 Note that the coordinate system of Stormground originates in the bottom left corner of the virtual display, with positive Y going up, and positive X going right.
 
@@ -45,6 +54,16 @@ Your settings available is:
 
 ## Lua API
 
+The Lua API was made to be much less restrictive than Stormworks.
+
+You are able to have a script with a size above 4KB, able to `require` other lua scripts, and have access to the entire standard Lua library (except for `assert`, `os.exit` and `os.execute`)
+
+- [Input](#input)
+- [Output](#output)
+- [Drawing](#drawing)
+
+### Input
+
 ```lua
 stormground.getDelta()
 ```
@@ -58,22 +77,47 @@ Returns the number of seconds since the start of the program. Yes it is a float.
 ```lua
 stormground.getCursor()
 ```
-Returns the X and Y of the cursor relative to the bottom left of the virtual display.
+Returns the X and Y (two return values) of the cursor relative to the bottom left of the virtual display.
+
+```lua
+stormground.getScreen()
+```
+Returns the width and height (two return values) of the virtual display.
 
 ```lua
 stormground.getKey(name)
 ```
-Returns a string of the press state of the `name` key. State can be `pressed`, `released`, `held`, `not pressed`. See the [list of key names](#api-key-names) for... a list of valid key names. If input name is invalid, or something went wrong internally, this function will return `nil`.
+Returns a string of the press state of the `name` key. State can be `pressed`, `released`, `held`, `not pressed`. If input name is invalid, or something went wrong internally, this function will return `nil`.
+
+See the [list of key names](#api-key-names) for... a list of valid key names.
 
 ```lua
 stormground.getButton(name)
 ```
-Returns a string of the press state of the `name` mouse button. State can be `pressed`, `released`, `held`, `not pressed`. See the [list of button names](#api-button-names) for... a list of valid button names. If input name is invalid, or something went wrong internally, this function will return `nil`.
+Returns a string of the press state of the `name` mouse button. State can be `pressed`, `released`, `held`, `not pressed`. If input name is invalid, or something went wrong internally, this function will return `nil`.
+
+See the [list of button names](#api-button-names) for... a list of valid button names.
 
 ```lua
-stormground.setColor(r, g, b)
+stormground.getGamepad(id)
 ```
-Sets the draw color of any shapes from the call of the function, and then on. If any shapes were drawn before the call of this function, those shapes will retain their draw color.
+Returns a gamepad state table for the gamepad specified by `id`. Passing a value of `1` for `id` returns the state table for the first gamepad connected to the system. If `id` is invalid for some reason, this function will still return the full state table, but `.name` will be `nil`.
+
+See the [gamepad table reference](#api-gamepad-table) to see its fields.
+
+### Output
+
+```lua
+stormground.close()
+```
+Calling this function will tell Stormground to stop runtime. Stormground will close on its own time, but usually on the start of processing the next frame.
+
+```lua
+stormground.setScreen(w, h)
+```
+Sets a new size of the virtual display. `w` will be clamped to between `6` and `960`. `h` will be clamped to be between `6` and `540`. The change in display size will take place the same frame that this function was called. `stormground.getScreen` will return the new virtual display size.
+
+### Drawing
 
 ```lua
 stormground.drawRectangle(x, y, width, height)
@@ -84,14 +128,20 @@ Draws a filled rectangle, starting at (`x`,`y`), and extending for `width` and `
 stormground.drawTriangle(x1, y1, x2, y2, x3, y3)
 ```
 Draws a filled triangle, with the points (`x1`,`y1`), (`x2`,`y2`), (`x3`,`y3`).
-NOTE: may not be perfectly accurate.
+
+*NOTE: may not be perfectly accurate.*
+
+```lua
+stormground.setColor(r, g, b)
+```
+Sets the draw color of any shapes from the call of the function, and then on. If any shapes were drawn before the call of this function, those shapes will retain their draw color.
 
 
 ### API key names
 
 `0-9` zero to nine
 
-`A-Z` OR `a-z`, a to z returns the same thing
+`A-Z` OR `a-z` (can be upper or lower case), a to z
 
 `lshift` left shift
 
@@ -174,4 +224,37 @@ NOTE: may not be perfectly accurate.
 `button7` mouse button 7
 
 `button8` mouse button 8
+
+### API gamepad table
+
+`name` field (string): Name of the gamepad (will be `nil` if error occurs).
+
+`axes` field (table): Table with the accessable axes.
+
+- `rightTrigger` field (number): Right trigger axis.
+- `leftTrigger` field (number): Left trigger axis.
+- `leftX` field (number): Left joystick X axis.
+- `leftY` field (number): Left joystick Y axis.
+- `rightX` field (number): Right joystick X axis.
+- `rightY` field (number): Right joystick Y axis.
+
+`buttons` field (table): Table with the accessable buttons.
+
+(button fields hold `pressed`, `released`, `held` or `not pressed`, just like return values of the `getKey` and `getButton` functions)
+
+- `a` field (string): A/Cross button.
+- `b` field (string): B/Circle button.
+- `x` field (string): X/Square button.
+- `y` field (string): Y/Triangle button.
+- `leftBumper` field (string): Left bumper button.
+- `rightBumber` field (string): Right bumper button.
+- `back` field (string): Back/Share button.
+- `start` field (string): Start/Options button.
+- `guide` field (string): Guide/PS button.
+- `leftThumb` field (string): Left Joystick/Thumbstick button.
+- `rightThumb` field (string): Right Joystick/Thumbstick button.
+- `dpadUp` field (string): DPAD up button.
+- `dpadRight` field (string): DPAD right button.
+- `dpadDown` field (string): DPAD down button.
+- `dpadLeft` field (string): DPAD left button.
 

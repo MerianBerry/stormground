@@ -151,7 +151,7 @@ char *str_fmtv (char const *fmt, va_list args);
 
 char *str_fmt (char const *fmt, ...);
 
-char const *str_cpy (char const *src, size_t bytes);
+char *str_cpy (char const *src, size_t bytes);
 
 char *str_append (char *src, char const *nstr, size_t bytes);
 
@@ -194,6 +194,10 @@ int errorf (char const *fmt, ...);
 int warningfv (char const *fmt, va_list args);
 
 int warningf (char const *fmt, ...);
+
+int notefv (char const *fmt, va_list args);
+
+int notef (char const *fmt, ...);
 #endif
 
 #ifdef HYDROGEN_IO

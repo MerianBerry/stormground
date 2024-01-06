@@ -129,6 +129,41 @@ int strToButtonCode (char const* str) {
   }
 }
 
+char* sgStateToString (char state) {
+  switch (state) {
+  case SG_PRESS: return str_cpy ("pressed", npos);
+  case SG_RELEASE: return str_cpy ("released", npos);
+  case SG_HOLD: return str_cpy ("held", npos);
+  case SG_NOHOLD: return str_cpy ("not pressed", npos);
+  default: return NULL;
+  }
+}
+
+int sgRealGamepadID (SGstate* sgs, int fakeID) {
+  int i;
+  int n = 0;
+  for (i = 0; i < GLFW_JOYSTICK_LAST + 1; ++i) {
+    if (sgs->gpads[i].connected) {
+      ++n;
+      if (n == fakeID)
+        return i;
+    }
+  }
+  return -1;
+}
+
+void sgPushAndSetGPButton (lua_State* L, Gamepad gp, int tbind, int glfwID,
+                           char const* name) {
+  char* str = sgStateToString (gp.buttons[glfwID]);
+  if (!str) {
+    lua_pushnil (L);
+  } else {
+    lua_pushstring (L, str);
+    free (str);
+  }
+  lua_setfield (L, tbind, name);
+}
+
 #define CommonAPIHeader(state)                          \
   lua_getglobal ((state), "__SGSTATE");                 \
   SGstate* sgs = (SGstate*)lua_tointeger ((state), -1); \
@@ -167,13 +202,15 @@ int l_getKey (lua_State* L) {
   lua_pop (L, 1);
   int code = strToKeyCode (str);
   if (code >= 0) {
-    char state = sgs->keys[code];
-    switch (state) {
-    case SG_PRESS: lua_pushstring (L, "pressed"); return 1;
-    case SG_RELEASE: lua_pushstring (L, "released"); return 1;
-    case SG_HOLD: lua_pushstring (L, "held"); return 1;
-    case SG_NOHOLD: lua_pushstring (L, "not pressed"); return 1;
-    default: return 0;
+    char  state = sgs->keys[code];
+    char* str   = sgStateToString (state);
+    if (str) {
+      lua_pushstring (L, str);
+      free (str);
+      return 1;
+    } else {
+      lua_pushnil (L);
+      return 1;
     }
   }
   lua_pushnil (L);
@@ -191,17 +228,109 @@ int l_getButton (lua_State* L) {
   lua_pop (L, 1);
   int code = strToButtonCode (str);
   if (code >= 0) {
-    char state = sgs->buttons[code];
-    switch (state) {
-    case SG_PRESS: lua_pushstring (L, "pressed"); return 1;
-    case SG_RELEASE: lua_pushstring (L, "released"); return 1;
-    case SG_HOLD: lua_pushstring (L, "held"); return 1;
-    case SG_NOHOLD: lua_pushstring (L, "not pressed"); return 1;
-    default: return 0;
+    char  state = sgs->buttons[code];
+    char* str   = sgStateToString (state);
+    if (str) {
+      lua_pushstring (L, str);
+      free (str);
+      return 1;
+    } else {
+      lua_pushnil (L);
+      return 1;
     }
   }
   lua_pushnil (L);
   return 1;
+}
+
+int l_getGamepad (lua_State* L) {
+  CommonAPIHeader (L);
+  if (lua_type (L, -1) != LUA_INT_TYPE) {
+    lua_pushstring (
+        L, "stormground.getGamepad expects an integer type argument\n");
+    lua_error (L);
+    return 1;
+  }
+  float id = lua_tonumber (L, -1);
+  lua_pop (L, 1);
+  if ((int)id < 0 || (int)id > sgNumActiveGamepads()) {
+    id = -1;
+  }
+  int     realid = (id < 0) ? -1 : sgRealGamepadID (sgs, (int)id);
+  Gamepad gp     = (realid < 0) ? (Gamepad){0} : sgs->gpads[realid];
+  lua_createtable (L, 0, 1); /* gamepad */
+
+  lua_createtable (L, 0, 1); /* axes */
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
+  lua_setfield (L, -2, "leftY");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_X]);
+  lua_setfield (L, -2, "leftX");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y]);
+  lua_setfield (L, -2, "rightY");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_RIGHT_X]);
+  lua_setfield (L, -2, "rightX");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER]);
+  lua_setfield (L, -2, "leftTrigger");
+
+  lua_pushnumber (L, (double)gp.gstate.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER]);
+  lua_setfield (L, -2, "rightTrigger");
+
+  lua_setfield (L, -2, "axes"); /* end axes */
+
+  lua_createtable (L, 0, 1); /* buttons */
+
+  /* right hand side buttons */
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_A, "a");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_B, "b");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_X, "x");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_Y, "y");
+
+  /* bumpers */
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_LEFT_BUMPER,
+                        "leftBumper");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER,
+                        "rightBumper");
+
+  /* special */
+
+  sgPushAndSetGPButton(L, gp, -2, GLFW_GAMEPAD_BUTTON_BACK, "back");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_START, "start");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_GUIDE, "guide");
+
+  
+  /* joystick buttons */
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_LEFT_THUMB, "leftThumb");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_RIGHT_THUMB,
+                        "rightThumb");
+
+  /* Dpad */
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_UP, "dpadUp");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_RIGHT, "dpadRight");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_DOWN, "dpadDown");
+
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_LEFT, "dpadLeft");
+
+
+  lua_setfield (L, -2, "buttons"); /* end buttons */
+
+  return 1; /* end gamepad */
 }
 
 int l_getScreen (lua_State* L) {
@@ -364,7 +493,6 @@ int sgPrepState (SGscript* script, SGstate* sgs) {
   lua_pushinteger (L, (intptr_t)sgs);
   lua_setglobal (L, "__SGSTATE");
 
-
   /* INPUT API */
   CommonAPIFun (L, -2, getDelta);
 
@@ -372,11 +500,13 @@ int sgPrepState (SGscript* script, SGstate* sgs) {
 
   CommonAPIFun (L, -2, getCursor);
 
+  CommonAPIFun (L, -2, getScreen);
+
   CommonAPIFun (L, -2, getKey);
 
   CommonAPIFun (L, -2, getButton);
 
-  CommonAPIFun (L, -2, getScreen);
+  CommonAPIFun (L, -2, getGamepad);
 
   /* OUTPUT API */
 

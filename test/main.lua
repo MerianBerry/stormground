@@ -1,15 +1,25 @@
+function deadzone(x)
+  return math.abs(x) > 0.05 and x or 0
+end
 
 stormground.setColor(255, 255, 255)
 local notset = true
+local off = 0
 function onTick() 
+  off = off + stormground.getScroll() * 2
   stormground.setColor(0, 0, 255)
-  stormground.drawTriangle(0, 0, 10, 10, 20, 0)
+  stormground.drawTriangle(0, 0 + off, 10, 10 + off, 20, 0 + off)
   stormground.setColor(255, 0, 0)
   x, y = stormground.getCursor()
-  local gp = stormground.getGamepad(1)
-  if gp.buttons.a == "pressed" then
-    print "YIPPEE!!!"
+  if stormground.getInputMethod() == "gamepad" then
+    local gp = stormground.getGamepad(1)
+    local rx, ry = stormground.getRealCursor()
+    rx = rx + deadzone(gp.axes.leftX) * 10;
+    ry = ry + deadzone(gp.axes.leftY) * 10
+    stormground.setCursor(rx, ry)
   end
+  
+  
   if stormground.getKey("escape") == "released" then
     stormground.close()
   end

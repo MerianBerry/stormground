@@ -5,9 +5,11 @@
 #define HYDROGEN_ALL
 #include "hydrogen/hydrogen.h"
 
-#define SG_MAJOR   0
-#define SG_MINOR   1
-#define SG_VERNAME "beta.0.2"
+#define SG_MAJOR        0
+#define SG_MINOR        1
+#define SG_VERNAME      "beta.0.2.1"
+
+#define SG_GAMEPAD_LAST GLFW_JOYSTICK_8
 
 #define binary(name)                                   \
   extern char        _binary_shaders_##name##_start[]; \
@@ -88,7 +90,11 @@ typedef struct Gamepad {
 } Gamepad;
 
 typedef struct SGstate {
+  Gamepad     gpads[SG_GAMEPAD_LAST + 1];
+  char        keys[GLFW_KEY_LAST + 1];
+  int         activeGpads[SG_GAMEPAD_LAST + 1];
   SGtexture   mon;
+  char        buttons[GLFW_MOUSE_BUTTON_LAST + 1];
   GLFWwindow* win;
   char*       projectDir;
   h_buffer    projectFileContent;
@@ -97,20 +103,21 @@ typedef struct SGstate {
   SSBO*       ssbo;
   double      tfps;
   double      time;
+  double      realCurX, realCurY;
+  double      fakeCurX, fakeCurY;
   int         runstate;
   int         width;
   int         height;
   int         curx;
   int         cury;
-  int         scrollx;
-  int         scrolly;
+  int         scrollx, scrolly;
   SGcolor     col;
   float       delta;
-  char        keys[GLFW_KEY_LAST];
-  char        buttons[GLFW_MOUSE_BUTTON_LAST];
-  Gamepad     gpads[GLFW_JOYSTICK_LAST+1];
+  char        usage;
 } SGstate;
 
 enum {
   SG_RUNSTATE_STOP = 1,
+  SG_USAGE_MANDK   = 0,
+  SG_USAGE_GAMEPAD,
 };

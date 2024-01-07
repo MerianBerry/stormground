@@ -9,7 +9,7 @@ enum {
   SG_RELEASE,
 };
 
-void sgSetCallbackState(SGstate *state);
+void sgSetInputState(SGstate *state);
 
 void sgFramebufSizeCallback(GLFWwindow *win, int width, int height);
 
@@ -22,5 +22,7 @@ void sgScrollCallback(GLFWwindow *win, double x, double y);
 /* void sgJoystickCallback(int jid, int event); */
 
 int sgNumActiveGamepads();
+
+int sgRealGamepadID (SGstate* sgs, int fakeID);
 
 void sgAdvanceInputs();

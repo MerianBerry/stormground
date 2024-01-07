@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "sgcallbacks.h"
+#include "sginput.h"
 #include "sgimage.h"
 
 #include "lua-5.4.6/src/luaconf.h"
@@ -139,19 +139,6 @@ char* sgStateToString (char state) {
   }
 }
 
-int sgRealGamepadID (SGstate* sgs, int fakeID) {
-  int i;
-  int n = 0;
-  for (i = 0; i < GLFW_JOYSTICK_LAST + 1; ++i) {
-    if (sgs->gpads[i].connected) {
-      ++n;
-      if (n == fakeID)
-        return i;
-    }
-  }
-  return -1;
-}
-
 void sgPushAndSetGPButton (lua_State* L, Gamepad gp, int tbind, int glfwID,
                            char const* name) {
   char* str = sgStateToString (gp.buttons[glfwID]);
@@ -187,6 +174,26 @@ int l_getCursor (lua_State* L) {
   CommonAPIHeader (L);
   lua_pushnumber (L, (double)sgs->curx);
   lua_pushnumber (L, (double)sgs->cury);
+  return 2;
+}
+
+int l_getRealCursor (lua_State* L) {
+  CommonAPIHeader (L);
+  lua_pushnumber (L, (double)sgs->fakeCurX);
+  lua_pushnumber (L, (double)sgs->fakeCurY);
+  return 2;
+}
+
+int l_getScroll (lua_State* L) {
+  CommonAPIHeader (L);
+  lua_pushnumber (L, (double)sgs->scrolly);
+  return 1;
+}
+
+int l_getScreen (lua_State* L) {
+  CommonAPIHeader (L);
+  lua_pushnumber (L, (double)sgs->width);
+  lua_pushnumber (L, (double)sgs->height);
   return 2;
 }
 
@@ -303,13 +310,13 @@ int l_getGamepad (lua_State* L) {
 
   /* special */
 
-  sgPushAndSetGPButton(L, gp, -2, GLFW_GAMEPAD_BUTTON_BACK, "back");
+  sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_BACK, "back");
 
   sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_START, "start");
 
   sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_GUIDE, "guide");
 
-  
+
   /* joystick buttons */
 
   sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_LEFT_THUMB, "leftThumb");
@@ -333,11 +340,17 @@ int l_getGamepad (lua_State* L) {
   return 1; /* end gamepad */
 }
 
-int l_getScreen (lua_State* L) {
+int l_getInputMethod (lua_State* L) {
   CommonAPIHeader (L);
-  lua_pushnumber (L, (double)sgs->width);
-  lua_pushnumber (L, (double)sgs->height);
-  return 2;
+  if (sgs->usage == SG_USAGE_MANDK) {
+    lua_pushstring (L, "m&k");
+    return 1;
+  } else if (sgs->usage == SG_USAGE_GAMEPAD) {
+    lua_pushstring (L, "gamepad");
+    return 1;
+  }
+  lua_pushnil (L);
+  return 1;
 }
 
 /*            OUTPUT API             */
@@ -374,6 +387,25 @@ int l_setScreen (lua_State* L) {
   return 0;
 }
 
+int l_setCursor (lua_State* L) {
+  int i = 0;
+  CommonAPIHeader (L);
+  float vs[2];
+  for (i = 1; i <= 2; ++i) {
+    if (lua_type (L, -1) != LUA_TNUMBER) {
+      lua_pushstring (
+          L, "stormground.getGamepad expects two numbers as arguments\n");
+      lua_error (L);
+      return 1;
+    }
+    vs[2 - i] = lua_tonumber (L, -1);
+    lua_pop (L, 1);
+  }
+  sgs->fakeCurX = vs[0];
+  sgs->fakeCurY = vs[1];
+  return 0;
+}
+
 /*            DRAWING API            */
 
 int l_drawTriangle (lua_State* L) {
@@ -399,17 +431,19 @@ int l_drawTriangle (lua_State* L) {
   for (i = 1; i < 6; i += 2) {
     vs[i] = (vs[i]);
   }
-  SGprimitive t                      = {0};
-  t.t                                = SG_PRIMITIVE_TRIANGLE;
-  t.c[0]                             = (float)sgs->col.r / 255.f;
-  t.c[1]                             = (float)sgs->col.g / 255.f;
-  t.c[2]                             = (float)sgs->col.b / 255.f;
-  t.p1.x                             = vs[0];
-  t.p1.y                             = vs[1];
-  t.p2.x                             = vs[2];
-  t.p2.y                             = vs[3];
-  t.p3.x                             = vs[4];
-  t.p3.y                             = vs[5];
+  SGprimitive t = {0};
+  t.t           = SG_PRIMITIVE_TRIANGLE;
+  t.c[0]        = (float)sgs->col.r / 255.f;
+  t.c[1]        = (float)sgs->col.g / 255.f;
+  t.c[2]        = (float)sgs->col.b / 255.f;
+  t.p1.x        = vs[0];
+  t.p1.y        = vs[1];
+  t.p2.x        = vs[2];
+  t.p2.y        = vs[3];
+  t.p3.x        = vs[4];
+  t.p3.y        = vs[5];
+  if (sgs->ssbo->primc >= 0xffff - 1)
+    return 0;
   sgs->ssbo->primv[sgs->ssbo->primc] = t;
   ++sgs->ssbo->primc;
   return 0;
@@ -434,19 +468,21 @@ int l_drawRectangle (lua_State* L) {
   float ymid = (float)sgs->height / 2.f;
   /*vs[2] += .001;
   vs[3] += .001;*/
-  vs[2]                              = (vs[0] + vs[2]);
-  vs[3]                              = (vs[1] + vs[3]);
-  vs[0]                              = (vs[0]);
-  vs[1]                              = (vs[1]);
-  SGprimitive r                      = {0};
-  r.t                                = SG_PRIMITIVE_RECT;
-  r.c[0]                             = (float)sgs->col.r / 255.f;
-  r.c[1]                             = (float)sgs->col.g / 255.f;
-  r.c[2]                             = (float)sgs->col.b / 255.f;
-  r.p1.x                             = vs[0];
-  r.p1.y                             = vs[1];
-  r.p2.x                             = vs[2];
-  r.p2.y                             = vs[3];
+  vs[2]         = (vs[0] + vs[2]);
+  vs[3]         = (vs[1] + vs[3]);
+  vs[0]         = (vs[0]);
+  vs[1]         = (vs[1]);
+  SGprimitive r = {0};
+  r.t           = SG_PRIMITIVE_RECT;
+  r.c[0]        = (float)sgs->col.r / 255.f;
+  r.c[1]        = (float)sgs->col.g / 255.f;
+  r.c[2]        = (float)sgs->col.b / 255.f;
+  r.p1.x        = vs[0];
+  r.p1.y        = vs[1];
+  r.p2.x        = vs[2];
+  r.p2.y        = vs[3];
+  if (sgs->ssbo->primc >= 0xffff - 1)
+    return 0;
   sgs->ssbo->primv[sgs->ssbo->primc] = r;
   ++sgs->ssbo->primc;
   return 0;
@@ -500,6 +536,10 @@ int sgPrepState (SGscript* script, SGstate* sgs) {
 
   CommonAPIFun (L, -2, getCursor);
 
+  CommonAPIFun (L, -2, getRealCursor);
+
+  CommonAPIFun (L, -2, getScroll);
+
   CommonAPIFun (L, -2, getScreen);
 
   CommonAPIFun (L, -2, getKey);
@@ -508,11 +548,15 @@ int sgPrepState (SGscript* script, SGstate* sgs) {
 
   CommonAPIFun (L, -2, getGamepad);
 
+  CommonAPIFun (L, -2, getInputMethod);
+
   /* OUTPUT API */
 
   CommonAPIFun (L, -2, close);
 
   CommonAPIFun (L, -2, setScreen);
+
+  CommonAPIFun (L, -2, setCursor);
 
   /* DRAWING API */
 

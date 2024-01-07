@@ -1,6 +1,6 @@
 <h1>
   <center>
-  Stormground manual (beta.0.2)
+  Stormground manual (beta.0.2.1)
   </center>
 </h1>
 
@@ -31,6 +31,10 @@ Stormground uses "projects" (directories/folders) as its organization method, an
 The "virtual display" is a term describing the display that your Lua code is drawing to, not the physical display of your computer. This virtual display sits inside of the Stormground window, and has the resolution defined in your project settings.
 
 Note that the coordinate system of Stormground originates in the bottom left corner of the virtual display, with positive Y going up, and positive X going right.
+
+Stormground uses a "virtual cursor" method for cursor usage. Stormground will NEVER move the system cursor, but the user script is able to move the virtual cursor. If the current input method for Stormground is a gamepad, the virtual cursor will not be bound to the system cursor until the input method is deemed to be mouse and keyboard again.
+
+`stormground.getCursor`'s location in the virtual display is based off of the virtual cursor, instead of the system cursor.
 
 ## Command line options
 
@@ -77,7 +81,17 @@ Returns the number of seconds since the start of the program. Yes it is a float.
 ```lua
 stormground.getCursor()
 ```
-Returns the X and Y (two return values) of the cursor relative to the bottom left of the virtual display.
+Returns the X and Y (two return values) of the cursor relative to the top left of the virtual display.
+
+```lua
+stormground.getRealCursor()
+```
+Returns the X and Y (two return values) of the system cursor relative to the top left of the window.
+
+```lua
+stormground.getScroll()
+```
+Returns the change in the Y scroll axis since the last frame.
 
 ```lua
 stormground.getScreen()
@@ -101,9 +115,14 @@ See the [list of button names](#api-button-names) for... a list of valid button 
 ```lua
 stormground.getGamepad(id)
 ```
-Returns a gamepad state table for the gamepad specified by `id`. Passing a value of `1` for `id` returns the state table for the first gamepad connected to the system. If `id` is invalid for some reason, this function will still return the full state table, but `.name` will be `nil`.
+Returns a gamepad state table for the gamepad specified by `id`. Passing a value of `1` for `id` returns the state table for the last detected gamepad. If `id` is invalid for some reason, this function will still return the full state table, but `.name` will be `nil`.
 
 See the [gamepad table reference](#api-gamepad-table) to see its fields.
+
+```lua
+stormground.getInputMethod()
+```
+Returns a string of the last active imput method. `m&k` for mouse and keyboard, or `gamepad` if gamepad. If an error happens internally, this result will be `nil`.
 
 ### Output
 
@@ -116,6 +135,12 @@ Calling this function will tell Stormground to stop runtime. Stormground will cl
 stormground.setScreen(w, h)
 ```
 Sets a new size of the virtual display. `w` will be clamped to between `6` and `960`. `h` will be clamped to be between `6` and `540`. The change in display size will take place the same frame that this function was called. `stormground.getScreen` will return the new virtual display size.
+
+```lua
+stormground.setCursor(x, y)
+```
+Sets the position of the virtual cursor, relative to the top left of the window. `x` and `y` represents physical pixel coordinates instead of virtual display coordinates.
+
 
 ### Drawing
 

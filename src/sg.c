@@ -7,7 +7,7 @@
 
 #include "sgshader.h"
 #include "sgcli.h"
-#include "sgcallbacks.h"
+#include "sginput.h"
 #include "sgapi.h"
 #include "sgimage.h"
 #include "cJSON/cJSON.h"
@@ -239,7 +239,7 @@ int main (int argc, char** argv) {
   glfwMakeContextCurrent (state.win);
   glfwSwapInterval (0);
 
-  sgSetCallbackState (&state);
+  sgSetInputState (&state);
   glfwSetWindowUserPointer (state.win, &state);
 
   if (!gladLoadGLLoader ((GLADloadproc)glfwGetProcAddress)) {
@@ -364,11 +364,9 @@ int main (int argc, char** argv) {
     glClear (GL_COLOR_BUFFER_BIT);
 
     glfwGetWindowSize (state.win, &W, &H);
-    float  aspect1 = (float)W / (float)H;
-    float  aspect2 = (float)state.width / (float)state.height;
-    float  daspect = aspect1 / aspect2;
-    double x, y;
-    glfwGetCursorPos (state.win, &x, &y);
+    float aspect1 = (float)W / (float)H;
+    float aspect2 = (float)state.width / (float)state.height;
+    float daspect = aspect1 / aspect2;
     /* y = -(y - H); */
     float fx, fy, fx2, fy2, fw, fh;
     if (daspect > 1.0) {
@@ -382,8 +380,8 @@ int main (int argc, char** argv) {
       fx = 0;
       fy = ((float)H - fh) / 2.f;
     }
-    fx2        = (x - fx) / fw * state.width;
-    fy2        = (y - fy) / fh * state.height;
+    fx2        = (state.fakeCurX - fx) / fw * state.width;
+    fy2        = (state.fakeCurY - fy) / fh * state.height;
     fx2        = floorf ((fx2 < 0) ? fx2 - 1.f : fx2);
     fy2        = floorf ((fy2 < 0) ? fy2 - 1.f : fy2);
     state.curx = fx2;

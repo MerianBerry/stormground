@@ -4,7 +4,7 @@
 
 PLAT= 
 CC= gcc
-CFLAGS= -g -std=c89
+CFLAGS= -g -std=c99
 LDFLAGS= 
 SG_E= 
 LIBS= 
@@ -57,8 +57,8 @@ clean:
 
 .PHONY: target format
 
-sg.o: sg.c sg.h sgshader.h sgcallbacks.h sgcli.h 
-sgcallbacks.o: sgcallbacks.c sgcallbacks.h sg.h
+sg.o: sg.c sg.h sgshader.h sginput.h sgcli.h 
+sginput.o: sginput.c sginput.h sg.h
 sgcli.o: sgcli.c sgcli.h sg.h
 sgshader.o: sgshader.c sgshader.h sg.h
 sgapi.o: sgapi.c sgapi.h sg.h

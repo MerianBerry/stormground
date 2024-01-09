@@ -24,6 +24,16 @@ void sgMouseButtonCallback (GLFWwindow *win, int button, int action, int mods) {
   }
 }
 
+void sgCursorPosCallback (GLFWwindow *win, double x, double y) {
+  if (x != sgstate->realCurX || y != sgstate->realCurY) {
+    sgstate->usage    = SG_USAGE_MANDK;
+    sgstate->fakeCurX = x;
+    sgstate->fakeCurY = y;
+  }
+  sgstate->realCurX = x;
+  sgstate->realCurY = y;
+}
+
 void sgKeyCallback (GLFWwindow *win, int key, int scancode, int action,
                     int mods) {
   int W, H;
@@ -84,13 +94,7 @@ int sgRealGamepadID (SGstate *sgs, int fakeID) {
 }
 
 char sgMandKInUse (SGstate *sgs) {
-  int    i = 0;
-  double x, y;
-  glfwGetCursorPos (sgstate->win, &x, &y);
-
-  if (abs (x - sgstate->realCurX) > 3 || abs (y - sgstate->realCurY) > 3) {
-    return 1;
-  }
+  int i = 0;
   for (i = 0; i < GLFW_KEY_LAST + 1; ++i) {
     if (sgs->keys[i] == SG_PRESS) {
       return 1;
@@ -136,12 +140,6 @@ void sgInsertActiveGamepad (SGstate *sgs, int id) {
 
 int sgCheckCurrentInputMethod (SGstate *sgs) {
   if (sgMandKInUse (sgs)) {
-    double x, y;
-    glfwGetCursorPos (sgs->win, &x, &y);
-    sgs->realCurX = x;
-    sgs->realCurY = y;
-    sgs->fakeCurX = x;
-    sgs->fakeCurY = y;
     /* if (sgs->usage == SG_USAGE_GAMEPAD) {
       notef ("Usage: Mouse & Keyboard\n");
     } */

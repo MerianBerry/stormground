@@ -1,6 +1,6 @@
 <h1>
   <center>
-  Stormground manual (beta.0.2.1)
+  Stormground manual (beta.0.3)
   </center>
 </h1>
 
@@ -145,9 +145,20 @@ Sets the position of the virtual cursor, relative to the top left of the window.
 ### Drawing
 
 ```lua
-stormground.drawRectangle(x, y, width, height)
+stormground.drawText(x, y, size, text)
 ```
-Draws a filled rectangle, starting at (`x`,`y`), and extending for `width` and `height`.
+Draws `text` at (`x`, `y`), with `size` being the size scaling of the text. Default letter size is 3 by 5 pixels.
+
+```lua
+stormground.drawCircle(x, y, outerDiam, innerDiam)
+```
+Draws a circle centered around (`x`, `y`), with an outer diameter of `outerDiam`, and an inner diameter of `innerDiam`. `innerDiam` can be undefined or `nil`, and will be determined to be `0`.
+
+
+```lua
+stormground.drawRectangle(x, y, width, height, isHollow)
+```
+Draws a filled rectangle, starting at (`x`,`y`), and extending for `width` and `height`. If `isHollow` is true, the rectangle will be drawn as hollow with a `1` pixel wide shell. `isHollow` can be undefined or `nil`, and will be determined to be `false`.
 
 ```lua
 stormground.drawTriangle(x1, y1, x2, y2, x3, y3)

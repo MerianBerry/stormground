@@ -24,7 +24,11 @@ layout (std430, binding = 1) buffer SSBO {
 
 ssbo;
 
+void drawCircleF(ivec2 pix_coords, int x, int y, int i);
+
 void drawRectF (ivec2 pix_coords, int x, int y, int i);
+
+void drawRect (ivec2 pix_coords, int x, int y, int i);
 
 void drawTriF (ivec2 pix_coords, float x, float y, int i);
 
@@ -40,11 +44,29 @@ void main() {
   imageStore (screen, pix_coords, vec4 (0, 0, 0, 1.0));
 
   for (int i = 0; i < ssbo.primc; ++i) {
+    
     if (ssbo.primv[i].type == SG_RECTANGLE_F) {
-      drawRectF (pix_coords, x, y, i);
+      if (ssbo.primv[i].p3[0] == 1.0) {
+        drawRect (pix_coords, x, y, i);
+      } else {
+        drawRectF (pix_coords, x, y, i);
+      }
+    } else if (ssbo.primv[i].type == SG_CIRCLE_F) {
+      drawCircleF(pix_coords, x, y, i);
     } else if (ssbo.primv[i].type == SG_TRIANGLE_F) {
       drawTriF (pix_coords, x, y, i);
     }
+  }
+}
+
+void drawCircleF(ivec2 pix_coords, int x, int y, int i) {
+  float x2 = x - ssbo.primv[i].p1[0];
+  float y2 = y - ssbo.primv[i].p1[1];
+  float dst = sqrt(x2 * x2 + y2 * y2);
+  if (dst < ssbo.primv[i].p2[0] && dst >= ssbo.primv[i].p2[1]) {
+    imageStore (
+        screen, pix_coords,
+        vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));
   }
 }
 
@@ -72,7 +94,18 @@ void drawRectF (ivec2 pix_coords, int x, int y, int i) {
   ivec2 p2 = ivec2 (ssbo.primv[i].p2[0], ssbo.primv[i].p2[1]);
   ivec2 p = ivec2(x, y);
 
-  if (x>=p1.x && y>=p1.y && x<p2.x && y<p2.y)
+  if (x>=p1.x && y>=p1.y && x<=p2.x && y<=p2.y)
+    imageStore (
+        screen, pix_coords,
+        vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));
+}
+
+void drawRect (ivec2 pix_coords, int x, int y, int i) {
+  ivec2 p1 = ivec2 (ssbo.primv[i].p1[0], ssbo.primv[i].p1[1]);
+  ivec2 p2 = ivec2 (ssbo.primv[i].p2[0], ssbo.primv[i].p2[1]);
+  ivec2 p = ivec2(x, y);
+
+  if ((x==p1.x || y==p1.y || x==p2.x || y==p2.y) && x>=p1.x && y>=p1.y && x<p2.x+1 && y<p2.y+1)
     imageStore (
         screen, pix_coords,
         vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));

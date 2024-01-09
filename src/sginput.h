@@ -15,6 +15,8 @@ void sgFramebufSizeCallback(GLFWwindow *win, int width, int height);
 
 void sgMouseButtonCallback(GLFWwindow *win, int button, int action, int mods);
 
+void sgCursorPosCallback(GLFWwindow *win, double x, double y);
+
 void sgKeyCallback(GLFWwindow *win, int key, int scancode, int action, int mods);
 
 void sgScrollCallback(GLFWwindow *win, double x, double y);

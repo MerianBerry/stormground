@@ -220,9 +220,6 @@ int main (int argc, char** argv) {
 
   /* char* fpath = io_fullpath ("~/hello/./yes"); */
 
-  SGscript sgscr = {0};
-  sgDoFile (&sgscr, &state, "main.lua");
-
   glfwInit();
   glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -253,6 +250,7 @@ int main (int argc, char** argv) {
   glfwSetKeyCallback (state.win, sgKeyCallback);
   glfwSetScrollCallback (state.win, sgScrollCallback);
   glfwSetMouseButtonCallback (state.win, sgMouseButtonCallback);
+  glfwSetCursorPosCallback (state.win, sgCursorPosCallback);
   // glfwSetJoystickCallback (sgJoystickCallback);
 
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -346,6 +344,9 @@ int main (int argc, char** argv) {
   glBindBufferBase (GL_SHADER_STORAGE_BUFFER, 1, ssbo);
   glBindBuffer (GL_SHADER_STORAGE_BUFFER, 0);
 
+  SGscript sgscr = {0};
+  sgDoFile (&sgscr, &state, "main.lua");
+
   h_timepoint ls      = timenow();
   double      cputime = 0.0;
   float       delta   = 0.0;
@@ -393,7 +394,6 @@ int main (int argc, char** argv) {
       notef ("Pressed A! %.3f\n",
              state.gpads[1].gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
     }*/
-
     if (sgCallGlobal (&sgscr, "onTick")) {
       exit (5);
     }

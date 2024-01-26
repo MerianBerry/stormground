@@ -7,6 +7,7 @@ enum {
   SG_PRESS,
   SG_HOLD,
   SG_RELEASE,
+  SG_REPEAT,
 };
 
 void sgSetInputState(SGstate *state);

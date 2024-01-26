@@ -101,7 +101,12 @@ Returns the width and height (two return values) of the virtual display.
 ```lua
 stormground.getKey(name)
 ```
-Returns a string of the press state of the `name` key. State can be `pressed`, `released`, `held`, `not pressed`. If input name is invalid, or something went wrong internally, this function will return `nil`.
+Returns a string of the press state of the `name` key. State can be `pressed`, `released`, `held`, `not pressed`, `repeated`. If input name is invalid, or something went wrong internally, this function will return `nil`.
+
+```lua
+stormground.keyIsTyped(name)
+```
+Returns a boolean that is true if the state of the `name` key is `pressed` or `repeated`. If the input name is invalid, or something went wrong internally, this function will return `nil`.
 
 See the [list of key names](#api-key-names) for... a list of valid key names.
 
@@ -148,6 +153,11 @@ Sets the position of the virtual cursor, relative to the top left of the window.
 stormground.drawText(x, y, size, text)
 ```
 Draws `text` at (`x`, `y`), with `size` being the size scaling of the text. Default letter size is 3 by 5 pixels.
+
+```lua
+stormground.drawLine(x1, y1, x2, y2)
+```
+Draws a 1 pixel wide line from (`x1`, `y1`) to (`x2`, `y2`).
 
 ```lua
 stormground.drawCircle(x, y, outerDiam, innerDiam)

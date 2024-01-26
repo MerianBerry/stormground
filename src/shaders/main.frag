@@ -12,5 +12,5 @@ vec3 v3pow(vec3 v, float p) {
 void main(){
   
   FragColor = texture(screen, UV);
-  FragColor = vec4(v3pow(FragColor.rgb, 2.2), 1.0);
+  FragColor = vec4(v3pow(FragColor.rgb, 1 / 2.2), 1.0);
 }

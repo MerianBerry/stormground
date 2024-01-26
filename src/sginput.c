@@ -13,8 +13,6 @@ void sgFramebufSizeCallback (GLFWwindow *win, int width, int height) {
 }
 
 void sgMouseButtonCallback (GLFWwindow *win, int button, int action, int mods) {
-  int W, H;
-  glfwGetWindowSize (win, &W, &H);
   if (action == GLFW_PRESS && sgstate->buttons[button] == SG_NOHOLD ||
       sgstate->buttons[button] == SG_RELEASE) {
     sgstate->buttons[button] = SG_PRESS;
@@ -36,14 +34,10 @@ void sgCursorPosCallback (GLFWwindow *win, double x, double y) {
 
 void sgKeyCallback (GLFWwindow *win, int key, int scancode, int action,
                     int mods) {
-  int W, H;
-  glfwGetWindowSize (win, &W, &H);
-  if (action == GLFW_PRESS && sgstate->keys[key] == SG_NOHOLD ||
-      sgstate->keys[key] == SG_RELEASE) {
-    sgstate->keys[key] = SG_PRESS;
-  } else if (action == GLFW_RELEASE && sgstate->keys[key] == SG_HOLD ||
-             sgstate->keys[key] == SG_PRESS) {
-    sgstate->keys[key] = SG_RELEASE;
+  switch (action) {
+  case GLFW_PRESS: sgstate->keys[key] = SG_PRESS; break;
+  case GLFW_RELEASE: sgstate->keys[key] = SG_RELEASE; break;
+  case GLFW_REPEAT: sgstate->keys[key] = SG_REPEAT;
   }
 }
 

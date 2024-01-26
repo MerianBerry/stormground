@@ -157,7 +157,7 @@ void sgAdvanceInputs() {
   int ii;
   sgCheckCurrentInputMethod (sgstate);
   for (i = 0; i < GLFW_MOUSE_BUTTON_LAST + 1; ++i) {
-    if (sgstate->buttons[i] == SG_PRESS)
+    if (sgstate->buttons[i] == SG_PRESS || sgstate->buttons[i] == SG_REPEAT)
       sgstate->buttons[i] = SG_HOLD;
     else if (sgstate->buttons[i] == SG_RELEASE)
       sgstate->buttons[i] = SG_NOHOLD;

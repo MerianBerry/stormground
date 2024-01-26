@@ -108,6 +108,11 @@ stormground.keyIsTyped(name)
 ```
 Returns a boolean that is true if the state of the `name` key is `pressed` or `repeated`. If the input name is invalid, or something went wrong internally, this function will return `nil`.
 
+```lua
+stormground.keyIsDown(name)
+```
+Returns a boolean that is true if the state of the `name` key is `pressed`, `repeated` or `held`. If the input name is invalid, or something went wrong internally, this function will return `nil`.
+
 See the [list of key names](#api-key-names) for... a list of valid key names.
 
 ```lua
@@ -262,4 +267,4 @@ Sets the draw color of any shapes from the call of the function, and then on. If
   - `dpadDown` field (string): DPAD down button.
   - `dpadLeft` field (string): DPAD left button.
 
-Button fields hold `pressed`, `released`, `held` or `not pressed`, just like return values of the `getKey` and `getButton` functions
+Button fields hold `pressed`, `released`, `held` or `not pressed`, just like return values of the `getButton` function.

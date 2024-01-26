@@ -5,8 +5,11 @@ local str = ""
 
 function onTick()
     stormground.setColor(252, 186, 3)
-    keypress()
     stormground.drawText(1, 1, 1, str)
+    stormground.drawLine(1,1, 250 + 100 * math.cos(stormground.getTime()), 170 + 100 * math.sin(stormground.getTime()))
+    if stormground.keyIsDown("space") then
+        stormground.drawText(1, 1, 5, "YIPPEE!")
+    end
 end
 
 function keypress() 

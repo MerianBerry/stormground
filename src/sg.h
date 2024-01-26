@@ -65,6 +65,7 @@ enum {
   SG_PRIMITIVE_RECT     = 0,
   SG_PRIMITIVE_CIRCLE   = 1,
   SG_PRIMITIVE_TRIANGLE = 2,
+  SG_PRIMITIVE_LINE = 3,
 };
 
 typedef struct SGprimitive {

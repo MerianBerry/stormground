@@ -3,6 +3,7 @@
 #define SG_RECTANGLE_F 0
 #define SG_CIRCLE_F    1
 #define SG_TRIANGLE_F  2
+#define SG_LINE        3
 
 layout (local_size_x = 8, local_size_y = 4, local_size_z = 1) in;
 layout (rgba32f, binding = 0) uniform image2D screen;
@@ -32,6 +33,8 @@ void drawRect (ivec2 pix_coords, int x, int y, int i);
 
 void drawTriF (ivec2 pix_coords, float x, float y, int i);
 
+void drawLine (ivec2 pix_coords, float x, float y, int i);
+
 void main() {
   // imageStore (screen, ivec2 (1, 1), vec4 (ssbo.primv[i].p1[0],
   // ssbo.primv[i].p1[1], 0.0, 1.0));
@@ -44,17 +47,26 @@ void main() {
   imageStore (screen, pix_coords, vec4 (0, 0, 0, 1.0));
 
   for (int i = 0; i < ssbo.primc; ++i) {
-    
-    if (ssbo.primv[i].type == SG_RECTANGLE_F) {
-      if (ssbo.primv[i].p3[0] == 1.0) {
-        drawRect (pix_coords, x, y, i);
-      } else {
-        drawRectF (pix_coords, x, y, i);
+    switch(ssbo.primv[i].type) {
+      case SG_RECTANGLE_F: {
+        if (ssbo.primv[i].p3[0] == 1.0) {
+          drawRect (pix_coords, x, y, i);
+        } else {
+          drawRectF (pix_coords, x, y, i);
+        }
       }
-    } else if (ssbo.primv[i].type == SG_CIRCLE_F) {
-      drawCircleF(pix_coords, x, y, i);
-    } else if (ssbo.primv[i].type == SG_TRIANGLE_F) {
-      drawTriF (pix_coords, x, y, i);
+      break;
+      case SG_CIRCLE_F: {
+        drawCircleF(pix_coords, x, y, i);
+      }
+      break;
+      case SG_TRIANGLE_F: {
+        drawTriF (pix_coords, x, y, i);
+      }
+      break;
+      case SG_LINE: {
+        drawLine(pix_coords, x, y, i);
+      }
     }
   }
 }
@@ -120,4 +132,35 @@ void drawTriF (ivec2 pix_coords, float x, float y, int i) {
     imageStore (
         screen, pix_coords,
         vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));
+}
+
+bool within(float x, float y, float z) {
+  if (y < z) {
+    return x >= y && x <= z;
+  } else 
+    return x >= z && z <= y;
+}
+
+float lineFun(float m, float x, float a, float b) {
+  return m*(x - a) + b;
+}
+
+void drawLine (ivec2 pix_coords, float x, float y, int i) {
+  vec2 p1 = vec2 (ssbo.primv[i].p1[0], ssbo.primv[i].p1[1]);
+  vec2 p2 = vec2 (ssbo.primv[i].p2[0], ssbo.primv[i].p2[1]);
+  if (p2.x - p1.x == 0.0) {
+    if (within(y, p1.y, p2.y) && within(x, p1.x-0.1, p2.x+0.1)) {
+      imageStore (
+        screen, pix_coords,
+        vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));
+    }
+    return;
+  }
+  float m = (p2.y - p1.y) / (p2.x - p1.x);
+  float o = lineFun(m, x, p1.x, p1.y);
+  if (within(y, o-0.1, o+0.1) && within(x, p1.x-0.1, p2.x+0.1)) {
+    imageStore (
+        screen, pix_coords,
+        vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));
+  }
 }

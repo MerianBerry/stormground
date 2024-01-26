@@ -225,7 +225,6 @@ int main (int argc, char** argv) {
   glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint (GLFW_RESIZABLE, GLFW_TRUE);
-
   state.win = glfwCreateWindow (W, H, state.name, NULL, NULL);
   if (!state.win) {
     fprintf (stderr, "Failed to init GLFW window\n");

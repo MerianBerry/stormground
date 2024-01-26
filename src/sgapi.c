@@ -155,6 +155,7 @@ char toUpper (char c) {
   return c;
 }
 
+/* Hi youtube id like to make an apology... */
 static unsigned char hexass[] =
     "$\x82\x01 Z\x00\x03 UU\x03 <\x9e\x03 R\xa5\x03 *\xab\x03 $\x00\x01 "
     ")\"\x03 \"J\x03 \x0A\xA8\x03 \x05\xD0\x03 \x00\x12\x01 \x01\xC0\x03 "
@@ -210,16 +211,6 @@ int sgDrawStr (SGstate* sg, char* str, float _x, float _y, float size) {
     }
     rx += 4.f * size - ((3 - s) / 2) * size;
   }
-
-  /*for (i = 0; i < l; ++i) {
-    if (!(str[i] >= 0x20 && str[i] <= 0x7e))
-      continue;
-    char c = toUpper(str[i]);
-    if (c >= 0x7b)
-      c -= 26;
-    c -= 0x20;
-
-  }*/
   return 1;
 }
 
@@ -229,6 +220,7 @@ char* sgStateToString (char state) {
   case SG_RELEASE: return str_cpy ("released", npos);
   case SG_HOLD: return str_cpy ("held", npos);
   case SG_NOHOLD: return str_cpy ("not pressed", npos);
+  case SG_REPEAT: return str_cpy ("repeated", npos);
   default: return NULL;
   }
 }
@@ -313,6 +305,26 @@ int l_getKey (lua_State* L) {
       lua_pushnil (L);
       return 1;
     }
+  }
+  lua_pushnil (L);
+  return 1;
+}
+
+int l_keyIsTyped (lua_State* L) {
+  CommonAPIHeader (L);
+  if (lua_type (L, -1) != LUA_TSTRING) {
+    errorf ("Argument to getKey is not a string\n");
+    lua_pushstring (L, "Argument to getButton is not a string");
+    lua_error (L);
+    return 1;
+  }
+  char const* str = lua_tostring (L, -1);
+  lua_pop (L, 1);
+  int code = strToKeyCode (str);
+  if (code >= 0) {
+    char state = sgs->keys[code];
+    lua_pushboolean (L, state == SG_PRESS || state == SG_REPEAT);
+    return 1;
   }
   lua_pushnil (L);
   return 1;
@@ -527,6 +539,48 @@ int l_drawText (lua_State* L) {
   return 0;
 }
 
+int l_drawLine (lua_State* L) {
+  CommonAPIHeader (L);
+  int   i;
+  int   t     = lua_gettop (L);
+  float vs[4] = {0};
+  if (t < 4) {
+    lua_pushfstring (L,
+                     "Expected at least 4 number types as arguments to "
+                     "stormground.drawRectangle, but %i were passed\n",
+                     t);
+    lua_error (L);
+    return 1;
+  }
+  for (i = 1; i <= 4; ++i) {
+    if (lua_type (L, -1) != LUA_TNUMBER) {
+      lua_pushfstring (
+          L,
+          "Expected at least 4 number types as arguments to "
+          "stormground.drawRectangle, but type \"%s\" was passed\n",
+          lua_typename (L, lua_type (L, -1)));
+      lua_error (L);
+      return 1;
+    }
+    vs[4 - i] = lua_tonumber (L, -1);
+    lua_pop (L, 1);
+  }
+  SGprimitive p = {0};
+  p.t           = SG_PRIMITIVE_LINE;
+  p.c[0]        = (float)sgs->col.r / 255.f;
+  p.c[1]        = (float)sgs->col.g / 255.f;
+  p.c[2]        = (float)sgs->col.b / 255.f;
+  p.p1.x        = vs[0];
+  p.p1.y        = vs[1];
+  p.p2.x        = vs[2];
+  p.p2.y        = vs[3];
+  if (sgs->ssbo->primc >= 0xffff - 1)
+    return 0;
+  sgs->ssbo->primv[sgs->ssbo->primc] = p;
+  ++sgs->ssbo->primc;
+  return 0;
+}
+
 int l_drawCircle (lua_State* L) {
   CommonAPIHeader (L);
   int   i;
@@ -724,6 +778,8 @@ int sgPrepState (SGscript* script, SGstate* sgs) {
 
   CommonAPIFun (L, -2, getKey);
 
+  CommonAPIFun (L, -2, keyIsTyped);
+
   CommonAPIFun (L, -2, getButton);
 
   CommonAPIFun (L, -2, getGamepad);
@@ -741,6 +797,8 @@ int sgPrepState (SGscript* script, SGstate* sgs) {
   /* DRAWING API */
 
   CommonAPIFun (L, -2, drawText);
+
+  CommonAPIFun (L, -2, drawLine);
 
   CommonAPIFun (L, -2, drawCircle);
 

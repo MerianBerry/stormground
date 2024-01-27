@@ -330,6 +330,27 @@ int l_keyIsTyped (lua_State* L) {
   return 1;
 }
 
+int l_keyIsDown (lua_State* L) {
+  CommonAPIHeader (L);
+  if (lua_type (L, -1) != LUA_TSTRING) {
+    errorf ("Argument to getKey is not a string\n");
+    lua_pushstring (L, "Argument to getButton is not a string");
+    lua_error (L);
+    return 1;
+  }
+  char const* str = lua_tostring (L, -1);
+  lua_pop (L, 1);
+  int code = strToKeyCode (str);
+  if (code >= 0) {
+    char state = sgs->keys[code];
+    lua_pushboolean (
+        L, state == SG_PRESS || state == SG_REPEAT || state == SG_HOLD);
+    return 1;
+  }
+  lua_pushnil (L);
+  return 1;
+}
+
 int l_getButton (lua_State* L) {
   CommonAPIHeader (L);
   if (lua_type (L, -1) != LUA_TSTRING) {
@@ -779,6 +800,8 @@ int sgPrepState (SGscript* script, SGstate* sgs) {
   CommonAPIFun (L, -2, getKey);
 
   CommonAPIFun (L, -2, keyIsTyped);
+
+  CommonAPIFun (L, -2, keyIsDown);
 
   CommonAPIFun (L, -2, getButton);
 

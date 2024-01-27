@@ -5,9 +5,9 @@
 #define HYDROGEN_ALL
 #include "hydrogen/hydrogen.h"
 
-#define SG_MAJOR        0
+#define SG_MAJOR        1
 #define SG_MINOR        1
-#define SG_VERNAME      "beta.0.3"
+#define SG_VERNAME      "1.1"
 
 #define SG_GAMEPAD_LAST GLFW_JOYSTICK_8
 

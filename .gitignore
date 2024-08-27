@@ -5,3 +5,7 @@ build
 *.exe
 *.dll
 *.a
+gmon.out
+profile.txt
+src/hahahha.ico
+src/resource.rc

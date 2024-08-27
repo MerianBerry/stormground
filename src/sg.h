@@ -1,5 +1,12 @@
 #pragma once
 
+#if defined(__unix__) || defined(__APPLE__)
+#define _THEPOSIX 1
+#  include <unistd.h>
+#elif defined(_WIN32)
+#define _THEWINDOWS 1
+#endif
+
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #define HYDROGEN_ALL

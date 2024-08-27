@@ -2,15 +2,15 @@
 
 out vec4 FragColor;
 
-in vec2 UV;
+in vec2           UV;
 uniform sampler2D screen;
 
-vec3 v3pow(vec3 v, float p) {
-  return vec3(pow(v.r,p), pow(v.g,p), pow(v.b,p));
+vec3 v3pow (vec3 v, float p) {
+  return vec3 (pow (v.r, p), pow (v.g, p), pow (v.b, p));
 }
 
-void main(){
-  
-  FragColor = texture(screen, UV);
-  FragColor = vec4(v3pow(FragColor.rgb, 1 / 2.2), 1.0);
+void main() {
+  FragColor = texture (screen, UV);
+
+  FragColor = vec4 (pow (FragColor.rgb, vec3 (1.0)), 1.0);
 }

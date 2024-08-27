@@ -16,6 +16,6 @@ void main() {
   } else if (aspect < 1.0) {
     pos.y = signf (pos.y) * aspect;
   }
-  gl_Position = vec4(pos.x, pos.y, 0.0, 1.0);
-  UV = vec2(iUV.x, 1.0 - iUV.y);
+  gl_Position = vec4 (pos.x, pos.y, 0.0, 1.0);
+  UV          = vec2 (iUV.x, 1.0 - iUV.y);
 }

@@ -6,11 +6,6 @@
 #include <string.h>
 #include <limits.h>
 
-#if defined(__unix__)
-#  include <unistd.h>
-#elif defined(_WIN32)
-
-#endif
 
 typedef int (*FlagCallback) (SGstate*, int, char**);
 
@@ -43,8 +38,8 @@ int sg_help (SGstate* sgs, int argc, char** argv) {
 }
 
 int sg_dir (SGstate* sgs, int argc, char** argv) {
-  if (argc != 1) {
-    errorf ("Directory flag requires 1 argument\n");
+  if (argc < 1) {
+    errorf ("Directory flag requires at least 1 argument\n");
     return -1;
   }
   sgs->projectDir = (char*)str_cpy (argv[0], npos);
@@ -99,9 +94,9 @@ int doTheDoThing (SGstate* sgs, int argc, char** argv) {
     return 1;
   }
 
-  h_buffer projectContent = io_read ("project.json");
+  h_buffer projectContent = io_read ("sgproject.json");
   if (!projectContent.data) {
-    errorf ("Could not open project.json in (%s)\n", sgs->projectDir);
+    errorf ("Could not open sgproject.json in (%s)\n", sgs->projectDir);
     return 1;
   }
   sgs->projectFileContent = projectContent;

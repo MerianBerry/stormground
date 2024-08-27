@@ -21,11 +21,11 @@ target: $(PLAT)
 
 Linux linux:
 	@echo Building $(SG_N) for linux
-	$(MAKE) $(MKCLIFLAGS) all PLAT=linux CC=gcc CFLAGS="-O3 -std=c99 -I../include -I../lib" LIB_PREF="lib" LIB_EXT=".a"
+	$(MAKE) $(MKCLIFLAGS) all PLAT=linux CC=gcc CFLAGS="-O2 -std=c11 -I../include -I../lib" LIB_PREF="lib" LIB_EXT=".a"
 
 mingw:
 	@echo Building $(SG_N).exe for Windows
-	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw CC="x86_64-w64-mingw32-gcc" CFLAGS="-O3 -std=c99 -Wno-overflow -I../include -I../lib" LIB_EXT=".lib" EXE_EXT=".exe"
+	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw CC="x86_64-w64-mingw32-gcc" CFLAGS="-O2 -std=c11 -Wno-overflow -I../include -I../lib" LIB_EXT=".lib" EXE_EXT=".exe"
 
 #======================BUILD=======================#
 

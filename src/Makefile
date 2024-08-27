@@ -4,14 +4,16 @@
 
 PLAT= 
 CC= gcc
-CFLAGS= -g -std=c99
-LDFLAGS= 
+CFLAGS= -O2 -std=c99
+LDFLAGS=
 SG_E= 
 LIBS= 
 
 MKCLIFLAGS= "--no-print-directory"
 PLATS := linux mingw
 SG_N= stormground
+
+RESOURCE= 
 
 ALL= all
 
@@ -29,7 +31,7 @@ target: $(PLAT)
 
 Linux linux:
 	@echo Building $(SG_N) for linux
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=linux SG_E=$(SG_N) LIB_PREF=lib LIB_EXT=.a CFLAGS="-O2 -std=c99 -I../include -I../lib" LIBS="-llua -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm" 
+	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=linux SG_E=$(SG_N) LIB_PREF=lib LIB_EXT=.a CFLAGS="-O2 -std=c11 -I../include -I../lib" LIBS="-llua -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm" 
 
 mingw:
 	@echo Building $(SG_N).exe for Windows
@@ -45,15 +47,18 @@ echo:
 	@echo SG_E=$(SG_E)
 	@echo LIBS=$(LIBS)
 
+resource:
+	x86_64-w64-mingw32-windres resource.rc -O coff resource.res
+
 all: $(OBJECTS) $(SHADEROBJS)
-	$(CC) -L../lib -L../build $(OBJECTS) $(EXTOBJECTS) -o $(SG_E) $(LIBS)
+	$(CC) -L../lib -L../build $(OBJECTS) $(EXTOBJECTS) $(RESOURCE) -o $(SG_E) $(LIBS)
 	@mv $(SG_E) ../build/$(SG_E)
 
 shaders/%.o: shaders/%
 	ld -r -b binary $< -o $@
 
 clean:
-	rm -f $(OBJECTS) $(SG_E) shaders/*.o
+	rm -f $(OBJECTS) $(SG_E) shaders/*.o *.res
 
 .PHONY: target format
 

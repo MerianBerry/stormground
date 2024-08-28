@@ -21,7 +21,7 @@ SOURCES := $(wildcard *.c)
 OBJECTS := $(patsubst %.c, %.o, $(SOURCES))
 SHADERS := $(wildcard shaders/*.vert) $(wildcard shaders/*.frag) $(wildcard shaders/*.comp)
 SHADEROBJS := $(patsubst %, %.o, $(SHADERS))
-EXTOBJECTS= ../lib/cJSON/cJSON.o ../lib/glad.o ../lib/hydrogen/hydrogen.o $(SHADEROBJS)
+EXTOBJECTS= ../lib/cJSON/cJSON.o ../lib/glad.o ../lib/hydrogen/hydrogen.o
 
 $(if $(shell which clang-format), $(eval CFMT=clang-format), $(info clang-format isnt present and will not format code))
 
@@ -50,7 +50,7 @@ echo:
 resource:
 	x86_64-w64-mingw32-windres resource.rc -O coff resource.res
 
-all: $(OBJECTS) $(SHADEROBJS)
+all: $(OBJECTS)
 	$(CC) -L../lib -L../build $(OBJECTS) $(EXTOBJECTS) $(RESOURCE) -o $(SG_E) $(LIBS)
 	@mv $(SG_E) ../build/$(SG_E)
 

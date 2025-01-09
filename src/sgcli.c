@@ -6,7 +6,6 @@
 #include <string.h>
 #include <limits.h>
 
-
 typedef int (*FlagCallback) (SGstate*, int, char**);
 
 typedef struct flag {

@@ -1,11 +1,11 @@
 #pragma once
 
 #if defined(__unix__) || defined(__APPLE__)
-#define _THEPOSIX 1
+#  define _THEPOSIX 1
 #  include <unistd.h>
 #elif defined(_WIN32)
-#define _THEWINDOWS 1
-#include "rc.h"
+#  define _THEWINDOWS 1
+#  include "rc.h"
 
 #endif
 
@@ -65,7 +65,7 @@ enum {
   SG_PRIMITIVE_RECT     = 0,
   SG_PRIMITIVE_CIRCLE   = 1,
   SG_PRIMITIVE_TRIANGLE = 2,
-  SG_PRIMITIVE_LINE = 3,
+  SG_PRIMITIVE_LINE     = 3,
 };
 
 typedef struct SGprimitive {

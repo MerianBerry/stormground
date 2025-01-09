@@ -8,8 +8,8 @@ enum {
   SG_API_BAD_CALL,
 };
 
-int sgPrepState(SGscript* script, SGstate* sgs);
+int sgPrepState (SGscript* script, SGstate* sgs);
 
-int sgDoFile(SGscript* script, SGstate* sgs, const char* path);
+int sgDoFile (SGscript* script, SGstate* sgs, char const* path);
 
-int sgCallGlobal(SGscript* script, const char* name);
+int sgCallGlobal (SGscript* script, char const* name);

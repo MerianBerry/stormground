@@ -13,8 +13,8 @@
 #include "hydrogen/hydrogen.h"
 
 #define SG_MAJOR        1
-#define SG_MINOR        1
-#define SG_VERNAME      "1.1"
+#define SG_MINOR        2
+#define SG_VERNAME      "1.2"
 
 #define SG_GAMEPAD_LAST GLFW_JOYSTICK_8
 

@@ -90,7 +90,7 @@ int doTheDoThing (SGstate* sgs, int argc, char** argv) {
   sgs->projectDir = realreal;
 
   if (io_changedir (sgs->projectDir)) {
-    errorf ("Failed to change directory\n");
+    errorf ("Failed to change to target directory\n");
     return 1;
   }
 

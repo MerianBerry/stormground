@@ -1,6 +1,6 @@
 <h1>
   <center>
-  Stormground manual (1.1)
+  Stormground manual (1.2)
   </center>
 </h1>
 

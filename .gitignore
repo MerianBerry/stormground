@@ -5,3 +5,9 @@ build
 *.exe
 *.dll
 *.a
+lib/lua-5.4.6/src/lua
+lib/lua-5.4.6/src/lua.exe
+gmon.out
+profile.txt
+src/hahahha.ico
+src/resource.rc

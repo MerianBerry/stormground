@@ -595,6 +595,11 @@ int l_drawLine (lua_State* L) {
   p.p1.y        = vs[1];
   p.p2.x        = vs[2];
   p.p2.y        = vs[3];
+  if (p.p2.x < p.p1.x || (p.p1.x == p.p2.x && p.p2.y < p.p1.y)) {
+    h_vec2 pt = p.p1;
+    p.p1      = p.p2;
+    p.p2      = pt;
+  }
   if (sgs->ssbo->primc >= 0xffff - 1)
     return 0;
   sgs->ssbo->primv[sgs->ssbo->primc] = p;

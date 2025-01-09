@@ -1,24 +1,22 @@
 #pragma once
 
+#if defined(__unix__) || defined(__APPLE__)
+#define _THEPOSIX 1
+#  include <unistd.h>
+#elif defined(_WIN32)
+#define _THEWINDOWS 1
+#endif
+
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #define HYDROGEN_ALL
 #include "hydrogen/hydrogen.h"
 
 #define SG_MAJOR        1
-#define SG_MINOR        1
-#define SG_VERNAME      "1.1"
+#define SG_MINOR        2
+#define SG_VERNAME      "1.2"
 
 #define SG_GAMEPAD_LAST GLFW_JOYSTICK_8
-
-#define binary(name)                                   \
-  extern char        _binary_shaders_##name##_start[]; \
-  extern char        _binary_shaders_##name##_end[];   \
-  static int         name##_size;                      \
-  static char const* name##_start = _binary_shaders_##name##_start
-
-#define resolve_binary_size(name) \
-  name##_size = _binary_shaders_##name##_end - _binary_shaders_##name##_start
 
 typedef struct lua_State lua_State;
 

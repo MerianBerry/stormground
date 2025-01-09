@@ -130,7 +130,7 @@ h_timepoint timenow() {
 }
 
 void microsleep (long usec) {
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
   timespec_t t = {0};
   t.tv_sec     = usec / 1000000;
   t.tv_nsec    = (usec % 1000000) * 1000;
@@ -154,20 +154,20 @@ double timeduration (h_timepoint end, h_timepoint start, double ratio) {
 #endif
 }
 
-void wait (double seconds) {
-#ifdef __unix__
+void t_wait (double seconds) {
+#if defined(__unix__) || defined(__APPLE__)
   h_timepoint s = timenow();
   timespec_t  ts, tsr = {2000, 0};
   while (timeduration (timenow(), s, seconds_e) < seconds) {
     nanosleep (&ts, &tsr);
   }
 #elif defined(_WIN32)
-  waitms (seconds * 1000.0);
+  t_waitms (seconds * 1000.0);
 #endif
 }
 
-void waitms (double ms) {
-#ifdef __unix__
+void t_waitms (double ms) {
+#if defined(__unix__) || defined(__APPLE__)
   h_timepoint s  = timenow();
   timespec_t  ts = {2000, 0};
   ts.tv_sec      = ms / 1000.0;
@@ -553,15 +553,7 @@ char *utf8_tostring (int utf8) {
 
 int errorfv (char const *fmt, va_list args) {
   int r = 1;
-#if defined(__unix__)
-  char *str  = str_append ("&c(bright_red)", fmt, npos);
-  char *str2 = str_append (str, "&c(reset)", npos);
-  free (str);
-  str = str_colorfmtv (str2, args);
-  free ((void *)str2);
-#elif defined(_WIN32)
   char *str = (char *)str_fmtv (fmt, args);
-#endif
   if (!str) {
     r = 0;
     goto errorfEnd;
@@ -904,29 +896,10 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount) {
 #ifdef _WIN32
 #  include <winbase.h>
 #elif defined(__unix__)
-#  include <dirent.h>
+//#  include <dirent.h>
 #endif
 
 typedef struct stat stat_t;
-typedef char       *dirToken;
-
-dirToken *io_parseDirectory (char const *path, int *count) {
-  int          i;
-  const size_t l = strlen (path);
-
-  dirToken *tokens = NULL;
-
-  int c = 0;
-  for (i = 0; i < l; ++i) {
-    size_t   p = MIN (str_ffo (path + i, '\\'), str_ffo (path + i, '/'));
-    dirToken t = (dirToken)str_substr (path, i, p);
-    tokens     = mem_grow (tokens, sizeof (dirToken), c, &t, 1);
-    ++c;
-    if (p == npos)
-      break;
-    i += p;
-  }
-}
 
 /*char *io_fullpath (char const *path) {
   int       i;
@@ -1027,7 +1000,7 @@ char io_exists (char const *path) {
 }
 
 void io_mkdir (char const *path) {
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
   stat_t s     = {0};
   char  *npath = io_fixhome (path);
   if (stat (npath, &s) == -1) {

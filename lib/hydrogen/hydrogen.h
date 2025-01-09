@@ -74,8 +74,8 @@ h_timepoint timenow();
 
 double timeduration (h_timepoint end, h_timepoint start, double ratio);
 
-void wait (double seconds);
-void waitms (double ms);
+void t_wait (double seconds);
+void t_waitms (double ms);
 #endif
 
 #ifdef HYDROGEN_AVL

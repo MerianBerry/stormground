@@ -1,6 +1,6 @@
 <h1>
   <center>
-  Stormground manual (1.1)
+  Stormground manual (1.2)
   </center>
 </h1>
 
@@ -173,7 +173,7 @@ Draws a circle centered around (`x`, `y`), with an outer diameter of `outerDiam`
 ```lua
 stormground.drawRectangle(x, y, width, height, isHollow)
 ```
-Draws a filled rectangle, starting at (`x`,`y`), and extending for `width` and `height`. If `isHollow` is true, the rectangle will be drawn as hollow with a `1` pixel wide shell. `isHollow` can be undefined or `nil`, and will be determined to be `false`.
+Draws a filled rectangle, with the top left of the box at (`x`, `y`), and extending for `width` and `height`. If `isHollow` is true, the rectangle will be drawn as hollow with a `1` pixel wide shell. `isHollow` can be undefined or `nil`, and will be determined to be `false`.
 
 ```lua
 stormground.drawTriangle(x1, y1, x2, y2, x3, y3)
@@ -256,7 +256,7 @@ Sets the draw color of any shapes from the call of the function, and then on. If
   - `x` field (string): X/Square button.
   - `y` field (string): Y/Triangle button.
   - `leftBumper` field (string): Left bumper button.
-  - `rightBumber` field (string): Right bumper button.
+  - `rightBumper` field (string): Right bumper button.
   - `back` field (string): Back/Share button.
   - `start` field (string): Start/Options button.
   - `guide` field (string): Guide/PS button.

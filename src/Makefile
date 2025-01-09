@@ -31,7 +31,7 @@ target: $(PLAT)
 
 Linux linux:
 	@echo Building $(SG_N) for linux
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=linux SG_E=$(SG_N) LIB_PREF=lib LIB_EXT=.a CFLAGS="-O2 -std=c11 -I../include -I../lib" LIBS="-llua -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm" 
+	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=linux SG_E=$(SG_N) LIB_PREF=lib LIB_EXT=.a CFLAGS="-g -std=c11 -I../include -I../lib" LIBS="-llua -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm" 
 
 mingw:
 	@echo Building $(SG_N).exe for Windows
@@ -50,8 +50,8 @@ echo:
 resource:
 	x86_64-w64-mingw32-windres resource.rc -O coff resource.res
 
-all: $(OBJECTS)
-	$(CC) -L../lib -L../build $(OBJECTS) $(EXTOBJECTS) $(RESOURCE) -o $(SG_E) $(LIBS)
+all: $(OBJECTS) $(SHADEROBJS)
+	$(CC) -L../lib -L../build $(OBJECTS) $(SHADEROBJS) $(EXTOBJECTS) $(RESOURCE) -o $(SG_E) $(LIBS)
 	@mv $(SG_E) ../build/$(SG_E)
 
 shaders/%.o: shaders/%

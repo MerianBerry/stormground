@@ -1,0 +1,4 @@
+If:
+  PathMatch: [.*.c, .*.h]
+CompileFlags:
+  Add: [-I/home/merian/Documents/stormground/include, -I/home/merian/Documents/stormground/lib]

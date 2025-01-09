@@ -1,5 +1,6 @@
 #include "sg.h"
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,8 +13,21 @@
 #include "sgimage.h"
 #include "cJSON/cJSON.h"
 
+#define shad(name)                                    \
+  extern char const _binary_shaders_##name##_start[]; \
+  extern char const _binary_shaders_##name##_end[];   \
+  static size_t     _binary_shaders_##name##_size = 0
+
+shad (main_vert);
+shad (main_frag);
+shad (main_comp);
+
+/*extern const char* _binary_shaders_main_vert_start;
+extern const char* _binary_shaders_main_vert_end;
+size_t _binary_shaders_main_vert_size=0;
+
 char const _binary_shaders_main_vert_start[] =
-    "#version 460 core\nout vec2 UV;layout (location = 0) in vec2 aPos;layout "
+    "#version 410 core\nout vec2 UV;layout (location = 0) in vec2 aPos;layout "
     "(location = 1) in vec2 iUV;uniform float aspect;float signf (float x) { "
     "return (x > 0.0) ? 1.0 : -1.0; }void main() {vec2 pos = aPos;if (aspect > "
     "1.0) {pos.x = signf (pos.x) / aspect;} else if (aspect < 1.0) {pos.y = "
@@ -23,14 +37,14 @@ int const   main_vert_size  = sizeof (_binary_shaders_main_vert_start);
 char const* main_vert_start = _binary_shaders_main_vert_start;
 
 char const main_frag_start[] =
-    "#version 460 core\nout vec4 FragColor;in vec2           UV;uniform "
+    "#version 410 core\nout vec4 FragColor;in vec2           UV;uniform "
     "sampler2D screen;vec3 v3pow (vec3 v, float p) {return vec3 (pow (v.r, p), "
     "pow (v.g, p), pow (v.b, p));}void main() {FragColor = texture (screen, "
     "UV);FragColor = vec4 (pow (FragColor.rgb, vec3 (1.0)), 1.0);}";
 int const main_frag_size = sizeof (main_frag_start);
 
 char const main_comp_start[] =
-    "#version 460 core\n#define SG_RECTANGLE_F 0\n#define SG_CIRCLE_F    1\n"
+    "#version 430 core\n#define SG_RECTANGLE_F 0\n#define SG_CIRCLE_F    1\n"
     "#define SG_TRIANGLE_F  2\n#define SG_LINE        3\nlayout (local_size_x "
     "= "
     "8, local_size_y = 4, local_size_z = 1) in; layout (rgba32f, binding = 0) "
@@ -90,6 +104,7 @@ char const main_comp_start[] =
     "within(x, p1.x-0.5, p2.x+0.5)) {imageStore (screen, pix_coords,vec4 "
     "(ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));}}";
 int const main_comp_size = sizeof (main_comp_start);
+*/
 
 static SGstate state;
 
@@ -325,23 +340,35 @@ int main (int argc, char** argv) {
 
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable (GL_BLEND);
+  printf ("vertex: %s\n", _binary_shaders_main_vert_start);
 
+  _binary_shaders_main_vert_size =
+      _binary_shaders_main_vert_end - _binary_shaders_main_vert_start;
   uint32_t vShader =
-      sgCompileShader (GL_VERTEX_SHADER, main_vert_start, main_vert_size);
+      sgCompileShader (GL_VERTEX_SHADER, _binary_shaders_main_vert_start,
+                       _binary_shaders_main_vert_size);
   if (!vShader) {
     errorf ("Vertex shader compile fail\n");
     glfwTerminate();
     exit (3);
   }
+
+
+  _binary_shaders_main_frag_size =
+      _binary_shaders_main_frag_end - _binary_shaders_main_frag_start;
   uint32_t fShader =
-      sgCompileShader (GL_FRAGMENT_SHADER, main_frag_start, main_frag_size);
+      sgCompileShader (GL_FRAGMENT_SHADER, _binary_shaders_main_frag_start,
+                       _binary_shaders_main_frag_size);
   if (!fShader) {
     errorf ("Fragment shader compile fail\n");
     glfwTerminate();
     exit (3);
   }
+  _binary_shaders_main_comp_size =
+      _binary_shaders_main_comp_end - _binary_shaders_main_comp_start;
   uint32_t cShader =
-      sgCompileShader (GL_COMPUTE_SHADER, main_comp_start, main_comp_size);
+      sgCompileShader (GL_COMPUTE_SHADER, _binary_shaders_main_comp_start,
+                       _binary_shaders_main_comp_size);
   if (!cShader) {
     errorf ("Compute shader compile fail\n");
     glfwTerminate();

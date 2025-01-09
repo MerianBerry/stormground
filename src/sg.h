@@ -5,6 +5,8 @@
 #  include <unistd.h>
 #elif defined(_WIN32)
 #define _THEWINDOWS 1
+#include "rc.h"
+
 #endif
 
 #include "glad/glad.h"

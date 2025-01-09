@@ -36,7 +36,7 @@ Linux linux:
 
 mingw:
 	@echo Building $(SG_N).exe for Windows
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=mingw SG_E=$(SG_N).exe RESOBJ=resource.res LIB_EXT=.lib CC="x86_64-w64-mingw32-gcc" CFLAGS="-O2 -std=c99 -Wno-overflow -I../include -I../lib" LIBS="-llua -lglfw3mingw -lm -lopengl32 -lgdi32"
+	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=mingw SG_E=$(SG_N).exe RESOBJ=resource.res LIB_EXT=.lib CC="x86_64-w64-mingw32-gcc" CFLAGS="-O2 -std=c99 -Wno-overflow -I../include -I../lib" LIBS="-llua -lglfw3mingw -lm -lopengl32 -lgdi32 -ldwmapi"
 
 #======================BUILD=======================#
 

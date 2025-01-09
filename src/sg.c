@@ -1,5 +1,9 @@
+#ifdef _WIN32
+#  include <dwmapi.h>
+#  define GLFW_EXPOSE_NATIVE_WIN32 1
+#endif
 #include "sg.h"
-
+#include "GLFW/glfw3native.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +124,7 @@ static float vertices[] = {
 static unsigned int indices[] = {
     /* note that we start from 0! */
     0, 1, 3, /* first Triangle */
-    1, 2, 3 /* second Triangle */
+    1, 2, 3  /* second Triangle */
 };
 
 SSBO* ssboBuf;
@@ -318,6 +322,35 @@ int main (int argc, char** argv) {
     return 1;
   }
 
+#if defined(_THEWINDOWS) && defined(GLFW_EXPOSE_NATIVE_WIN32)
+  HWND hwnd      = glfwGetWin32Window (state.win);
+  BOOL dark_mode = 1;
+  DwmSetWindowAttribute (hwnd, 20, &dark_mode, sizeof (dark_mode));
+  HICON hi =
+      (HICON)LoadImageW (GetModuleHandle (NULL), MAKEINTRESOURCEW (IDI_ICON),
+                         IMAGE_ICON, 180, 180, 0);
+  // fprintf (stderr, "%p\n", hi);
+  if (hi) {
+    ICONINFO hiinfo;
+    GetIconInfo (hi, &hiinfo);
+    HBITMAP hbit = hiinfo.hbmColor;
+    // fprintf (stderr, "%p\n", hbit);
+    BITMAP bit;
+    GetObject (hbit, sizeof (bit), (LPVOID)&bit);
+    // fprintf (stderr, "%p, %li %li\n", bit.bmBits, bit.bmWidth, bit.bmHeight);
+    if (bit.bmWidth * bit.bmHeight > 0) {
+      GLFWimage      image;
+      unsigned char* copy =
+          (unsigned char*)malloc (bit.bmWidth * bit.bmHeight * 4);
+      GetBitmapBits (hbit, bit.bmWidth * bit.bmHeight * 4, copy);
+      image.pixels = copy;
+      image.width  = bit.bmWidth;
+      image.height = bit.bmHeight;
+      glfwSetWindowIcon (state.win, 1, &image);
+    }
+  }
+#endif
+
   glfwMakeContextCurrent (state.win);
   glfwSwapInterval (0);
 
@@ -351,7 +384,6 @@ int main (int argc, char** argv) {
     glfwTerminate();
     exit (3);
   }
-
 
   _binary_shaders_main_frag_size =
       _binary_shaders_main_frag_end - _binary_shaders_main_frag_start;
@@ -519,7 +551,6 @@ int main (int argc, char** argv) {
                     GL_UNSIGNED_INT, 0);
     glBindVertexArray (0);
 
-
     glfwSwapBuffers (state.win);
     sgAdvanceInputs();
     glfwPollEvents();
@@ -539,7 +570,6 @@ int main (int argc, char** argv) {
     state.delta = delta;
     ls          = timenow();
   }
-
 
   glDeleteVertexArrays (1, &VAO);
 

@@ -4,21 +4,23 @@ Language: Cpp
 PointerAlignment: Left
 
 SortIncludes: false
-IncludeBlocks: Regroup
 ColumnLimit: 80
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Left
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
+AlignTrailingComments: true
 AlignConsecutiveMacros: AcrossEmptyLines
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
-AlignTrailingComments: false
+
 AllowAllArgumentsOnNextLine: true
-AllowShortBlocksOnASingleLine: Empty
-AllowShortCaseLabelsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
+
 AlwaysBreakBeforeMultilineStrings: true
 BinPackArguments: true
 BinPackParameters: true
@@ -26,7 +28,7 @@ IndentCaseLabels: false
 IndentGotoLabels: false
 IndentPPDirectives: AfterHash
 IndentWidth: 2
-MaxEmptyLinesToKeep: 2
+MaxEmptyLinesToKeep: 1
 SeparateDefinitionBlocks: Always
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
@@ -45,6 +47,6 @@ SpacesInSquareBrackets: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 QualifierAlignment: Custom
 QualifierOrder: ['inline', 'static', 'type', 'const']
-TabWidth: 4
+TabWidth: 2
 UseCRLF: true
 UseTab: Never

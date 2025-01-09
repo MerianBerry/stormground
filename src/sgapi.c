@@ -937,6 +937,7 @@ int sgCallGlobal (SGscript* script, char const* name) {
   lua_getglobal (script->L, name);
   if (lua_isnil (script->L, -1)) {
     lua_pop (script->L, 1);
+    errorf ("Global %s does not exist\n", name);
     return SG_API_BAD_GLOBAL;
   }
   if (lua_pcall (script->L, 0, 0, 0) != 0) {

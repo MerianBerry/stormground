@@ -279,7 +279,7 @@ int main (int argc, char** argv) {
   glfwSetWindowUserPointer (state.win, &state);
 
   if (!gladLoadGLLoader ((GLADloadproc)glfwGetProcAddress)) {
-    fprintf (stderr, "Failled to load OpenGL\n");
+    fprintf (stderr, "Failed to load OpenGL\n");
     glfwTerminate();
     return 2;
   }
@@ -331,6 +331,7 @@ int main (int argc, char** argv) {
   uint32_t shaderProgram =
       sgLinkShaderProgram (shaders, sizeof (shaders) / sizeof (shaders[0]));
   if (!shaderProgram) {
+    errorf ("Failed to link shader program\n");
     glfwTerminate();
     exit (4);
   }
@@ -339,6 +340,7 @@ int main (int argc, char** argv) {
 
   uint32_t computeProgram = sgLinkShaderProgram (&cShader, 1);
   if (!computeProgram) {
+    errorf ("Failed to link compute program\n");
     glfwTerminate();
     exit (4);
   }

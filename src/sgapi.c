@@ -7,7 +7,6 @@
 #include "sgimage.h"
 #include <string.h>
 
-
 #include "lua-5.4.6/src/luaconf.h"
 #include "lua-5.4.6/src/lauxlib.h"
 #include "lua-5.4.6/src/lua.h"
@@ -17,117 +16,196 @@ int strToKeyCode (char const* str) {
   unsigned int hash = str_hash (str);
   switch (hash) {
   case 177638:
-  case 177670: /* A a */ return GLFW_KEY_A;
+  case 177670: /* A a */
+    return GLFW_KEY_A;
   case 177639:
-  case 177671: /* B b */ return GLFW_KEY_B;
+  case 177671: /* B b */
+    return GLFW_KEY_B;
   case 177640:
-  case 177672: /* C c */ return GLFW_KEY_C;
+  case 177672: /* C c */
+    return GLFW_KEY_C;
   case 177641:
-  case 177673: /* D d */ return GLFW_KEY_D;
+  case 177673: /* D d */
+    return GLFW_KEY_D;
   case 177642:
-  case 177674: /* E e */ return GLFW_KEY_E;
+  case 177674: /* E e */
+    return GLFW_KEY_E;
   case 177643:
-  case 177675: /* F f */ return GLFW_KEY_F;
+  case 177675: /* F f */
+    return GLFW_KEY_F;
   case 177644:
-  case 177676: /* G g */ return GLFW_KEY_G;
+  case 177676: /* G g */
+    return GLFW_KEY_G;
   case 177645:
-  case 177677: /* H h */ return GLFW_KEY_H;
+  case 177677: /* H h */
+    return GLFW_KEY_H;
   case 177646:
-  case 177678: /* I i */ return GLFW_KEY_I;
+  case 177678: /* I i */
+    return GLFW_KEY_I;
   case 177647:
-  case 177679: /* J j */ return GLFW_KEY_J;
+  case 177679: /* J j */
+    return GLFW_KEY_J;
   case 177648:
-  case 177680: /* K k */ return GLFW_KEY_K;
+  case 177680: /* K k */
+    return GLFW_KEY_K;
   case 177649:
-  case 177681: /* L l */ return GLFW_KEY_L;
+  case 177681: /* L l */
+    return GLFW_KEY_L;
   case 177650:
-  case 177682: /* M m */ return GLFW_KEY_M;
+  case 177682: /* M m */
+    return GLFW_KEY_M;
   case 177651:
-  case 177683: /* N n */ return GLFW_KEY_N;
+  case 177683: /* N n */
+    return GLFW_KEY_N;
   case 177652:
-  case 177684: /* O o */ return GLFW_KEY_O;
+  case 177684: /* O o */
+    return GLFW_KEY_O;
   case 177653:
-  case 177685: /* P p */ return GLFW_KEY_P;
+  case 177685: /* P p */
+    return GLFW_KEY_P;
   case 177654:
-  case 177686: /* Q q */ return GLFW_KEY_Q;
+  case 177686: /* Q q */
+    return GLFW_KEY_Q;
   case 177655:
-  case 177687: /* R r */ return GLFW_KEY_R;
+  case 177687: /* R r */
+    return GLFW_KEY_R;
   case 177656:
-  case 177688: /* S s */ return GLFW_KEY_S;
+  case 177688: /* S s */
+    return GLFW_KEY_S;
   case 177657:
-  case 177689: /* T t */ return GLFW_KEY_T;
+  case 177689: /* T t */
+    return GLFW_KEY_T;
   case 177658:
-  case 177690: /* U u */ return GLFW_KEY_U;
+  case 177690: /* U u */
+    return GLFW_KEY_U;
   case 177659:
-  case 177691: /* V v */ return GLFW_KEY_V;
+  case 177691: /* V v */
+    return GLFW_KEY_V;
   case 177660:
-  case 177692: /* W w */ return GLFW_KEY_W;
+  case 177692: /* W w */
+    return GLFW_KEY_W;
   case 177661:
-  case 177693: /* X x */ return GLFW_KEY_X;
+  case 177693: /* X x */
+    return GLFW_KEY_X;
   case 177662:
-  case 177694: /* Y y */ return GLFW_KEY_Y;
+  case 177694: /* Y y */
+    return GLFW_KEY_Y;
   case 177663:
-  case 177695: /* Z z */ return GLFW_KEY_Z;
-  case 177621: /* 0 */ return GLFW_KEY_0;
-  case 177622: /* 1 */ return GLFW_KEY_1;
-  case 177623: /* 2 */ return GLFW_KEY_2;
-  case 177624: /* 3 */ return GLFW_KEY_3;
-  case 177625: /* 4 */ return GLFW_KEY_4;
-  case 177626: /* 5 */ return GLFW_KEY_5;
-  case 177627: /* 6 */ return GLFW_KEY_6;
-  case 177628: /* 7 */ return GLFW_KEY_7;
-  case 177629: /* 8 */ return GLFW_KEY_8;
-  case 177630: /* 9 */ return GLFW_KEY_9;
-  case 203947599: /* lshift */ return GLFW_KEY_LEFT_SHIFT;
-  case 438759957: /* rshift */ return GLFW_KEY_RIGHT_SHIFT;
-  case 4147334258: /* lcontrol */ return GLFW_KEY_LEFT_CONTROL;
-  case 2159954360: /* rcontrol */ return GLFW_KEY_RIGHT_CONTROL;
-  case 2090464114: /* lalt */ return GLFW_KEY_LEFT_ALT;
-  case 2090679736: /* ralt */ return GLFW_KEY_RIGHT_ALT;
-  case 2957236621: /* lbracket */ return GLFW_KEY_LEFT_BRACKET;
-  case 969856723: /* rbracket */ return GLFW_KEY_RIGHT_BRACKET;
-  case 274667089: /* space */ return GLFW_KEY_SPACE;
-  case 3580823138: /* backspace */ return GLFW_KEY_BACKSPACE;
-  case 193506620: /* tab */ return GLFW_KEY_TAB;
-  case 258013091: /* enter */ return GLFW_KEY_ENTER;
-  case 267314769: /* minus */ return GLFW_KEY_MINUS;
-  case 258121853: /* equal */ return GLFW_KEY_EQUAL;
-  case 5863882: /* up */ return GLFW_KEY_UP;
-  case 2090192221: /* down */ return GLFW_KEY_DOWN;
-  case 2090468272: /* left */ return GLFW_KEY_LEFT;
-  case 273236323: /* right */ return GLFW_KEY_RIGHT;
-  case 255669810: /* comma */ return GLFW_KEY_COMMA;
-  case 344245928: /* period */ return GLFW_KEY_PERIOD;
-  case 4224779062: /* escape */ return GLFW_KEY_ESCAPE;
-  case 274523872: /* slash */ return GLFW_KEY_SLASH;
-  case 3580679921: /* backslash */ return GLFW_KEY_BACKSLASH;
-  case 1051985198: /* semicolon */ return GLFW_KEY_SEMICOLON;
-  case 4169368696: /* delete */ return GLFW_KEY_DELETE;
-  case 2600365223: /* page up */ return GLFW_KEY_PAGE_UP;
-  case 1413671802: /* page down */ return GLFW_KEY_PAGE_DOWN;
-  case 2090335630: /* home */ return GLFW_KEY_HOME;
-  case 193490716: /* end */ return GLFW_KEY_END;
-  case 81003162: /* insert */ return GLFW_KEY_INSERT;
+  case 177695: /* Z z */
+    return GLFW_KEY_Z;
+  case 177621: /* 0 */
+    return GLFW_KEY_0;
+  case 177622: /* 1 */
+    return GLFW_KEY_1;
+  case 177623: /* 2 */
+    return GLFW_KEY_2;
+  case 177624: /* 3 */
+    return GLFW_KEY_3;
+  case 177625: /* 4 */
+    return GLFW_KEY_4;
+  case 177626: /* 5 */
+    return GLFW_KEY_5;
+  case 177627: /* 6 */
+    return GLFW_KEY_6;
+  case 177628: /* 7 */
+    return GLFW_KEY_7;
+  case 177629: /* 8 */
+    return GLFW_KEY_8;
+  case 177630: /* 9 */
+    return GLFW_KEY_9;
+  case 203947599: /* lshift */
+    return GLFW_KEY_LEFT_SHIFT;
+  case 438759957: /* rshift */
+    return GLFW_KEY_RIGHT_SHIFT;
+  case 4147334258: /* lcontrol */
+    return GLFW_KEY_LEFT_CONTROL;
+  case 2159954360: /* rcontrol */
+    return GLFW_KEY_RIGHT_CONTROL;
+  case 2090464114: /* lalt */
+    return GLFW_KEY_LEFT_ALT;
+  case 2090679736: /* ralt */
+    return GLFW_KEY_RIGHT_ALT;
+  case 2957236621: /* lbracket */
+    return GLFW_KEY_LEFT_BRACKET;
+  case 969856723: /* rbracket */
+    return GLFW_KEY_RIGHT_BRACKET;
+  case 274667089: /* space */
+    return GLFW_KEY_SPACE;
+  case 3580823138: /* backspace */
+    return GLFW_KEY_BACKSPACE;
+  case 193506620: /* tab */
+    return GLFW_KEY_TAB;
+  case 258013091: /* enter */
+    return GLFW_KEY_ENTER;
+  case 267314769: /* minus */
+    return GLFW_KEY_MINUS;
+  case 258121853: /* equal */
+    return GLFW_KEY_EQUAL;
+  case 5863882: /* up */
+    return GLFW_KEY_UP;
+  case 2090192221: /* down */
+    return GLFW_KEY_DOWN;
+  case 2090468272: /* left */
+    return GLFW_KEY_LEFT;
+  case 273236323: /* right */
+    return GLFW_KEY_RIGHT;
+  case 255669810: /* comma */
+    return GLFW_KEY_COMMA;
+  case 344245928: /* period */
+    return GLFW_KEY_PERIOD;
+  case 4224779062: /* escape */
+    return GLFW_KEY_ESCAPE;
+  case 274523872: /* slash */
+    return GLFW_KEY_SLASH;
+  case 3580679921: /* backslash */
+    return GLFW_KEY_BACKSLASH;
+  case 1051985198: /* semicolon */
+    return GLFW_KEY_SEMICOLON;
+  case 4169368696: /* delete */
+    return GLFW_KEY_DELETE;
+  case 2600365223: /* page up */
+    return GLFW_KEY_PAGE_UP;
+  case 1413671802: /* page down */
+    return GLFW_KEY_PAGE_DOWN;
+  case 2090335630: /* home */
+    return GLFW_KEY_HOME;
+  case 193490716: /* end */
+    return GLFW_KEY_END;
+  case 81003162: /* insert */
+    return GLFW_KEY_INSERT;
 
-  default: return -1;
+  default:
+    return -1;
   }
 }
 
 int strToButtonCode (char const* str) {
   unsigned int hash = str_hash (str);
   switch (hash) {
-  case 2090468272: /* left */ return GLFW_MOUSE_BUTTON_LEFT;
-  case 273236323: /* right */ return GLFW_MOUSE_BUTTON_RIGHT;
-  case 231074772: /* middle */ return GLFW_MOUSE_BUTTON_MIDDLE;
-  case 2498432466: /* button1 */ return GLFW_MOUSE_BUTTON_1;
-  case 2498432467: /* button2 */ return GLFW_MOUSE_BUTTON_2;
-  case 2498432468: /* button3 */ return GLFW_MOUSE_BUTTON_3;
-  case 2498432469: /* button4 */ return GLFW_MOUSE_BUTTON_4;
-  case 2498432470: /* button5 */ return GLFW_MOUSE_BUTTON_5;
-  case 2498432471: /* button6 */ return GLFW_MOUSE_BUTTON_6;
-  case 2498432472: /* button7 */ return GLFW_MOUSE_BUTTON_7;
-  case 2498432473: /* button8 */ return GLFW_MOUSE_BUTTON_8;
-  default: return -1;
+  case 2090468272: /* left */
+    return GLFW_MOUSE_BUTTON_LEFT;
+  case 273236323: /* right */
+    return GLFW_MOUSE_BUTTON_RIGHT;
+  case 231074772: /* middle */
+    return GLFW_MOUSE_BUTTON_MIDDLE;
+  case 2498432466: /* button1 */
+    return GLFW_MOUSE_BUTTON_1;
+  case 2498432467: /* button2 */
+    return GLFW_MOUSE_BUTTON_2;
+  case 2498432468: /* button3 */
+    return GLFW_MOUSE_BUTTON_3;
+  case 2498432469: /* button4 */
+    return GLFW_MOUSE_BUTTON_4;
+  case 2498432470: /* button5 */
+    return GLFW_MOUSE_BUTTON_5;
+  case 2498432471: /* button6 */
+    return GLFW_MOUSE_BUTTON_6;
+  case 2498432472: /* button7 */
+    return GLFW_MOUSE_BUTTON_7;
+  case 2498432473: /* button8 */
+    return GLFW_MOUSE_BUTTON_8;
+  default:
+    return -1;
   }
 }
 
@@ -216,12 +294,18 @@ int sgDrawStr (SGstate* sg, char* str, float _x, float _y, float size) {
 
 char* sgStateToString (char state) {
   switch (state) {
-  case SG_PRESS: return str_cpy ("pressed", npos);
-  case SG_RELEASE: return str_cpy ("released", npos);
-  case SG_HOLD: return str_cpy ("held", npos);
-  case SG_NOHOLD: return str_cpy ("not pressed", npos);
-  case SG_REPEAT: return str_cpy ("repeated", npos);
-  default: return NULL;
+  case SG_PRESS:
+    return str_cpy ("pressed", npos);
+  case SG_RELEASE:
+    return str_cpy ("released", npos);
+  case SG_HOLD:
+    return str_cpy ("held", npos);
+  case SG_NOHOLD:
+    return str_cpy ("not pressed", npos);
+  case SG_REPEAT:
+    return str_cpy ("repeated", npos);
+  default:
+    return NULL;
   }
 }
 
@@ -443,7 +527,6 @@ int l_getGamepad (lua_State* L) {
 
   sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_GUIDE, "guide");
 
-
   /* joystick buttons */
 
   sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_LEFT_THUMB, "leftThumb");
@@ -460,7 +543,6 @@ int l_getGamepad (lua_State* L) {
   sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_DOWN, "dpadDown");
 
   sgPushAndSetGPButton (L, gp, -2, GLFW_GAMEPAD_BUTTON_DPAD_LEFT, "dpadLeft");
-
 
   lua_setfield (L, -2, "buttons"); /* end buttons */
 

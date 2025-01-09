@@ -9,14 +9,21 @@ void sgSetImagePixel (SGimage *img, int x, int y, SGcolor c) {
   if (base + 3 >= img->width * img->height * img->channels)
     return;
   switch (img->channels) {
-  case 4: img->data[base + 3] = c.a;
-  case 3: img->data[base + 2] = c.b;
-  case 2: img->data[base + 1] = c.g;
-  case 1: img->data[base] = c.r; break;
+  case 4:
+    img->data[base + 3] = c.a;
+  case 3:
+    img->data[base + 2] = c.b;
+  case 2:
+    img->data[base + 1] = c.g;
+  case 1:
+    img->data[base] = c.r;
+    break;
   }
 }
 
-SGcolor sgGetImagePixel (SGimage *img, int x, int y) { return (SGcolor){0}; }
+SGcolor sgGetImagePixel (SGimage *img, int x, int y) {
+  return (SGcolor){0};
+}
 
 SGimage sgGenImage (int width, int height, int channels) {
   SGimage img = {0};
@@ -45,9 +52,15 @@ stbi_failure_reason()); return (SGimage){0};
 int sgGLImageTextureType (SGimage *img) {
   int type = GL_RGBA;
   switch (img->channels) {
-  case 3: type = GL_RGB; break;
-  case 2: type = GL_RG; break;
-  case 1: type = GL_R; break;
+  case 3:
+    type = GL_RGB;
+    break;
+  case 2:
+    type = GL_RG;
+    break;
+  case 1:
+    type = GL_R;
+    break;
   }
   return type;
 }

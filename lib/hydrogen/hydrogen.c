@@ -61,7 +61,7 @@ void h_loadWinAPI() {
   assert (CreateWaitableTimerExW &&
           "Failed to load CreateWaitableTimerExW from kernel32.dll");
   if (s) {
-    printf ("Loaded kernel32.dll and CreateWaitableTimerExW\n");
+    //fprintf (stderr, "Loaded kernel32.dll and CreateWaitableTimerExW\n");
   }
 }
 #else

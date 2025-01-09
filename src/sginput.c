@@ -6,7 +6,9 @@
 
 SGstate *sgstate;
 
-void sgSetInputState (SGstate *state) { sgstate = state; }
+void sgSetInputState (SGstate *state) {
+  sgstate = state;
+}
 
 void sgFramebufSizeCallback (GLFWwindow *win, int width, int height) {
   glViewport (0, 0, width, height);
@@ -35,9 +37,14 @@ void sgCursorPosCallback (GLFWwindow *win, double x, double y) {
 void sgKeyCallback (GLFWwindow *win, int key, int scancode, int action,
                     int mods) {
   switch (action) {
-  case GLFW_PRESS: sgstate->keys[key] = SG_PRESS; break;
-  case GLFW_RELEASE: sgstate->keys[key] = SG_RELEASE; break;
-  case GLFW_REPEAT: sgstate->keys[key] = SG_REPEAT;
+  case GLFW_PRESS:
+    sgstate->keys[key] = SG_PRESS;
+    break;
+  case GLFW_RELEASE:
+    sgstate->keys[key] = SG_RELEASE;
+    break;
+  case GLFW_REPEAT:
+    sgstate->keys[key] = SG_REPEAT;
   }
 }
 

@@ -1,5 +1,9 @@
+#ifdef _WIN32
+#  include <dwmapi.h>
+#  define GLFW_EXPOSE_NATIVE_WIN32 1
+#endif
 #include "sg.h"
-
+#include "GLFW/glfw3native.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,90 +26,6 @@ shad (main_vert);
 shad (main_frag);
 shad (main_comp);
 
-/*extern const char* _binary_shaders_main_vert_start;
-extern const char* _binary_shaders_main_vert_end;
-size_t _binary_shaders_main_vert_size=0;
-
-char const _binary_shaders_main_vert_start[] =
-    "#version 410 core\nout vec2 UV;layout (location = 0) in vec2 aPos;layout "
-    "(location = 1) in vec2 iUV;uniform float aspect;float signf (float x) { "
-    "return (x > 0.0) ? 1.0 : -1.0; }void main() {vec2 pos = aPos;if (aspect > "
-    "1.0) {pos.x = signf (pos.x) / aspect;} else if (aspect < 1.0) {pos.y = "
-    "signf (pos.y) * aspect;}gl_Position = vec4 (pos.x, pos.y, 0.0, 1.0);UV    "
-    "      = vec2 (iUV.x, 1.0 - iUV.y);}";
-int const   main_vert_size  = sizeof (_binary_shaders_main_vert_start);
-char const* main_vert_start = _binary_shaders_main_vert_start;
-
-char const main_frag_start[] =
-    "#version 410 core\nout vec4 FragColor;in vec2           UV;uniform "
-    "sampler2D screen;vec3 v3pow (vec3 v, float p) {return vec3 (pow (v.r, p), "
-    "pow (v.g, p), pow (v.b, p));}void main() {FragColor = texture (screen, "
-    "UV);FragColor = vec4 (pow (FragColor.rgb, vec3 (1.0)), 1.0);}";
-int const main_frag_size = sizeof (main_frag_start);
-
-char const main_comp_start[] =
-    "#version 430 core\n#define SG_RECTANGLE_F 0\n#define SG_CIRCLE_F    1\n"
-    "#define SG_TRIANGLE_F  2\n#define SG_LINE        3\nlayout (local_size_x "
-    "= "
-    "8, local_size_y = 4, local_size_z = 1) in; layout (rgba32f, binding = 0) "
-    "uniform image2D screen; struct Primitive {float c[3];float p1[2];float "
-    "p2[2];float p3[2];float p4[2];int   type;};layout (std430, binding = 1) "
-    "buffer SSBO {float     time;int       primc;Primitive primv[];}ssbo;void "
-    "drawCircleF(ivec2 pix_coords, int x, int y, int i);void drawRectF (ivec2 "
-    "pix_coords, int x, int y, int i);void drawRect (ivec2 pix_coords, int x, "
-    "int y, int i);void drawTriF (ivec2 pix_coords, float x, float y, int "
-    "i);void drawLine (ivec2 pix_coords, float x, float y, int i);void main() "
-    "{ivec2 pix_coords = ivec2 (gl_GlobalInvocationID.xy);ivec2 dims = "
-    "imageSize (screen);int x    = pix_coords.x;int y    = "
-    "pix_coords.y;imageStore (screen, pix_coords, vec4 (0, 0, 0, 1.0));for "
-    "(int i = 0; i < ssbo.primc; ++i) {switch(ssbo.primv[i].type) {case "
-    "SG_RECTANGLE_F: {if (ssbo.primv[i].p3[0] == 1.0) {drawRect (pix_coords, "
-    "x, y, i);} else {drawRectF (pix_coords, x, y, i);}}break;case "
-    "SG_CIRCLE_F: {drawCircleF(pix_coords, x, y, i);}break;case SG_TRIANGLE_F: "
-    "{drawTriF (pix_coords, x, y, i);}break;case SG_LINE: "
-    "{drawLine(pix_coords, x, y, i);}}}}void drawCircleF(ivec2 pix_coords, int "
-    "x, int y, int i) {float x2 = x - ssbo.primv[i].p1[0];float y2 = y - "
-    "ssbo.primv[i].p1[1];float dst = sqrt(x2 * x2 + y2 * y2);if (dst < "
-    "ssbo.primv[i].p2[0] && dst >= ssbo.primv[i].p2[1]) {imageStore (screen, "
-    "pix_coords,vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], "
-    "ssbo.primv[i].c[2], 1.0));}}float sign (vec2 p1, vec2 p2, vec2 p3) "
-    "{return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - "
-    "p3.y);}bool PointInTriangle (vec2 pt, vec2 v1, vec2 v2, vec2 v3) {float "
-    "d1, d2, d3;bool  has_neg, has_pos;d1 = sign (pt, v1, v2);d2 = sign (pt, "
-    "v2, v3);d3 = sign (pt, v3, v1);has_neg = (d1 < 0) || (d2 < 0) || (d3 < "
-    "0);has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);"
-    "return !(has_neg && has_pos);};void drawRectF (ivec2 pix_coords, int x, "
-    "int y, int i) {ivec2 dims = imageSize (screen);ivec2 p1 = ivec2 "
-    "(ssbo.primv[i].p1[0], ssbo.primv[i].p1[1]);ivec2 p2 = ivec2 "
-    "(ssbo.primv[i].p2[0], ssbo.primv[i].p2[1]);ivec2 p = ivec2(x, y);if "
-    "(x>=p1.x && y>=p1.y && x<=p2.x && y<=p2.y)imageStore (screen, "
-    "pix_coords,vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], "
-    "ssbo.primv[i].c[2], 1.0));}void drawRect (ivec2 pix_coords, int x, int y, "
-    "int i) {ivec2 p1 = ivec2 (ssbo.primv[i].p1[0], ssbo.primv[i].p1[1]);ivec2 "
-    "p2 = ivec2 (ssbo.primv[i].p2[0], ssbo.primv[i].p2[1]);ivec2 p = ivec2(x, "
-    "y);if ((x==p1.x || y==p1.y || x==p2.x || y==p2.y) && x>=p1.x && y>=p1.y "
-    "&& x<p2.x+1 && y<p2.y+1)imageStore (screen, pix_coords,vec4 "
-    "(ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));}void "
-    "drawTriF (ivec2 pix_coords, float x, float y, int i) {vec2 p1 = vec2 "
-    "(ssbo.primv[i].p1[0], ssbo.primv[i].p1[1]);vec2 p2 = vec2 "
-    "(ssbo.primv[i].p2[0], ssbo.primv[i].p2[1]);vec2 p3 = vec2 "
-    "(ssbo.primv[i].p3[0], ssbo.primv[i].p3[1]);if (PointInTriangle (vec2 (x, "
-    "y), p1, p2, p3))imageStore (screen, pix_coords,vec4 (ssbo.primv[i].c[0], "
-    "ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));}bool within(float x, float "
-    "y, float z) {if (y < z) {return x >= y && x <= z;} else return x >= z && "
-    "z <= y;}float lineFun(float m, float x, float a, float b) {return m*(x - "
-    "a) + b;}void drawLine (ivec2 pix_coords, float x, float y, int i) {vec2 "
-    "p1 = vec2 (ssbo.primv[i].p1[0], ssbo.primv[i].p1[1]);vec2 p2 = vec2 "
-    "(ssbo.primv[i].p2[0], ssbo.primv[i].p2[1]);if (p2.x - p1.x == 0.0) {if "
-    "(within(y, p1.y, p2.y) && within(x, p1.x-0.4, p2.x+0.4)) {imageStore "
-    "(screen, pix_coords,vec4 (ssbo.primv[i].c[0], ssbo.primv[i].c[1], "
-    "ssbo.primv[i].c[2], 1.0));}return;}float m = (p2.y - p1.y) / (p2.x - "
-    "p1.x);float o = lineFun(m, x, p1.x, p1.y);if (within(y, o-0.5, o+0.5) && "
-    "within(x, p1.x-0.5, p2.x+0.5)) {imageStore (screen, pix_coords,vec4 "
-    "(ssbo.primv[i].c[0], ssbo.primv[i].c[1], ssbo.primv[i].c[2], 1.0));}}";
-int const main_comp_size = sizeof (main_comp_start);
-*/
-
 static SGstate state;
 
 static int W = 1280;
@@ -120,7 +40,7 @@ static float vertices[] = {
 static unsigned int indices[] = {
     /* note that we start from 0! */
     0, 1, 3, /* first Triangle */
-    1, 2, 3 /* second Triangle */
+    1, 2, 3  /* second Triangle */
 };
 
 SSBO* ssboBuf;
@@ -295,8 +215,13 @@ int main (int argc, char** argv) {
     itr = itr->next;
   }
   if (!state.width || !state.height) {
-    errorf ("Project settings is missing monitor width and height\n");
-    exit (2);
+    fprintf (stderr,
+             "Project settings doesnt set monitor width and height. Using "
+             "default: 96x96.\n");
+    state.width  = 96;
+    state.height = 96;
+    // errorf ("Project settings is missing monitor width and height\n");
+    // exit (2);
   }
   if (!state.name) {
     state.name = (char*)str_cpy ("stormground", npos);
@@ -317,6 +242,35 @@ int main (int argc, char** argv) {
     glfwTerminate();
     return 1;
   }
+
+#if defined(_THEWINDOWS) && defined(GLFW_EXPOSE_NATIVE_WIN32)
+  HWND hwnd      = glfwGetWin32Window (state.win);
+  BOOL dark_mode = 1;
+  DwmSetWindowAttribute (hwnd, 20, &dark_mode, sizeof (dark_mode));
+  HICON hi =
+      (HICON)LoadImageW (GetModuleHandle (NULL), MAKEINTRESOURCEW (IDI_ICON),
+                         IMAGE_ICON, 180, 180, 0);
+  // fprintf (stderr, "%p\n", hi);
+  if (hi) {
+    ICONINFO hiinfo;
+    GetIconInfo (hi, &hiinfo);
+    HBITMAP hbit = hiinfo.hbmColor;
+    // fprintf (stderr, "%p\n", hbit);
+    BITMAP bit;
+    GetObject (hbit, sizeof (bit), (LPVOID)&bit);
+    // fprintf (stderr, "%p, %li %li\n", bit.bmBits, bit.bmWidth, bit.bmHeight);
+    if (bit.bmWidth * bit.bmHeight > 0) {
+      GLFWimage      image;
+      unsigned char* copy =
+          (unsigned char*)malloc (bit.bmWidth * bit.bmHeight * 4);
+      GetBitmapBits (hbit, bit.bmWidth * bit.bmHeight * 4, copy);
+      image.pixels = copy;
+      image.width  = bit.bmWidth;
+      image.height = bit.bmHeight;
+      glfwSetWindowIcon (state.win, 1, &image);
+    }
+  }
+#endif
 
   glfwMakeContextCurrent (state.win);
   glfwSwapInterval (0);
@@ -351,7 +305,6 @@ int main (int argc, char** argv) {
     glfwTerminate();
     exit (3);
   }
-
 
   _binary_shaders_main_frag_size =
       _binary_shaders_main_frag_end - _binary_shaders_main_frag_start;
@@ -519,7 +472,6 @@ int main (int argc, char** argv) {
                     GL_UNSIGNED_INT, 0);
     glBindVertexArray (0);
 
-
     glfwSwapBuffers (state.win);
     sgAdvanceInputs();
     glfwPollEvents();
@@ -539,7 +491,6 @@ int main (int argc, char** argv) {
     state.delta = delta;
     ls          = timenow();
   }
-
 
   glDeleteVertexArrays (1, &VAO);
 

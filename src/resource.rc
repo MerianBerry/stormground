@@ -1,7 +1,8 @@
 // #include "resource.h"
 #include "winres.h"
+#include "rc.h"
 
-MAINICON ICON "icon.ico"
+IDI_ICON ICON "icon.ico"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0

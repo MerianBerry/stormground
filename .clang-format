@@ -6,21 +6,17 @@ PointerAlignment: Left
 SortIncludes: false
 ColumnLimit: 80
 AlignAfterOpenBracket: Align
-AlignArrayOfStructures: Left
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
-AlignTrailingComments: true
 AlignConsecutiveMacros: AcrossEmptyLines
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
-
+AlignTrailingComments: false
 AllowAllArgumentsOnNextLine: true
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: None
-AllowShortLoopsOnASingleLine: false
-
 AlwaysBreakBeforeMultilineStrings: true
 BinPackArguments: true
 BinPackParameters: true
@@ -28,7 +24,7 @@ IndentCaseLabels: false
 IndentGotoLabels: false
 IndentPPDirectives: AfterHash
 IndentWidth: 2
-MaxEmptyLinesToKeep: 1
+MaxEmptyLinesToKeep: 2
 SeparateDefinitionBlocks: Always
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
@@ -41,7 +37,7 @@ SpacesBeforeTrailingComments: 1
 SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
 SpacesInConditionalStatement: false
-SpacesInContainerLiterals: true
+SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 KeepEmptyLinesAtTheStartOfBlocks: false

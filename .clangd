@@ -1,5 +1,0 @@
-If:
-  PathMatch: [.*.hpp, .*.h, .*.cpp, .*.c]
-  PathExclude: third_party/*
-CompileFlags:
-  Add: [-Wno-deprecated-declarations, -Wno-unused-includes, -IC:/Users/merian/Documents/Programming/stormground/third_party/SDL3/include, -IC:/Users/merian/Documents/Programming/stormground/third_party, -IC:/Users/merian/Documents/Programming/stormground/third_party/luajit/src, -IC:/Users/merian/Documents/Programming/stormground/build/generated, -IC:/Users/merian/Documents/Programming/stormground/third_party/luasocket/src]

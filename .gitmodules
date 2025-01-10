@@ -1,0 +1,18 @@
+[submodule "third_party/slang"]
+	path = third_party/slang
+	url = https://github.com/shader-slang/slang.git
+[submodule "third_party/SDL3"]
+	path = third_party/SDL3
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "third_party/luajit"]
+	path = third_party/luajit
+	url = https://github.com/WohlSoft/LuaJIT.git
+[submodule "third_party/mobdebug"]
+	path = third_party/mobdebug
+	url = https://github.com/pkulchenko/MobDebug
+[submodule "third_party/luasocket"]
+	path = third_party/luasocket
+	url = https://github.com/lunarmodules/luasocket.git
+[submodule "third_party/mxml"]
+	path = third_party/mxml
+	url = https://github.com/michaelrsweet/mxml.git

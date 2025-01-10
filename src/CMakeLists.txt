@@ -9,12 +9,18 @@ add_custom_command(OUTPUT ${SG_MOBDEBUG_PATH}
 add_custom_target(sg_mobdebug_h ALL DEPENDS ${SG_MOBDEBUG_PATH})
 ]]
 
-add_executable(test "test.c")
+#[[add_executable(test "test.c" "hydrogen.c")
 #add_dependencies(test luasocket)
 target_link_libraries(test PUBLIC libluajit luasocket mxml)
-target_include_directories(test PRIVATE "${CMAKE_BINARY_DIR}/generated" "${CMAKE_SOURCE_DIR}/third_party/luasocket/src")
+target_include_directories(test PRIVATE "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/generated" "${CMAKE_SOURCE_DIR}/third_party/luasocket/src")
 target_compile_definitions(test PRIVATE SG_INCLUDE_GENERATED=1)
 clangdConfigure(test)
 
 target_genHeader(test ${CMAKE_SOURCE_DIR}/third_party/mobdebug/src/mobdebug.lua)
 target_genHeader(test ${CMAKE_SOURCE_DIR}/third_party/luasocket/src/socket.lua)
+]]
+
+add_executable(sg "resource.rc" "sg.c" "sg_cli.c")
+set_target_properties(sg PROPERTIES CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src" VERSION ${SG_VERSION})
+createVersionH(sg)
+clangdConfigure(sg)

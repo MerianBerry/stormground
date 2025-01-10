@@ -4,9 +4,11 @@ set(CMAKE_WARN_DEPRECATED OFF)
 project(SG2 LANGUAGES C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
+set(SG_VERSION "2.0-beta")
 
 include(cmake/clangdConfig.cmake)
 include(cmake/headerGenerator.cmake)
+include(cmake/versionH.cmake)
 
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>/bin")
@@ -51,6 +53,7 @@ set(MXML_SRCS "${MXML_DIR}/mxml-attr.c" "${MXML_DIR}/mxml-file.c" "${MXML_DIR}/m
 
 add_library(mxml STATIC ${MXML_SRCS})
 target_include_directories(mxml PRIVATE ${MXML_DIR} "${CMAKE_SOURCE_DIR}/third_party/mxmlconf")
+
 
 #add_subdirectory(third_party/luajit-cmake)
 

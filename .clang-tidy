@@ -33,7 +33,6 @@ Checks: >
   objc-*,
   performance-type-promotion-in-math-fn,
   readability-avoid-const-params-in-decls,
-  readability-braces-around-statements,
   readability-const-return-type,
   readability-duplicate-include,
   readability-inconsistent-declaration-parameter-name,

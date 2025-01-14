@@ -13,6 +13,3 @@
 [submodule "third_party/luasocket"]
 	path = third_party/luasocket
 	url = https://github.com/lunarmodules/luasocket.git
-[submodule "third_party/mxml"]
-	path = third_party/mxml
-	url = https://github.com/michaelrsweet/mxml.git

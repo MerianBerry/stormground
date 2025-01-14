@@ -1,4 +1,5 @@
 build
+dxcbuild
 old
 .vscode
 .cache
@@ -11,3 +12,4 @@ old
 *tar.gz
 src/*version.h
 .clangd
+*.aseprite

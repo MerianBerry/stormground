@@ -1,14 +1,15 @@
 cmake_minimum_required(VERSION "3.22")
 
-set(CMAKE_WARN_DEPRECATED OFF)
 project(SG2 LANGUAGES C)
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(SG_VERSION "2.0-beta")
+set(CMAKE_SKIP_INSTALL_RULES ON)
 
-include(cmake/clangdConfig.cmake)
-include(cmake/headerGenerator.cmake)
-include(cmake/versionH.cmake)
+include(build_scripts/clangdConfig.cmake)
+include(build_scripts/headerGenerator.cmake)
+include(build_scripts/versionH.cmake)
 
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>/bin")
@@ -25,7 +26,18 @@ include_directories("${CMAKE_SOURCE_DIR}/third_party/SDL3/include" "${CMAKE_SOUR
 
 add_subdirectory(src)
 
-add_subdirectory(third_party/luajit)
+#add_subdirectory(third_party/luajit)
+set(SDL_STATIC ON)
+#add_subdirectory(third_party/SDL3)
+
+set(SLANG_LIB_TYPE STATIC)
+set(SLANG_ENABLE_SLANGD OFF)
+set(SLANG_ENABLE_SLANGC OFF)
+set(SLANG_ENABLE_GFX OFF)
+set(SLANG_ENABLE_TESTS OFF)
+set(SLANG_ENABLE_EXAMPLES OFF)
+
+#add_subdirectory(third_party/slang)
 
 set(SOCKET_DIR "third_party/luasocket/src")
 set(SOCKET_SRCS "${SOCKET_DIR}/luasocket.c" "${SOCKET_DIR}/timeout.c" "${SOCKET_DIR}/buffer.c" "${SOCKET_DIR}/io.c" "${SOCKET_DIR}/auxiliar.c" "${SOCKET_DIR}/compat.c" "${SOCKET_DIR}/options.c" "${SOCKET_DIR}/inet.c" "${SOCKET_DIR}/except.c" "${SOCKET_DIR}/except.c" "${SOCKET_DIR}/select.c" "${SOCKET_DIR}/tcp.c" "${SOCKET_DIR}/udp.c")
@@ -48,12 +60,10 @@ else()
   
 endif()
 
-set(MXML_DIR "${CMAKE_SOURCE_DIR}/third_party/mxml")
-set(MXML_SRCS "${MXML_DIR}/mxml-attr.c" "${MXML_DIR}/mxml-file.c" "${MXML_DIR}/mxml-get.c" "${MXML_DIR}/mxml-index.c" "${MXML_DIR}/mxml-node.c" "${MXML_DIR}/mxml-options.c" "${MXML_DIR}/mxml-private.c" "${MXML_DIR}/mxml-search.c" "${MXML_DIR}/mxml-set.c")
-
-add_library(mxml STATIC ${MXML_SRCS})
-target_include_directories(mxml PRIVATE ${MXML_DIR} "${CMAKE_SOURCE_DIR}/third_party/mxmlconf")
-
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+#set_target_properties(minilua buildvm buildvm_arch_h lj_gen_folddef lj_gen_headers lj_gen_vm_s lj_luajit_h libluajit luajit PROPERTIES FOLDER luajit)
+set_target_properties(luasocket PROPERTIES FOLDER "libs")
+#set_target_properties(slang compiler-core copy_slang_headers core slang-common-objects slang-glslang slang-rt PROPERTIES FOLDER slang)
 
 #add_subdirectory(third_party/luajit-cmake)
 

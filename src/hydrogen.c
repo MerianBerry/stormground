@@ -68,9 +68,10 @@ BOOLEAN _nanosleep (LONGLONG ns) {
   HANDLE        timer; /* Timer handle */
   LARGE_INTEGER li; /* Time defintion */
   /* Create timer */
-  if (!(timer = CreateWaitableTimerExW (NULL, NULL,
-                                        CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
-                                        TIMER_ALL_ACCESS))) {
+  if (!(timer = CreateWaitableTimerExW (NULL,
+          NULL,
+          CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+          TIMER_ALL_ACCESS))) {
     return FALSE;
   }
   /* Set timer properties */
@@ -360,9 +361,10 @@ char *str_colorfmtv (char const *src, va_list args) {
   while (1) {
     if (itr > 100) {
       printf (
-          "\x1B[91;1mEmergency while loop abort at itr=%i\n\tstring: "
-          "\"%s\"\n\x1B[0m",
-          itr, cpy);
+        "\x1B[91;1mEmergency while loop abort at itr=%i\n\tstring: "
+        "\"%s\"\n\x1B[0m",
+        itr,
+        cpy);
       break;
     }
     size_t p = str_ffi (cpy, "&c");
@@ -377,19 +379,20 @@ char *str_colorfmtv (char const *src, va_list args) {
       }
       int    color_code = 0;
       size_t ground_desc =
-          (!str_ffi (cpy + color_desc_start, "fg_"))
-              ? 1
-              : (!str_ffi (cpy + color_desc_start, "bg_") ? 0 : npos);
+        (!str_ffi (cpy + color_desc_start, "fg_"))
+          ? 1
+          : (!str_ffi (cpy + color_desc_start, "bg_") ? 0 : npos);
       char is_bright = 0;
       if (!ground_desc) {
         color_code += 10;
       }
       is_bright = (str_ffi (cpy + color_desc_start + 3 * (ground_desc != npos),
-                            "bright_") == 0);
+                     "bright_") == 0);
       color_code += 60 * is_bright;
       size_t color_offset = 3 * (ground_desc != npos) + 7 * is_bright;
-      char  *color = (char *)str_substr (cpy, color_desc_start + color_offset,
-                                         eb - (color_desc_start + color_offset));
+      char  *color        = (char *)str_substr (cpy,
+        color_desc_start + color_offset,
+        eb - (color_desc_start + color_offset));
       if (color) {
         char *ocolor = NULL;
         switch (str_hash (color)) {
@@ -419,8 +422,8 @@ char *str_colorfmtv (char const *src, va_list args) {
           break; /* white */
         case 273105544U:
           (!ground_desc)
-              ? color_code = 49
-              : ((ground_desc == 1) ? color_code = 39 : (color_code = 0));
+            ? color_code = 49
+            : ((ground_desc == 1) ? color_code = 39 : (color_code = 0));
           break; /* reset */
         }
         ocolor = str_fmt ("\033[%im", color_code);
@@ -446,21 +449,34 @@ char *str_colorfmt (char const *src, ...) {
   return str;
 }
 
+static char *str_ncopy (char const *str, size_t n) {
+  char *copy = (char *)malloc (n + 1);
+  copy[n]    = 0;
+  if (str)
+    memcpy (copy, str, n);
+  return copy;
+}
+
+char *str_copy (char const *str) {
+  if (!str)
+    return str_ncopy (NULL, 0);
+  size_t l = strlen (str);
+  return str_ncopy (str, l);
+}
+
 int utf8_charsize (uint8_t c) {
-  if (c >= 0xf0 && c <= 0xf4) {
+  if (c >= 0xf0 && c <= 0xf4)
     return 4;
-  } else if (c >= 0xe0) {
+  else if (c >= 0xe0)
     return 3;
-  } else if (c >= 0xc2) {
+  else if (c >= 0xc2)
     return 2;
-  }
   return 1;
 }
 
 long utf8_strlen (char const *str) {
-  if (!str) {
+  if (!str)
     return -1;
-  }
   long s = 0;
   long i;
   for (i = 0; i < STR_MAX; ++s) {
@@ -535,7 +551,6 @@ int utf8_swap (int utf8) {
 }
 
 int utf8_literal (int utf) {
-#if 1
   int out = 0;
   int _i  = 0;
   int i;
@@ -547,13 +562,6 @@ int utf8_literal (int utf) {
     }
   }
   return out;
-#else
-  int o = utf8_swap (utf);
-  while (!(o & 0xff)) {
-    o >>= 8;
-  }
-  return o;
-#endif
 }
 
 char *utf8_tostring (int utf8) {
@@ -754,7 +762,7 @@ void avl_balance (avl_tree_t *bintree, avl_node_t *base) {
 }
 
 void avl_create (avl_tree_t *bintree, avl_node_t **target, avl_node_t *parent,
-                 char const *key, void *mem) {
+  char const *key, void *mem) {
   *target = (avl_node_t *)malloc (sizeof (avl_node_t));
   memset (*target, 0, sizeof (avl_node_t));
 
@@ -925,62 +933,25 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount) {
 
 #ifdef _WIN32
 #  include <winbase.h>
+#  include <io.h>
+#  define F_OK   0
+#  define access _access
 #elif defined(__unix__)
 // #  include <dirent.h>
 #endif
 
 typedef struct stat stat_t;
 
-/*char *io_fullpath (char const *path) {
-  int       i;
-  char     *fpath  = NULL;
-  int       c      = 0;
-  dirToken *tokens = NULL;
-  if (!path)
-    return NULL;
-  if (path[0] == '~' || path[0] == '/') {}
-
-  io_parseDirectory (path, &c);
+char *io_absolute (char const *rel) {
+  static char fpath[PATH_MAX];
 #if defined(_WIN32)
-  char  var[PATH_MAX + 1] = {0};
-  DWORD l                 = GetEnvironmentVariable ("HOMEDRIVE", var, PATH_MAX);
-  GetEnvironmentVariable ("HOMEPATH", var + l, PATH_MAX - l);
+  _fullpath (fpath, rel, PATH_MAX);
 #elif defined(__unix__)
-  char *var   = getenv ("HOME");
+  realpath (path, fpath);
 #endif
-  fpath = str_append (var, "/", npos);
-  if (!strcmp (tokens[0], "~")) {
-    free ((void *)tokens[0]);
-    tokens = &tokens[1];
-    --c;
-  }
-  for (i = 0; i < c; ++i) {
-    if (!strcmp (tokens[i], "~")) {
-      free ((void *)fpath);
-      fpath = NULL;
-      goto cleanup;
-    }
-  }
-  for (i = 0; i < c; ++i) {
-    printf ("dir token: %s\n", tokens[i]);
-    if (!strcmp (tokens[i], "..")) {}
-  }
-cleanup:
-  for (i = 0; i < c; ++i) {
-    free ((void *)tokens[i]);
-  }
-  free ((void *)tokens);
-  return NULL;
-}*/
-
-char *io_fullpath (char const *path) {
-#if defined(_WIN32)
-  char  fpath[PATH_MAX];
-  char *_fpath = _fullpath (fpath, path, PATH_MAX);
-  return (char *)str_cpy (_fpath, PATH_MAX);
-#elif defined(__unix__)
-  return realpath (path, NULL);
-#endif
+  char *copy = malloc (PATH_MAX);
+  memcpy (copy, fpath, PATH_MAX);
+  return copy;
 }
 
 int io_changedir (char const *path) {
@@ -1007,40 +978,34 @@ char *io_fixhome (char const *path) {
   return (char *)str_cpy (path, strlen (path));
 }
 
-/*
-char io_direxists (char const *path) {
-  char *npath = io_fixhome (path);
-  DIR  *d     = opendir (npath);
-  free (npath);
-  if (!d)
-    return 0;
-  closedir (d);
-  return 1;
-}
-*/
-
 char io_exists (char const *path) {
-  char *npath = io_fixhome (path);
-  FILE *f     = fopen (npath, "r");
-  free (npath);
-  if (!f) {
-    return 0;
-  }
-  fclose (f);
-  return 1;
+  char *absolute = io_absolute (path);
+  int   r        = access (absolute, F_OK) == 0;
+  free (absolute);
+  return r;
 }
 
 void io_mkdir (char const *path) {
 #if defined(__unix__) || defined(__APPLE__)
   stat_t s     = {0};
-  char  *npath = io_fixhome (path);
+  char  *npath = io_absolute (path);
   if (stat (npath, &s) == -1) {
     mkdir (npath, 0755);
   }
   free (npath);
-#elif _WIN32
-  char *npath = io_fixhome (path);
+#elif defined(_WIN32)
+  char *npath = io_absolute (path);
   CreateDirectoryA (npath, NULL);
+  free (npath);
+#endif
+}
+
+void io_hide (char const *path) {
+#ifdef _WIN32
+  if (!io_exists (path))
+    return;
+  char *npath = io_absolute (path);
+  SetFileAttributes (npath, FILE_ATTRIBUTE_HIDDEN);
   free (npath);
 #endif
 }
@@ -1050,7 +1015,7 @@ h_buffer io_read (char const *path) {
     return (h_buffer){NULL, 0};
   }
   size_t i;
-  char  *fp     = io_fixhome (path);
+  char  *fp     = io_absolute (path);
   FILE  *stream = fopen (fp, "r");
   if (!stream) {
     free (fp);
@@ -1068,6 +1033,35 @@ h_buffer io_read (char const *path) {
   free (fp);
   fclose (stream);
   return buf;
+}
+
+char *io_parent_path (char const *path) {
+  size_t l = strlen (path ? path : "");
+  for (size_t i = l - 1; i >= 0 && i < l; i--) {
+    if (path[i] == '/' || path[i] == '\\') {
+      for (; i >= 0 && i < l && (path[i] == '/' || path[i] == '\\'); i--) {
+      }
+      return str_ncopy (path, i + 1);
+    }
+  }
+  return str_ncopy (NULL, 0);
+}
+
+int io_move (char const *old, char const *new) {
+  if (!old || !new) {
+    return 0;
+  }
+#ifdef _WIN32
+  return (int)MoveFile (old, new);
+#endif
+  return 1;
+}
+
+int io_remove (char const *path) {
+  char *abs = io_absolute (path);
+  int   r   = remove (abs);
+  free (abs);
+  return r;
 }
 
 #pragma endregion "IO"

@@ -5,20 +5,21 @@ PointerAlignment: Left
 
 SortIncludes: false
 ColumnLimit: 80
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: DontAlign
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignConsecutiveMacros: AcrossEmptyLines
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
 AlignTrailingComments: false
-AllowAllArgumentsOnNextLine: true
+AllowAllArgumentsOnNextLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: Empty
 AlwaysBreakBeforeMultilineStrings: true
-BinPackArguments: true
+BinPackArguments: false
 BinPackParameters: true
 IndentCaseLabels: false
 IndentGotoLabels: false
@@ -43,6 +44,7 @@ SpacesInSquareBrackets: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 QualifierAlignment: Custom
 QualifierOrder: ['inline', 'static', 'type', 'const']
+ContinuationIndentWidth: 2
 TabWidth: 2
 UseCRLF: true
 UseTab: Never

@@ -7,10 +7,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if !defined(__LONG_LONG_MAX__) || !defined(__STDC_VERSION__)
-#  pragma message("Hydrogen may not work in 32 bit mode :shrug:")
-#endif
-
 #ifdef HYDROGEN_ALL
 #  define HYDROGEN_TIME
 #  define HYDROGEN_AVL
@@ -142,6 +138,8 @@ char *str_colorfmtv (char const *src, va_list args);
 
 char *str_colorfmt (char const *src, ...);
 
+char *str_copy (char const *str);
+
 int utf8_charsize (uint8_t c);
 
 long utf8_strlen (char const *str);
@@ -190,7 +188,7 @@ int io_scandir (char const *dir, dirent_t ***pList, int *pCount);
 
 /* char *io_fullpath (char const *path); */
 
-char *io_fullpath (char const *path);
+char *io_absolute (char const *rel);
 
 int io_changedir (char const *path);
 
@@ -202,7 +200,13 @@ char io_exists (char const *path);
 
 void io_mkdir (char const *path);
 
+void io_hide (char const *path);
+
 h_buffer io_read (char const *path);
+
+char *io_parent_path (char const *path);
+
+int io_remove (char const *path);
 #endif
 
 #ifdef HYDROGEN_MEM

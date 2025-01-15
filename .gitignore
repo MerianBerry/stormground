@@ -1,5 +1,5 @@
 build
-dxcbuild
+asan
 old
 .vscode
 .cache
@@ -13,3 +13,6 @@ old
 src/*version.h
 .clangd
 *.aseprite
+piss.xml
+piss2.xml
+t.txt

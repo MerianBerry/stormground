@@ -13,3 +13,6 @@
 [submodule "third_party/luasocket"]
 	path = third_party/luasocket
 	url = https://github.com/lunarmodules/luasocket.git
+[submodule "third_party/lz4"]
+	path = third_party/lz4
+	url = https://github.com/lz4/lz4.git

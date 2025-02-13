@@ -5,7 +5,6 @@ old
 .cache
 engine/**/obj
 engine/**/bin
-engine/**/*.sln
 *.o
 *.exe
 *.dll
@@ -13,7 +12,7 @@ engine/**/*.sln
 *.res
 *.zip
 *tar.gz
-core/*version.h
+core/**/*version.h
 core/hydrogen.*
 core/scl.*
 core/*.c

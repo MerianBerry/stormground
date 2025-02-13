@@ -7,3 +7,6 @@
 [submodule "third_party/lz4"]
 	path = third_party/lz4
 	url = https://github.com/lz4/lz4.git
+[submodule "third_party/SDL3-CS"]
+	path = third_party/SDL3-CS
+	url = https://github.com/flibitijibibo/SDL3-CS.git

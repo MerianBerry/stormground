@@ -14,6 +14,17 @@ if (MSVC)
 endif()
 target_compile_definitions(sg PRIVATE SG_INCLUDE_GENERATED=1)
 target_include_directories(sg PRIVATE "${CMAKE_BINARY_DIR}/generated")
-set_target_properties(sg PROPERTIES CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src" VERSION ${SG_VERSION})
+target_link_libraries(sg PRIVATE "SDL3-shared")
+#target_link_libraries(sg PRIVATE "SDL3-static")
+set_target_properties(sg PROPERTIES CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/core" VERSION ${SG_VERSION})
 createVersionH(sg)
 clangdConfigure(sg)
+enginebuild(sg debug)
+
+#[==[set(GLUE_SOURCES
+  "glue/sdlglu.cpp")
+add_library(sglu SHARED ${GLUE_SOURCES})
+#target_link_libraries(sglu PRIVATE "SDL3-static")
+set_target_properties(sglu PROPERTIES CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/core/glue" VERSION ${SG_VERSION})
+createVersionH(sglu)
+]==]

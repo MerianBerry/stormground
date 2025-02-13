@@ -10,6 +10,7 @@ set(CMAKE_SKIP_INSTALL_RULES ON)
 include(build_scripts/clangdConfig.cmake)
 include(build_scripts/headerGenerator.cmake)
 include(build_scripts/versionH.cmake)
+include(build_scripts/enginebuild.cmake)
 
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>/bin")
@@ -25,8 +26,9 @@ include_directories("${CMAKE_SOURCE_DIR}/third_party/SDL3/include" "${CMAKE_SOUR
 
 add_subdirectory(core)
 
-set(SDL_STATIC ON)
-#add_subdirectory(third_party/SDL3)
+set(SDL_SHARED TRUE)
+set(SDL_STATIC FALSE)
+add_subdirectory(third_party/SDL3)
 
 set(SLANG_LIB_TYPE STATIC)
 set(SLANG_ENABLE_SLANGD OFF)

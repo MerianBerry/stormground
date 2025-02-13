@@ -85,7 +85,7 @@ int NetHost::Initialize (std::string app_domain,
   trusted_directories.push_back (ExecutableDir().string());
   trusted_directories.push_back (netruntime.string());
   for (auto const &dir : trusted_directories) {
-    for (auto const &file : directory_iterator (dir)) {
+    for (auto const &file : recursive_directory_iterator (dir)) {
       auto name = file.path().string();
       // Accept dll's, exclude duplicates
       if (std::regex_match (name, std::regex (".*.dll$")) &&

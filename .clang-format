@@ -4,7 +4,7 @@ Language: Cpp
 PointerAlignment: Left
 
 SortIncludes: false
-ColumnLimit: 80
+ColumnLimit: 70
 AlignAfterOpenBracket: DontAlign
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true

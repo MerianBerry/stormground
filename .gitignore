@@ -3,6 +3,9 @@ asan
 old
 .vscode
 .cache
+engine/**/obj
+engine/**/bin
+engine/**/*.sln
 *.o
 *.exe
 *.dll
@@ -10,9 +13,9 @@ old
 *.res
 *.zip
 *tar.gz
-src/*version.h
+core/*version.h
+core/hydrogen.*
+core/scl.*
+core/*.c
 .clangd
 *.aseprite
-piss.xml
-piss2.xml
-t.txt

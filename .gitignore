@@ -13,6 +13,11 @@ engine/**/bin
 *.zip
 *tar.gz
 core/**/*version.h
+core/**/GPUDevice
+engine/**/obj
+engine/**/bin
+tests/**/obj
+tests/**/bin
 core/hydrogen.*
 core/scl.*
 core/*.c

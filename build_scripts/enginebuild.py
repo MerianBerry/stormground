@@ -35,6 +35,8 @@ for i in range(4, len(sys.argv)):
     #print(f"match: {sys.argv[i]} -> {x}")
     if os.path.isfile(x):
       print(f"Found match: {sys.argv[i]} -> {x}")
+      #print(f"Found match: {os.path.dirname(x) + "/" + sys.argv[i] + ".pdb"} -> {outdir + sys.argv[i] + ".pdb"}")
       shutil.copy(x,outdir + os.path.basename(x))
+      shutil.copy(os.path.dirname(x) + "/" + sys.argv[i] + ".pdb", outdir + sys.argv[i] + ".pdb")
       break
 

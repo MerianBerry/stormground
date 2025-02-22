@@ -5,6 +5,6 @@ add_custom_command(TARGET ${target} POST_BUILD
   ${mode}
   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/
   ${CMAKE_SOURCE_DIR}
-  "SG.Core"
+  "Storm"
   "SDL3.Core")
 endfunction()

@@ -6,6 +6,26 @@
 #include <string>
 #include <vector>
 
+class NetVersion {
+protected:
+  using string = std::string;
+  int ParseNum(string &s);
+public:
+  int major;
+  int minor;
+  int patch;
+  
+  NetVersion(string ver);
+
+  bool operator>=(const NetVersion &r) {
+    return major >= r.major && minor >= r.minor && patch >= r.patch;
+  }
+  bool operator>=(string s) {
+    NetVersion r = s;
+    return major >= r.major && minor >= r.minor && patch >= r.patch;
+  }
+};
+
 class NetHost {
 protected:
   using string = std::string;
@@ -15,6 +35,7 @@ protected:
       std::filesystem::recursive_directory_iterator;
 
 private:
+
   path coreclr;
   path netruntime;
   void *lib = NULL;
@@ -24,7 +45,9 @@ private:
   void *host_handle = NULL;
   unsigned int domain_id = 0;
 
-  int Findcoreclr();
+  bool FindDotnetRuntime();
+  bool Findcoreclr();
+
 
 public:
   static path ExecutableDir();

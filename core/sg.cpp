@@ -22,9 +22,11 @@ int main (int argc, char** argv) {
   memset (buf, 0, sizeof (buf));
   GetModuleFileName (NULL, buf, MAX_PATH);
   fs::path e = buf;
+  fs::path n = e.filename().replace_extension();
 
-  std::vector<std::string> debugdirs;
-  std::string              dname = "sg";
+  std::vector<std::string> debugdirs {NetHost::ExecutableDir().string()};
+  std::string              dname = n.string();
+  //std::cerr << "Name: " << dname << std::endl;
   if (argc > 2 && !strcmp (argv[1], "debug")) {
     std::vector<fs::path> searches = {
       std::filesystem::current_path()};
@@ -35,7 +37,7 @@ int main (int argc, char** argv) {
         searches.push_back (std::string (argv[i]));
       }
     }
-    std::cerr << "Starting in debug mode\n";
+    // std::cerr << "Starting in debug mode\n";
     for (auto const& search : searches) {
       for (auto const& dir :
         std::filesystem::recursive_directory_iterator (search)) {
@@ -45,12 +47,11 @@ int main (int argc, char** argv) {
         }
       }
     }
-    for (auto& i : debugdirs) {
+    /*for (auto& i : debugdirs) {
       std::cerr << "Debug dir: " << i << std::endl;
-    }
+    }*/
   }
-
-  std::cerr << "User: " << dname << std::endl;
+  // std::cerr << "User: " << dname << std::endl;
 
   fs::path usrdll;
   if (dname == "sg") {
@@ -70,7 +71,7 @@ int main (int argc, char** argv) {
     }
   }
 
-  std::cerr << "User dll: " << usrdll << std::endl;
+  // std::cerr << "User dll: " << usrdll << std::endl;
 
   host->Initialize (dname, debugdirs);
   EntryFromCore_fn EntryFromCore = NULL;

@@ -30,14 +30,15 @@ set(SDL_SHARED TRUE)
 set(SDL_STATIC FALSE)
 add_subdirectory(third_party/SDL3)
 
-set(SLANG_LIB_TYPE STATIC)
+set(SLANG_LIB_TYPE SHARED)
 set(SLANG_ENABLE_SLANGD OFF)
 set(SLANG_ENABLE_SLANGC OFF)
 set(SLANG_ENABLE_GFX OFF)
 set(SLANG_ENABLE_TESTS OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
 
-#add_subdirectory(third_party/slang)
+add_subdirectory(third_party/slang)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-#set_target_properties(slang compiler-core copy_slang_headers core slang-common-objects slang-glslang slang-rt PROPERTIES FOLDER slang)
+set_target_properties(SDL_uclibc SDL3_test SDL3-shared PROPERTIES FOLDER SDL3)
+set_target_properties(slang slang-rt compiler-core copy_slang_headers core slang-common-objects slang-glslang PROPERTIES FOLDER slang)

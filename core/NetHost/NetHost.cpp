@@ -10,6 +10,24 @@
 
 namespace fs = std::filesystem;
 
+int NetVersion::ParseNum(string &s) {
+  int p = 0;
+  while (isdigit(s[p]))
+    p++;
+  int n = p;
+  if (s[n]=='.')
+    n++;
+  auto vs = s.substr(0,p);
+  s = s.substr(n);
+  return atoi(vs.c_str());
+}
+
+NetVersion::NetVersion(string ver) {
+  major = ParseNum(ver);
+  minor = ParseNum(ver);
+  patch = ParseNum(ver);
+}
+
 fs::path NetHost::ExecutableDir() {
 #ifdef _WIN32
   char buf[MAX_PATH + 1];
@@ -20,7 +38,15 @@ fs::path NetHost::ExecutableDir() {
 #endif
 }
 
-int NetHost::Findcoreclr() {
+bool NetHost::FindDotnetRuntime() {
+  // Case for .net runtime packaged with executable
+  for (const auto &i : recursive_directory_iterator(ExecutableDir())) {
+    if (i.path().string().find("coreclr.dll") != string::npos) {
+      netruntime = i.path().parent_path();
+      std::cerr << "Using bundled dotnet runtime\n";
+      return true;
+    }
+  }
   string PATH = getenv ("PATH");
   while (true) {
     auto p = PATH.find_first_of (';');
@@ -31,29 +57,50 @@ int NetHost::Findcoreclr() {
     if (path.find ("dotnet") != string::npos) {
       fs::path rt = path;
       rt /= "shared/Microsoft.NETCore.App";
+      std::vector<std::pair<NetVersion, fs::path>> runtimes;
       for (auto &i : directory_iterator (rt)) {
         auto fn = i.path().filename();
-        int  mv = fn.string().c_str()[0] - '0';
-        if (i.is_directory() && mv >= 8) {
+        NetVersion version(fn.string());
+        if (i.is_directory() && version >= "8.0.0") {
           rt /= i.path().filename().string();
-          for (auto &i : recursive_directory_iterator (rt)) {
-            if (i.path().string().find ("coreclr.dll") !=
-                string::npos) {
-              coreclr    = i.path();
-              netruntime = rt;
-              return 0;
-            }
-          }
+          runtimes.push_back({version, rt});
         }
       }
+      if (runtimes.size() == 0)
+        return false;
+      NetVersion highestv("0.0.0");
+      int highesti = 0;
+      for (int i = 0; i < runtimes.size(); i++) {
+        if (runtimes[i].first >= highestv) {
+          highestv = runtimes[i].first;
+          highesti = i;
+        }
+      }
+      netruntime = runtimes[highesti].second;
+      return true;
     }
   }
-  return 1;
+  return false;
+}
+
+bool NetHost::Findcoreclr() {
+  if (!FindDotnetRuntime())
+    return false;
+  for (auto &i : recursive_directory_iterator (netruntime)) {
+    if (i.path().string().find ("coreclr.dll") !=
+        string::npos) {
+      coreclr    = i.path();
+      return true;
+    }
+  }
+  return false;
 }
 
 int NetHost::Initialize (std::string app_domain,
   std::vector<std::string>           trusted_directories) {
-  if (Findcoreclr()) {
+  if (!Findcoreclr()) {
+    /*TODO log*/
+    std::cerr << "Couldnt find coreclr\n";
     return 1;
   }
 
@@ -82,15 +129,15 @@ int NetHost::Initialize (std::string app_domain,
 
   // Make the appdomain
   std::string tpa_list;
-  trusted_directories.push_back (ExecutableDir().string());
   trusted_directories.push_back (netruntime.string());
   for (auto const &dir : trusted_directories) {
     for (auto const &file : recursive_directory_iterator (dir)) {
       auto name = file.path().string();
       // Accept dll's, exclude duplicates
       if (std::regex_match (name, std::regex (".*.dll$")) &&
-          tpa_list.find (file.path().filename().string()) ==
-            string::npos)
+          (tpa_list.find ("\\" + file.path().filename().string()) ==
+            string::npos && tpa_list.find ("/" + file.path().filename().string()) ==
+            string::npos))
         tpa_list += name + ';';
     }
   }

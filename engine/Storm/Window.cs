@@ -5,124 +5,115 @@ public class Window {
   public class Subscription {
     public enum SubscriptionMode {
       AfterEvents = 0,
-      AtStart = 1,
+      AtStart     = 1,
     }
 
     public Window? target;
 
-    public void IntInit(in Window target) {
+    public void IntInit (in Window target) {
       this.target = target;
     }
 
-    public virtual void Init(out SubscriptionMode mode) {
+    public virtual void Init (out SubscriptionMode mode) {
       mode = SubscriptionMode.AfterEvents;
     }
 
-    public virtual void Event(in SDL.SDL_Event e) {
+    public virtual void Event (in SDL.SDL_Event e) {
       if (e.type == (uint)SDL.SDL_EventType.SDL_EVENT_QUIT) {
         target?.Quit();
       }
     }
 
     public virtual void Update() {
-
     }
   }
-  
-  private IntPtr handle;
-  private Core.GPU gpu;
+
+  private IntPtr             handle;
+  private SRP                srp;
   private List<Subscription> l1subs;
   private List<Subscription> l2subs;
 
-  private bool run = true;
+  public IntPtr Handle {
+    get { return handle; }
+  }
+  public SRP SRP {
+    get { return srp; }
+  }
+
+  private bool  run = true;
   public string title {
-    get {
-      return SDL.SDL_GetWindowTitle(handle);
-    }
-    set {
-      SDL.SDL_SetWindowTitle(handle, value);
-    }
+    get { return SDL.SDL_GetWindowTitle (handle); }
+    set { SDL.SDL_SetWindowTitle (handle, value); }
   }
 
-  public Window(string title, SDL.SDL_WindowFlags flags = 0) {
+  public Window (string title, SDL.SDL_WindowFlags flags = 0) {
     l1subs = [];
     l2subs = [];
-    flags |= SDL.SDL_WindowFlags.SDL_WINDOW_MAXIMIZED;
-    handle = SDL.SDL_CreateWindow(title, 1920, 1080, flags);
-    gpu = new(this);
+    flags |= SDL.SDL_WindowFlags.SDL_WINDOW_MAXIMIZED |
+             SDL.SDL_WindowFlags.SDL_WINDOW_HIDDEN;
+    handle = SDL.SDL_CreateWindow (title, 1920, 1080, flags);
+    srp    = new(this);
+    SDL.SDL_ShowWindow (handle);
   }
 
-  public Window(string title, int w, int h, SDL.SDL_WindowFlags flags = 0) {
+  public Window (string title, int w, int h, SDL.SDL_WindowFlags flags = 0) {
     l1subs = [];
     l2subs = [];
-    handle = SDL.SDL_CreateWindow(title, w, h, flags);
-    gpu = new(this);
+    handle = SDL.SDL_CreateWindow (title, w, h, flags);
+    srp    = new(this);
   }
 
   public void Quit() {
     run = false;
   }
 
-  public void Subscribe<T>() where T : Subscription, new() {
-    Type type = typeof(T);
-    T sub = new();
-    sub.IntInit(this);
+  public void Subscribe (Subscription sub) {
+    sub.IntInit (this);
     Subscription.SubscriptionMode mode;
-    sub.Init(out mode);
+    sub.Init (out mode);
     if (mode == Subscription.SubscriptionMode.AtStart) {
-      l1subs.Add(sub);
+      l1subs.Add (sub);
     } else {
-      l2subs.Add(sub);
-    }
-  }
-  public void Subscribe(Subscription sub) {
-    sub.IntInit(this);
-    Subscription.SubscriptionMode mode;
-    sub.Init(out mode);
-    if (mode == Subscription.SubscriptionMode.AtStart) {
-      l1subs.Add(sub);
-    } else {
-      l2subs.Add(sub);
+      l2subs.Add (sub);
     }
   }
 
+  public void Subscribe<T>()
+    where     T : Subscription, new() {
+    Type type = typeof (T);
+    T    sub  = new();
+    Subscribe (sub);
+  }
+
   public void Update() {
-    foreach(Subscription sub in l1subs) {
+    foreach (Subscription sub in l1subs) {
       sub.Update();
     }
     SDL.SDL_Event e;
-    while (run && SDL.SDL_PollEvent(out e)) {
+    while (run && SDL.SDL_PollEvent (out e)) {
       foreach (var sub in l2subs) {
-        sub.Event(e);
+        sub.Event (e);
       }
     }
     if (!run) {
-      SDL.SDL_DestroyWindow(handle);
+      SDL.SDL_DestroyWindow (handle);
       handle = 0;
       l2subs.Clear();
     }
-    for (int i = l2subs.Count-1; i >= 0; i--) {
+    for (int i = l2subs.Count - 1; i >= 0; i--) {
       l2subs[i].Update();
     }
   }
 
-  public IntPtr GetHandle() {
-    return handle;
+  public void GetSize (out int w, out int h) {
+    SDL.SDL_GetWindowSize (handle, out w, out h);
   }
 
-  public ref Core.GPU GetGPU() {
-    return ref gpu;
-  }
-
-  public void GetSize(out int w, out int h) {
-    SDL.SDL_GetWindowSize(handle, out w, out h);
-  }
-
-  public static implicit operator bool(Window w) => w.run;
+  public static implicit operator bool (Window w) => w.run;
 
   ~Window() {
     if (handle != 0) {
-      SDL.SDL_DestroyWindow(handle);
+      SDL.SDL_DestroyWindow (handle);
       handle = 0;
       l1subs.Clear();
       l2subs.Clear();

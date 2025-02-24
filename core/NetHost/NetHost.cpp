@@ -10,40 +10,41 @@
 
 namespace fs = std::filesystem;
 
-int NetVersion::ParseNum(string &s) {
+NetException::NetException (std::string msg) throw()
+    : std::runtime_error (msg) {
+  Storm_LogError ("NetHost", msg.c_str());
+}
+
+char const *NetException::what() const throw() {
+  return std::runtime_error::what();
+}
+
+int NetVersion::ParseNum (string &s) {
   int p = 0;
-  while (isdigit(s[p]))
+  while (isdigit (s[p]))
     p++;
   int n = p;
-  if (s[n]=='.')
+  if (s[n] == '.')
     n++;
-  auto vs = s.substr(0,p);
-  s = s.substr(n);
-  return atoi(vs.c_str());
+  auto vs = s.substr (0, p);
+  s       = s.substr (n);
+  return atoi (vs.c_str());
 }
 
-NetVersion::NetVersion(string ver) {
-  major = ParseNum(ver);
-  minor = ParseNum(ver);
-  patch = ParseNum(ver);
-}
-
-fs::path NetHost::ExecutableDir() {
-#ifdef _WIN32
-  char buf[MAX_PATH + 1];
-  memset (buf, 0, sizeof (buf));
-  GetModuleFileName (NULL, buf, MAX_PATH);
-  fs::path ed = buf;
-  return ed.parent_path();
-#endif
+NetVersion::NetVersion (string ver) {
+  major = ParseNum (ver);
+  minor = ParseNum (ver);
+  patch = ParseNum (ver);
 }
 
 bool NetHost::FindDotnetRuntime() {
+  bundled = false;
   // Case for .net runtime packaged with executable
-  for (const auto &i : recursive_directory_iterator(ExecutableDir())) {
-    if (i.path().string().find("coreclr.dll") != string::npos) {
+  for (auto const &i : recursive_directory_iterator (Storm_ExecutableDir())) {
+    if (i.path().string().find ("coreclr.dll") != string::npos) {
       netruntime = i.path().parent_path();
-      std::cerr << "Using bundled dotnet runtime\n";
+      bundled    = true;
+      // std::cerr << "Using bundled dotnet runtime\n";
       return true;
     }
   }
@@ -59,17 +60,16 @@ bool NetHost::FindDotnetRuntime() {
       rt /= "shared/Microsoft.NETCore.App";
       std::vector<std::pair<NetVersion, fs::path>> runtimes;
       for (auto &i : directory_iterator (rt)) {
-        auto fn = i.path().filename();
-        NetVersion version(fn.string());
+        auto       fn = i.path().filename();
+        NetVersion version (fn.string());
         if (i.is_directory() && version >= "8.0.0") {
-          rt /= i.path().filename().string();
-          runtimes.push_back({version, rt});
+          runtimes.push_back ({version, rt / i.path().filename().string()});
         }
       }
       if (runtimes.size() == 0)
         return false;
-      NetVersion highestv("0.0.0");
-      int highesti = 0;
+      NetVersion highestv ("0.0.0");
+      int        highesti = 0;
       for (int i = 0; i < runtimes.size(); i++) {
         if (runtimes[i].first >= highestv) {
           highestv = runtimes[i].first;
@@ -87,9 +87,8 @@ bool NetHost::Findcoreclr() {
   if (!FindDotnetRuntime())
     return false;
   for (auto &i : recursive_directory_iterator (netruntime)) {
-    if (i.path().string().find ("coreclr.dll") !=
-        string::npos) {
-      coreclr    = i.path();
+    if (i.path().string().find ("coreclr.dll") != string::npos) {
+      coreclr = i.path();
       return true;
     }
   }
@@ -98,59 +97,73 @@ bool NetHost::Findcoreclr() {
 
 int NetHost::Initialize (std::string app_domain,
   std::vector<std::string>           trusted_directories) {
-  if (!Findcoreclr()) {
+  if (!Findcoreclr())
     /*TODO log*/
-    std::cerr << "Couldnt find coreclr\n";
-    return 1;
-  }
+    return Storm_LogError ("NetHost", "Failed to find coreclr"), 1;
 
   lib = LoadLibraryA (coreclr.string().c_str());
   if (!lib)
-    throw std::runtime_error ("Failed to open coreclr");
+    return Storm_LogError ("NetHost", "Failed to open coreclr"), 1;
 
   // Get the coreclr hosting functions from the library
   coreclr_initialize =
-    (coreclr_initialize_ptr)GetProcAddress ((HMODULE)lib,
-      "coreclr_initialize");
+    (coreclr_initialize_ptr)GetProcAddress ((HMODULE)lib, "coreclr_initialize");
   coreclr_create_delegate =
     (coreclr_create_delegate_ptr)GetProcAddress ((HMODULE)lib,
       "coreclr_create_delegate");
   coreclr_shutdown =
-    (coreclr_shutdown_ptr)GetProcAddress ((HMODULE)lib,
-      "coreclr_shutdown");
-  if (!coreclr_initialize || !coreclr_create_delegate ||
-      !coreclr_shutdown) {
-    throw std::runtime_error (
-      std::format ("Failed to get coreclr procs: {} {} {}",
-        (void *)coreclr_initialize,
-        (void *)coreclr_create_delegate,
-        (void *)coreclr_shutdown));
+    (coreclr_shutdown_ptr)GetProcAddress ((HMODULE)lib, "coreclr_shutdown");
+  if (!(coreclr_initialize && coreclr_create_delegate && coreclr_shutdown)) {
+    string err = std::format ("Failed to get coreclr procs: {} {} {}",
+      (void *)coreclr_initialize,
+      (void *)coreclr_create_delegate,
+      (void *)coreclr_shutdown);
+    return Storm_LogError ("NetHost", err.c_str()), 1;
   }
 
   // Make the appdomain
   std::string tpa_list;
-  trusted_directories.push_back (netruntime.string());
+  trusted_directories.push_back (Storm_ExecutableDir().string());
+  if (!bundled)
+    trusted_directories.push_back (netruntime.string());
   for (auto const &dir : trusted_directories) {
     for (auto const &file : recursive_directory_iterator (dir)) {
-      auto name = file.path().string();
       // Accept dll's, exclude duplicates
-      if (std::regex_match (name, std::regex (".*.dll$")) &&
-          (tpa_list.find ("\\" + file.path().filename().string()) ==
-            string::npos && tpa_list.find ("/" + file.path().filename().string()) ==
-            string::npos))
-        tpa_list += name + ';';
+      string filename = file.path().filename().string();
+      string path     = file.path().string();
+
+      if (filename == "")
+        Storm_LogWarn ("NetHost", "Empty filename");
+      if (std::regex_match (file.path().string(), std::regex (".*\\.dll$")) &&
+          libs.find (filename) == libs.end()) {
+#ifdef _WIN32
+        std::replace (path.begin(), path.end(), '/', '\\');
+#else
+        std::replace (path.begin(), path.end(), '\\', '/');
+#endif
+        libs.try_emplace (filename, path);
+      }
     }
   }
+  // Construct the tpa list
+  for (auto const &i : libs) {
+    tpa_list += i.second.string() + ';';
+  }
+  string *edir = new string (Storm_ExecutableDir().string());
 
   char const *property_keys[] = {
+    "APP_CONTEXT_BASE_DIRECTORY",
     "TRUSTED_PLATFORM_ASSEMBLIES",
   };
+
   char const *property_values[] = {
+    edir->c_str(),
     tpa_list.c_str(),
   };
 
   // start the runtime
-  int hr = coreclr_initialize (ExecutableDir().string().c_str(),
+  auto f  = Storm_ExecutablePath().string();
+  int  hr = coreclr_initialize (Storm_ExecutableDir().string().c_str(),
     app_domain.c_str(),
     sizeof (property_keys) / sizeof (char const *),
     property_keys,
@@ -158,16 +171,20 @@ int NetHost::Initialize (std::string app_domain,
     &host_handle,
     &domain_id);
 
-  if (hr < 0)
-    throw std::runtime_error (
-      "coreclr_initialize failed with code " + std::to_string (hr));
+  if (hr < 0) {
+    std::stringstream ss;
+    ss << "Failed to initialize coreclr: " << std::hex << hr;
+    return Storm_LogError ("NetHost", ss.str().c_str()), 1;
+  }
   return 0;
 }
 
 void *NetHost::CreateDelegate (std::string assembly, std::string type,
   std::string method, char const *delegate_type) {
-  if (!coreclr_create_delegate)
-    throw std::runtime_error ("NetHost isnt initialized");
+  if (!coreclr_create_delegate) {
+    Storm_LogError ("NetHost", "NetHost isn't initialized");
+    return NULL;
+  }
   void *proc = NULL;
   int   hr   = coreclr_create_delegate (host_handle,
     domain_id,
@@ -176,11 +193,20 @@ void *NetHost::CreateDelegate (std::string assembly, std::string type,
     method.c_str(),
     &proc);
   if (hr < 0) {
-    std::cerr << "Failed to create delegate: " << std::hex << hr
-              << std::endl;
+    std::stringstream ss;
+    ss << "Failed to create delegate: " << std::hex << hr;
+    Storm_LogError ("NetHost", ss.str().c_str());
+    return NULL;
   }
   // TODO: add error handling for failure to get proc
   return proc;
+}
+
+fs::path NetHost::FindAssembly (string name) {
+  auto const &itr = libs.find (name + ".dll");
+  if (itr != libs.end())
+    return itr->second;
+  return "";
 }
 
 NetHost::~NetHost() {

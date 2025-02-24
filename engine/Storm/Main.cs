@@ -67,4 +67,7 @@ public static class Main {
     delta = watch.Elapsed.TotalMilliseconds;
     return rootWindow;
   }
+
+  public static void BuildFromCore (string dir) {
+  }
 }

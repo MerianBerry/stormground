@@ -5,7 +5,6 @@ public class DefaultRenderPass : SRP.RenderPass {
 
   public override void Record (List<SRP.RenderTarget>? sources,
     out List<SRP.RenderTarget>? targets) {
-    // throw new NotImplementedException();
     targets = null;
     if (srp == null)
       return;

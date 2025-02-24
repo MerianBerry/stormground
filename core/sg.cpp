@@ -1,96 +1,46 @@
 #include <vector>
 #include <filesystem>
-#include <iostream>
-#include <string.h>
 
-#include "SDL3/SDL.h"
-#include "SDL3/SDL_gpu.h"
-
+#include "NativeStorm/native.hpp"
+#include "NetHost/StormProcs.hpp"
 #include "NetHost/NetHost.hpp"
+#include "CLIHandler.hpp"
 
 #ifdef _WIN32
 #  include <Windows.h>
 #endif
 
 
-using EntryFromCore_fn = void (*) (char const*, char const*);
-
 int main (int argc, char** argv) {
-  namespace fs  = std::filesystem;
-  NetHost* host = new NetHost;
-  char     buf[MAX_PATH + 1];
-  memset (buf, 0, sizeof (buf));
-  GetModuleFileName (NULL, buf, MAX_PATH);
-  fs::path e = buf;
-  fs::path n = e.filename().replace_extension();
+  namespace fs      = std::filesystem;
+  NetHost* host     = new NetHost;
+  fs::path execname = Storm_ExecutablePath().filename().replace_extension();
+  argc--;
+  argv++;
 
-  std::vector<std::string> debugdirs {NetHost::ExecutableDir().string()};
-  std::string              dname = n.string();
-  //std::cerr << "Name: " << dname << std::endl;
-  if (argc > 2 && !strcmp (argv[1], "debug")) {
-    std::vector<fs::path> searches = {
-      std::filesystem::current_path()};
-    dname = argv[2];
-    argc -= 2;
-    if (argc > 0) {
-      for (int i = 2; argc > 0; --argc, ++i) {
-        searches.push_back (std::string (argv[i]));
-      }
-    }
-    // std::cerr << "Starting in debug mode\n";
-    for (auto const& search : searches) {
-      for (auto const& dir :
-        std::filesystem::recursive_directory_iterator (search)) {
-        if (dir.is_directory() && dir.path().filename() == "Debug" &&
-            dir.path().parent_path().filename() == "bin") {
-          debugdirs.push_back (dir.path().string());
-        }
-      }
-    }
-    /*for (auto& i : debugdirs) {
-      std::cerr << "Debug dir: " << i << std::endl;
-    }*/
-  }
-  // std::cerr << "User: " << dname << std::endl;
+  std::vector<std::string> trustedDirs = {};
+  std::string              target      = execname.string();
 
-  fs::path usrdll;
-  if (dname == "sg") {
-    std::cerr << "No point in executing...\n";
-    return 0;
-  } else {
-    for (auto const& dir : debugdirs) {
-      if (usrdll.string() != "")
-        break;
-      for (auto const& i :
-        std::filesystem::recursive_directory_iterator (dir)) {
-        if (i.path().filename() == dname + ".dll") {
-          usrdll = i.path();
-          break;
-        }
-      }
-    }
+  CLIHandler* ci = new CLIHandler();
+
+  if (ci->ConsumeArgs (argc, argv, trustedDirs))
+    return 1;
+
+  if (host->Initialize (target, trustedDirs)) {
+    return Storm_LogError ("sg", "Failed to initialize host, quitting"), 1;
   }
 
-  // std::cerr << "User dll: " << usrdll << std::endl;
-
-  host->Initialize (dname, debugdirs);
-  EntryFromCore_fn EntryFromCore = NULL;
-  EntryFromCore = (EntryFromCore_fn)host->CreateDelegate ("Storm",
-    "Storm.Core.Main",
-    "EntryFromCore");
-  if (!EntryFromCore) {
-    throw std::runtime_error ("Couldn't find EntryFromCore... fatal");
-  }
-
-  if (!SDL_Init (SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
+  StormProcs* procs;
+  try {
+    procs = new StormProcs (host);
+  } catch (NetException e) {
     return 1;
   }
 
-  EntryFromCore (NetHost::ExecutableDir().string().c_str(),
-    usrdll.string().c_str());
+  ci->RunCommand (host, procs);
 
-  SDL_Quit();
-
+  delete ci;
+  delete procs;
   delete host;
   return 0;
 }

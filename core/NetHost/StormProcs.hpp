@@ -4,7 +4,7 @@
 
 class StormProcs {
  public:
-  using EntryFromCore_fn = void (*) (char const *, char const *);
+  using EntryFromCore_fn = void (*) (char const *);
   using BuildFromCore_fn = void (*) (char const *);
   EntryFromCore_fn EntryFromCore;
   BuildFromCore_fn BuildFromCore;

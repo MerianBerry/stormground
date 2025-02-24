@@ -33,17 +33,13 @@ public class Window {
   private List<Subscription> l1subs;
   private List<Subscription> l2subs;
 
-  public IntPtr Handle {
-    get { return handle; }
-  }
-  public SRP SRP {
-    get { return srp; }
-  }
+  public IntPtr Handle { get => handle; }
+  public SRP    SRP { get => srp; }
 
   private bool  run = true;
   public string title {
-    get { return SDL.SDL_GetWindowTitle (handle); }
-    set { SDL.SDL_SetWindowTitle (handle, value); }
+    get => SDL.SDL_GetWindowTitle (handle);
+    set => SDL.SDL_SetWindowTitle (handle, value);
   }
 
   public Window (string title, SDL.SDL_WindowFlags flags = 0) {
@@ -53,7 +49,9 @@ public class Window {
              SDL.SDL_WindowFlags.SDL_WINDOW_HIDDEN;
     handle = SDL.SDL_CreateWindow (title, 1920, 1080, flags);
     srp    = new(this);
-    SDL.SDL_ShowWindow (handle);
+    Core.Native.Storm_LogInfo ("Engine",
+      "Created new window: [title: " + title + "]",
+      null);
   }
 
   public Window (string title, int w, int h, SDL.SDL_WindowFlags flags = 0) {
@@ -61,11 +59,12 @@ public class Window {
     l2subs = [];
     handle = SDL.SDL_CreateWindow (title, w, h, flags);
     srp    = new(this);
+    Core.Native.Storm_LogInfo ("Engine",
+      "Created new window: [title: " + title + "]",
+      null);
   }
 
-  public void Quit() {
-    run = false;
-  }
+  public void Quit() => run = false;
 
   public void Subscribe (Subscription sub) {
     sub.IntInit (this);
@@ -96,6 +95,7 @@ public class Window {
       }
     }
     if (!run) {
+      srp.Destroy();
       SDL.SDL_DestroyWindow (handle);
       handle = 0;
       l2subs.Clear();
@@ -105,9 +105,10 @@ public class Window {
     }
   }
 
-  public void GetSize (out int w, out int h) {
-    SDL.SDL_GetWindowSize (handle, out w, out h);
-  }
+  public void Show() => SDL.SDL_ShowWindow (handle);
+
+  public void GetSize (out int w, out int h) => SDL.SDL_GetWindowSize (handle,
+    out w, out h);
 
   public static implicit operator bool (Window w) => w.run;
 

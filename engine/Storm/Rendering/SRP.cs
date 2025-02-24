@@ -13,28 +13,32 @@ using SDL3;
 public partial class SRP {
   public enum Backend {
     Vulkan     = 2,
-    Direct3D12 = 4,
+    Direct3D12 = (int)SDL.SDL_GPUShaderFormat.SDL_GPU_SHADERFORMAT_DXIL,
     Metal      = 16,
   }
 
-  private Window           window;
-  private readonly IntPtr  device;
-  private List<RenderPass> primaryPasses;
+  public readonly SDL.SDL_GPUShaderFormat format;
+  private Window                          window;
+  private IntPtr                          device;
+  private List<RenderPass>                primaryPasses;
 
-  public SRP (in Window window, bool debugging = true) {
+  public SRP (in Window window, bool debugging = false) {
     this.window   = window;
     device        = 0;
     primaryPasses = [];
     foreach (Backend b in Core.Main.backendPriority) {
       SDL.SDL_GPUShaderFormat format = (SDL.SDL_GPUShaderFormat)b;
-      bool sup = SDL.SDL_GPUSupportsShaderFormats (format, null);
-      if (sup) {
-        device = SDL.SDL_CreateGPUDevice (format, debugging, null);
-        if (device == 0)
-          throw new Exception (
-            "Couldn't make gpu device: " + SDL.SDL_GetError());
-        break;
-      }
+      // bool sup = SDL.SDL_GPUSupportsShaderFormats (format, null);
+      device = SDL.SDL_CreateGPUDevice (format, debugging, null);
+      if (device == 0)
+        throw new Exception ("Couldn't make gpu device: " + SDL.SDL_GetError());
+      this.format = format;
+      Core.Native.Storm_LogInfo ("Engine",
+        "Created new GPU Device: [format: " + format + "]",
+        null);
+      break;
+      // if (sup) {
+      // }
     }
     if (device == 0)
       throw new Exception ("Couldn't select any graphics backend");
@@ -69,5 +73,20 @@ public partial class SRP {
 
   public RenderPass? this[int index] {
     get => GetRenderPass (index);
+  }
+
+  public void Destroy() {
+    if (device != 0) {
+      SDL.SDL_DestroyGPUDevice (device);
+      primaryPasses.Clear();
+      device = 0;
+    }
+  }
+
+  ~SRP() {
+    if (device != 0) {
+      SDL.SDL_DestroyGPUDevice (device);
+      primaryPasses.Clear();
+    }
   }
 }

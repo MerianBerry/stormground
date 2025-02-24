@@ -1,4 +1,5 @@
 #include "NetHost.hpp"
+#include "../NativeStorm/native.hpp"
 #include <cstdlib>
 #include <format>
 #include <iostream>
@@ -44,6 +45,7 @@ bool NetHost::FindDotnetRuntime() {
     if (i.path().string().find ("coreclr.dll") != string::npos) {
       netruntime = i.path().parent_path();
       bundled    = true;
+      Storm_LogInfo ("NetHost", "Found bundled .NET runtime");
       // std::cerr << "Using bundled dotnet runtime\n";
       return true;
     }
@@ -62,12 +64,13 @@ bool NetHost::FindDotnetRuntime() {
       for (auto &i : directory_iterator (rt)) {
         auto       fn = i.path().filename();
         NetVersion version (fn.string());
-        if (i.is_directory() && version >= "8.0.0") {
+        if (i.is_directory() && version >= "8.0.0" && version < "9.0.0") {
           runtimes.push_back ({version, rt / i.path().filename().string()});
         }
       }
       if (runtimes.size() == 0)
-        return false;
+        return Storm_LogError ("NetHost", "Couldn't find valid .NET runtime"),
+               false;
       NetVersion highestv ("0.0.0");
       int        highesti = 0;
       for (int i = 0; i < runtimes.size(); i++) {
@@ -76,7 +79,11 @@ bool NetHost::FindDotnetRuntime() {
           highesti = i;
         }
       }
-      netruntime = runtimes[highesti].second;
+      // netruntime = runtimes[highesti].second;
+      netruntime = runtimes[0].second;
+      Storm_LogInfo ("NetHost",
+        (string ("Found .NET runtime: ") + netruntime.generic_string())
+          .c_str());
       return true;
     }
   }
@@ -176,6 +183,7 @@ int NetHost::Initialize (std::string app_domain,
     ss << "Failed to initialize coreclr: " << std::hex << hr;
     return Storm_LogError ("NetHost", ss.str().c_str()), 1;
   }
+  Storm_LogInfo ("NetHost", "Initialized CoreCLR AppDomain");
   return 0;
 }
 
@@ -198,6 +206,8 @@ void *NetHost::CreateDelegate (std::string assembly, std::string type,
     Storm_LogError ("NetHost", ss.str().c_str());
     return NULL;
   }
+  string msg = "Created delegate: " + type + "." + method;
+  Storm_LogInfo ("NetHost", msg.c_str());
   // TODO: add error handling for failure to get proc
   return proc;
 }

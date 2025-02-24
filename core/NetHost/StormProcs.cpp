@@ -1,4 +1,5 @@
 #include "StormProcs.hpp"
+#include "../NativeStorm/native.hpp"
 
 StormProcs::StormProcs (NetHost* host) {
   if (!host)
@@ -11,4 +12,5 @@ StormProcs::StormProcs (NetHost* host) {
     "BuildFromCore");
   if (!EntryFromCore || !BuildFromCore)
     throw NetException ("Failed to create core delegates");
+  Storm_LogInfo ("NativeHost", "Found all core procs");
 }

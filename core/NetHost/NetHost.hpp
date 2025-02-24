@@ -1,9 +1,7 @@
 #ifndef CoreCLR_H
 #define CoreCLR_H
 #include "coreclrhost.h"
-#include "../NativeStorm/native.hpp"
 #include <filesystem>
-#include <initializer_list>
 #include <string>
 #include <vector>
 #include <map>
@@ -35,6 +33,16 @@ class NetVersion {
   bool operator>= (string s) {
     NetVersion r = s;
     return *this >= r;
+  }
+
+  bool operator< (NetVersion const &r) {
+    return (major < r.major) || (minor < r.minor && major == r.major) ||
+           (patch < r.patch && major == r.major && minor == r.minor);
+  }
+
+  bool operator< (string s) {
+    NetVersion r = s;
+    return *this < r;
   }
 };
 

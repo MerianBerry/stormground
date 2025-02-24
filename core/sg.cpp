@@ -10,13 +10,14 @@
 #  include <Windows.h>
 #endif
 
-
 int main (int argc, char** argv) {
   namespace fs      = std::filesystem;
   NetHost* host     = new NetHost;
   fs::path execname = Storm_ExecutablePath().filename().replace_extension();
   argc--;
   argv++;
+
+  Storm_LogInfo ("Core", "Program has started");
 
   std::vector<std::string> trustedDirs = {};
   std::string              target      = execname.string();
@@ -38,6 +39,8 @@ int main (int argc, char** argv) {
   }
 
   ci->RunCommand (host, procs);
+
+  Storm_LogInfo ("Core", "Engine has exited");
 
   delete ci;
   delete procs;

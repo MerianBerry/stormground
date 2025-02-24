@@ -28,11 +28,12 @@ int CLIHandler::ConsumeArgs (int &argc, char **&argv,
           }
         }
       }
+      Storm_LogInfo ("Core", ("Starting in debug mode on " + target).c_str());
       return 0;
     } else {
       string err = "Unknown CLI command: ";
       err += cmd;
-      return Storm_LogError ("CLIHandler", err.c_str()), 1;
+      return Storm_LogError ("Core", err.c_str()), 1;
     }
   }
   return 0;
@@ -40,10 +41,16 @@ int CLIHandler::ConsumeArgs (int &argc, char **&argv,
 
 int CLIHandler::RunCommand (NetHost *host, StormProcs *procs) {
   if (command == "debug") {
+    Storm_LogInfo ("Core", "Executing debug mode with EntryFromCore");
+
     fs::path usrdll = host->FindAssembly (target);
 
-    procs->EntryFromCore (Storm_ExecutableDir().string().c_str(),
-      usrdll.string().c_str());
+    procs->BuildFromCore ("");
+    auto  d   = Storm_ExecutableDir().string();
+    auto  uds = usrdll.string();
+    char *buf = new char[uds.length() + 1];
+    memcpy (buf, uds.c_str(), uds.length() + 1);
+    procs->EntryFromCore (buf);
   }
   return 0;
 }

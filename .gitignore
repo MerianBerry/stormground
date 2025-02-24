@@ -12,6 +12,7 @@ engine/**/bin
 *.res
 *.zip
 *tar.gz
+third_party/SDL
 core/**/*version.h
 core/**/GPUDevice
 engine/**/obj

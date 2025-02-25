@@ -25,12 +25,14 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
 make_directory("${CMAKE_SOURCE_DIR}/third_party/SDL")
-execute_process(COMMAND "python" "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/third_party/SDL")
+execute_process(COMMAND "python" "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
+
+execute_process(COMMAND "python" "${CMAKE_SOURCE_DIR}/build_scripts/get_IntExports.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 file(GLOB SDL_SHARED "${CMAKE_BINARY_DIR}/SDL3/${DYLIB_PREFIX}*.${DYLIB_EXTENSION}")
 
 link_directories("${CMAKE_BINARY_DIR}/SDL3")
-include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_SOURCE_DIR}/third_party")
+include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core")
 add_subdirectory(core)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

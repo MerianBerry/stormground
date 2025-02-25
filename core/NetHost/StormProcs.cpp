@@ -1,5 +1,5 @@
 #include "StormProcs.hpp"
-#include "../NativeStorm/native.hpp"
+#include "../api.hpp"
 
 StormProcs::StormProcs (NetHost* host) {
   if (!host)

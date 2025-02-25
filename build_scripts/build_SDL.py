@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import glob
 
 SDL_TAG = "release-3.2.4"
 WORKING_DIR = os.path.expanduser("~/source/SDL3")
@@ -16,6 +17,7 @@ if platform == "win32":
   BINARY_DIR = "Release\\"
   INSTALL_DIR = sys.argv[1]
   INSTALL_INCLUDE_DIR = os.path.join(INSTALL_DIR, "SDL3")
+  LIB_EXT = ".lib"
 else:
   raise RuntimeError("Unsupported platform")
 
@@ -47,7 +49,7 @@ def clone_and_build_sdl():
   #if os.path.exists(build_dir):
   #    shutil.rmtree(build_dir)
 
-  run(f"Configuring SDL", ["cmake", "-Bbuild", "-S.", "-DCMAKE_BUILD_TYPE=Release"], cwd=git_dir)
+  run(f"Configuring SDL", ["cmake", "-Bbuild", "-S.", "-DSDL_SHARED=OFF", "-DSDL_STATIC=ON","-DSDL_TEST_LIBRARY=OFF", "-DSDL_POWER_DEFAULT=OFF", "-DSDL_SENSOR_DEFAULT=OFF", "-DSDL_DIALOG_DEFAULT=OFF", "-DSDL_CAMERA_DEFAULT=OFF", "-DCMAKE_BUILD_TYPE=Release"], cwd=git_dir)
   build_args = ["cmake", "--build", "build"]
   for i in BUILD_FLAGS:
     build_args.append(i)
@@ -67,8 +69,7 @@ def clone_and_build_shadercross():
   #    shutil.rmtree(build_dir)
 
   run(f"Configuring shadercross",
-      ["cmake", "-Bbuild", "-S.", "-DCMAKE_BUILD_TYPE=Release", "-DSDLSHADERCROSS_DXC=ON",
-        "-DSDLSHADERCROSS_VENDORED=ON", "-DSDL3_DIR=../SDL/build"],
+      ["cmake", "-Bbuild", "-S.", "-DCMAKE_BUILD_TYPE=Release","-DSDLSHADERCROSS_SPIRVCROSS_SHARED=ON", "-DSDL3_DIR=../SDL/build"],
       cwd=git_dir)
   build_args = ["cmake", "--build", "build"]
   for i in BUILD_FLAGS:
@@ -94,25 +95,34 @@ def install_binaries_windows():
 
   spirv_cross_build_dir = os.path.join(shadercross_build_dir, "external", "SPIRV-Cross", BINARY_DIR)
 
-  shutil.copy(os.path.join(spirv_cross_build_dir, "spirv-cross-c-shared.dll"), INSTALL_DIR)
+  spirv_cross_libs = glob.glob(os.path.join(spirv_cross_build_dir, "*"))
+  for x in spirv_cross_libs:
+    shutil.copy(x, os.path.join(INSTALL_DIR, os.path.basename(x)))
 
-  directx_shader_compiler_build_dir = os.path.join(shadercross_build_dir, "external", "DirectXShaderCompiler", BINARY_DIR, "bin")
 
-  shutil.copy(os.path.join(directx_shader_compiler_build_dir, "dxcompiler.dll"), INSTALL_DIR)
+  #shutil.copy(os.path.join(spirv_cross_build_dir, "spirv-cross-c-shared.dll"), INSTALL_DIR)
+
+  directx_shader_compiler_build_dir = os.path.join(shadercross_build_dir, "external", "DirectXShaderCompiler", BINARY_DIR)
+
+  shutil.copy(os.path.join(directx_shader_compiler_build_dir, "bin", "dxcompiler.dll"), INSTALL_DIR)
+  shutil.copy(os.path.join(directx_shader_compiler_build_dir, "lib", "dxcompiler.lib"), INSTALL_DIR)
 
   sdl_source_dir = os.path.join(WORKING_DIR, "SDL")
 
   sdl_build_dir = os.path.join(sdl_source_dir, "build", BINARY_DIR)
 
 
-  shutil.copy(os.path.join(sdl_build_dir, "SDL3.dll"), INSTALL_DIR)
+  #shutil.copy(os.path.join(sdl_build_dir, "SDL3.dll"), INSTALL_DIR)
 
-  shutil.copy(os.path.join(sdl_build_dir, "SDL3.lib"), INSTALL_DIR)
+  #shutil.copy(os.path.join(sdl_build_dir, "SDL3.lib"), INSTALL_DIR)
+  shutil.copy(os.path.join(sdl_build_dir, "SDL3-static.lib"), INSTALL_DIR)
+  #shutil.copy(os.path.join(sdl_build_dir, "SDL_uclibc.lib"), INSTALL_DIR)
+  #shutil.copy(os.path.join(sdl_build_dir, "SDL3_test.lib"), INSTALL_DIR)
 
   shutil.copytree(os.path.join(sdl_source_dir, "include", "SDL3"), INSTALL_INCLUDE_DIR, dirs_exist_ok=True)
   shutil.copytree(os.path.join(shadercross_source_dir, "include", "SDL3_shadercross"), INSTALL_INCLUDE_DIR, dirs_exist_ok=True)
 
-  #shutil.rmtree(INSTALL_DIR)
+  #shutil.rmtree(WORKING_DIR)
 
 
 

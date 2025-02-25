@@ -1,10 +1,11 @@
 #include <vector>
 #include <filesystem>
 
-#include "NativeStorm/native.hpp"
+#include "api.hpp"
 #include "NetHost/StormProcs.hpp"
 #include "NetHost/NetHost.hpp"
 #include "CLIHandler.hpp"
+
 
 #ifdef _WIN32
 #  include <Windows.h>

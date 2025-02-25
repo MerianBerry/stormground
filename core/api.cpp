@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <fstream>
 #include <ctime>
-#include "native.hpp"
-#include "../NetHost/NetHost.hpp"
+#include "api.hpp"
+#include "NetHost/NetHost.hpp"
 
 namespace fs = std::filesystem;
 using string = std::string;
@@ -12,15 +12,15 @@ static string        Error = "";
 static std::ofstream Log;
 static bool          noLog = false;
 
-STORMAPI void Storm_SetError (std::string err) {
+void Storm_SetError (std::string err) {
   Error = err;
 }
 
-STORMAPI void Storm_Free (void* ptr) {
+void Storm_Free (void* ptr) {
   free (ptr);
 }
 
-STORMAPI const char* Storm_GetError() {
+char const* Storm_GetError() {
   char* buf = new char[Error.length() + 1];
   memcpy (buf, Error.c_str(), Error.length() + 1);
   return buf;
@@ -52,24 +52,21 @@ static void Storm_Log (char const* source, char const* severity,
   Log << std::endl;
 }
 
-STORMAPI void Storm_LogInfo (char const* source, char const* msg,
-  char const* trace) {
+void Storm_LogInfo (char const* source, char const* msg, char const* trace) {
   Storm_Log (source, "INFO", msg, trace);
 }
 
-STORMAPI void Storm_LogWarn (char const* source, char const* msg,
-  char const* trace) {
+void Storm_LogWarn (char const* source, char const* msg, char const* trace) {
   Storm_Log (source, "Warn", msg, trace);
 }
 
-STORMAPI void Storm_LogError (char const* source, char const* msg,
-  char const* trace) {
+void Storm_LogError (char const* source, char const* msg, char const* trace) {
   if (msg)
     Storm_SetError (msg);
   Storm_Log (source, "ERROR", msg, trace);
 }
 
-STORMDLL path Storm_ExecutablePath() {
+path Storm_ExecutablePath() {
 #ifdef _WIN32
   char buf[MAX_PATH + 1];
   memset (buf, 0, sizeof (buf));
@@ -79,6 +76,6 @@ STORMDLL path Storm_ExecutablePath() {
   return ed;
 }
 
-STORMDLL path Storm_ExecutableDir() {
+path Storm_ExecutableDir() {
   return Storm_ExecutablePath().parent_path();
 }

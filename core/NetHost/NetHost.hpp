@@ -70,6 +70,7 @@ class NetHost {
   bool FindDotnetRuntime();
   bool Findcoreclr();
 
+  static void const *PInvokeOverride (char const *libName, char const *symbol);
 
  public:
   virtual int   Initialize (std::string app_domain,

@@ -1,15 +1,20 @@
 #include "NetHost.hpp"
-#include "../NativeStorm/native.hpp"
+#include "../api.hpp"
 #include <cstdlib>
 #include <format>
 #include <iostream>
 #include <regex>
+#include "exports.hpp"
 
 #ifdef _WIN32
 #  include <Windows.h>
 #endif
 
 namespace fs = std::filesystem;
+
+void Test() {
+  Storm_LogInfo ("NetHost", "Test");
+}
 
 NetException::NetException (std::string msg) throw()
     : std::runtime_error (msg) {
@@ -36,6 +41,55 @@ NetVersion::NetVersion (string ver) {
   major = ParseNum (ver);
   minor = ParseNum (ver);
   patch = ParseNum (ver);
+}
+
+static std::map<std::string, void *> PInvoked;
+
+void const *NetHost::PInvokeOverride (char const *libName, char const *symbol) {
+  string att = std::format ("{}.{}", libName, symbol);
+  // Storm_LogInfo ("NetHost", ("PInvoke caught!!!! (" + att + ")").c_str());
+  if (strstr (libName, "SDL3") || strstr (libName, "Storm.Native")) {
+#ifdef _WIN32
+    auto &exp = GetExports();
+    auto  itr = exp.find (symbol);
+    if (itr != exp.end())
+      return itr->second;
+    string err = std::format ("Failed to get internal symbol {}: {}",
+      symbol,
+      GetLastError());
+    Storm_LogError ("NetHost", err.c_str());
+    return NULL;
+#endif
+  } else {
+    auto itr = PInvoked.find (libName);
+    if (itr == PInvoked.end()) {
+#ifdef _WIN32
+      HMODULE module = LoadLibraryA (libName);
+      if (!module) {
+        string err = std::format ("Ext. Native Library {} not found", libName);
+        Storm_LogError ("NetHost", err.c_str());
+        return NULL;
+      }
+      // Optimize this later
+      PInvoked[libName] = module;
+      itr               = PInvoked.find (libName);
+#endif
+    }
+#ifdef _WIN32
+    void *proc = (void *)GetProcAddress ((HMODULE)itr->second, symbol);
+    if (!proc) {
+      string err =
+        std::format ("Ext. Native Library ({}) proc ({}) does not exist",
+          libName,
+          symbol);
+      Storm_LogError ("NetHost", err.c_str());
+      return NULL;
+    }
+    return proc;
+#endif
+  }
+
+  return NULL;
 }
 
 bool NetHost::FindDotnetRuntime() {
@@ -161,12 +215,21 @@ int NetHost::Initialize (std::string app_domain,
   char const *property_keys[] = {
     "APP_CONTEXT_BASE_DIRECTORY",
     "TRUSTED_PLATFORM_ASSEMBLIES",
+    "PINVOKE_OVERRIDE",
   };
+
+  string override_fn =
+    std::to_string ((intptr_t)(void *)NetHost::PInvokeOverride);
 
   char const *property_values[] = {
     edir->c_str(),
     tpa_list.c_str(),
+    override_fn.c_str(),
   };
+
+  auto  &exps = GetExports();
+  string msg  = std::format ("{} internal calls are available", exps.size());
+  Storm_LogInfo ("NetHost", msg.c_str());
 
   // start the runtime
   auto f  = Storm_ExecutablePath().string();

@@ -1,5 +1,5 @@
 #include "CLIHandler.hpp"
-#include "NativeStorm/native.hpp"
+#include "api.hpp"
 #include <regex>
 
 namespace fs = std::filesystem;
@@ -30,6 +30,7 @@ int CLIHandler::ConsumeArgs (int &argc, char **&argv,
       }
       Storm_LogInfo ("Core", ("Starting in debug mode on " + target).c_str());
       return 0;
+    } else if (cmd == "build") {
     } else {
       string err = "Unknown CLI command: ";
       err += cmd;

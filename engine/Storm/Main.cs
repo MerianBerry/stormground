@@ -20,6 +20,7 @@ public static class Main {
         "Usrdll post launch search functionality not implemented");
     }
     try {
+      string dir = AppDomain.CurrentDomain.BaseDirectory;
       // ExecuteDir = edir;
       var asm = Assembly.LoadFile (usrdll) ??
                 throw new Exception ("Coudln't load user assembly");
@@ -33,14 +34,6 @@ public static class Main {
 
       ShaderWorker worker = new();
       Task.Run (() => worker.Start (rootWindow.SRP));
-
-      var T = worker.SubmitWorkAsync ([
-        new() { name = "Shader", code = Shader },
-      ]);
-      // var R = Task.Run (() => worker.SubmitWork (["hehe", "haha"]));
-      //  Console.WriteLine ("Waiting for that work");
-      //  Task.WaitAll (T);
-      //  Console.WriteLine ("Got work :) " + T.Result.ToString());
 
 
       rootMod = Activator.CreateInstance (types.First()) as Mod;
@@ -81,40 +74,4 @@ public static class Main {
   public static void BuildFromCore (string dir) {
     string str = "\"ss\"";
   }
-
-  private static readonly string Shader =
-    @"
-struct AssembledVertex
-{
-  float3	position : POSITION;
-};
-
-struct VertexStageOutput {
-  float4 sv_position : SV_Position;
-}
-
-struct Fragment
-{
-  float4 color;
-};
-
-[shader(""vertex"")]
-    VertexStageOutput VMain (AssembledVertex assembled) {
-    VertexStageOutput output;
-
-    float3 position = assembled.position;
-
-    output.sv_position = float4 (assembled.position, 1.0);
-
-    return output;
-  }
-
-[shader(""fragment"")]
-Fragment FMain() {
-  float3 color = float3(1.0, 1.0, 1.0);
-
-  Fragment output;
-  output.color = float4(color, 1.0);
-  return output;
-}";
 }

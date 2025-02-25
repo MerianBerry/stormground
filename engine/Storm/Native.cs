@@ -49,7 +49,7 @@ public static partial class Native {
     }
   }
 
-  private const string lib = "NativeStorm";
+  private const string lib = "Storm.Native";
 
   [LibraryImport (lib)]
   public static partial void Storm_Free (IntPtr ptr);

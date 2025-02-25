@@ -28,17 +28,20 @@ public partial class SRP {
     primaryPasses = [];
     foreach (Backend b in Core.Main.backendPriority) {
       SDL.SDL_GPUShaderFormat format = (SDL.SDL_GPUShaderFormat)b;
-      // bool sup = SDL.SDL_GPUSupportsShaderFormats (format, null);
-      device = SDL.SDL_CreateGPUDevice (format, debugging, null);
-      if (device == 0)
-        throw new Exception ("Couldn't make gpu device: " + SDL.SDL_GetError());
-      this.format = format;
-      Core.Native.Storm_LogInfo ("Engine",
-        "Created new GPU Device: [format: " + format + "]",
-        null);
-      break;
-      // if (sup) {
-      // }
+      bool sup = SDL.SDL_GPUSupportsShaderFormats (format, null);
+      if (sup) {
+        device = SDL.SDL_CreateGPUDevice (format, debugging, null);
+        if (device == 0)
+          throw new Exception (
+            "Couldn't make gpu device: " + SDL.SDL_GetError());
+        this.format = format;
+
+        Core.Native.Storm_LogInfo ("Engine",
+          String.Format ("Created new GPU device [format: {0}]",
+            format.ToString()),
+          null);
+        break;
+      }
     }
     if (device == 0)
       throw new Exception ("Couldn't select any graphics backend");

@@ -46,8 +46,6 @@ NetVersion::NetVersion (string ver) {
 static std::map<std::string, void *> PInvoked;
 
 void const *NetHost::PInvokeOverride (char const *libName, char const *symbol) {
-  string att = std::format ("{}.{}", libName, symbol);
-  // Storm_LogInfo ("NetHost", ("PInvoke caught!!!! (" + att + ")").c_str());
   if (strstr (libName, "SDL3") || strstr (libName, "Storm.Native")) {
 #ifdef _WIN32
     auto &exp = GetExports();
@@ -118,7 +116,7 @@ bool NetHost::FindDotnetRuntime() {
       for (auto &i : directory_iterator (rt)) {
         auto       fn = i.path().filename();
         NetVersion version (fn.string());
-        if (i.is_directory() && version >= "8.0.0" && version < "9.0.0") {
+        if (i.is_directory() && version >= "7.0.0") {
           runtimes.push_back ({version, rt / i.path().filename().string()});
         }
       }
@@ -133,8 +131,7 @@ bool NetHost::FindDotnetRuntime() {
           highesti = i;
         }
       }
-      // netruntime = runtimes[highesti].second;
-      netruntime = runtimes[0].second;
+      netruntime = runtimes[highesti].second;
       Storm_LogInfo ("NetHost",
         (string ("Found .NET runtime: ") + netruntime.generic_string())
           .c_str());
@@ -159,14 +156,15 @@ bool NetHost::Findcoreclr() {
 int NetHost::Initialize (std::string app_domain,
   std::vector<std::string>           trusted_directories) {
   if (!Findcoreclr())
-    /*TODO log*/
     return Storm_LogError ("NetHost", "Failed to find coreclr"), 1;
-
+#ifdef _WIN32
   lib = LoadLibraryA (coreclr.string().c_str());
+#endif
   if (!lib)
     return Storm_LogError ("NetHost", "Failed to open coreclr"), 1;
 
-  // Get the coreclr hosting functions from the library
+// Get the coreclr hosting functions from the library
+#ifdef _WIN32
   coreclr_initialize =
     (coreclr_initialize_ptr)GetProcAddress ((HMODULE)lib, "coreclr_initialize");
   coreclr_create_delegate =
@@ -174,6 +172,7 @@ int NetHost::Initialize (std::string app_domain,
       "coreclr_create_delegate");
   coreclr_shutdown =
     (coreclr_shutdown_ptr)GetProcAddress ((HMODULE)lib, "coreclr_shutdown");
+#endif
   if (!(coreclr_initialize && coreclr_create_delegate && coreclr_shutdown)) {
     string err = std::format ("Failed to get coreclr procs: {} {} {}",
       (void *)coreclr_initialize,
@@ -192,11 +191,10 @@ int NetHost::Initialize (std::string app_domain,
       // Accept dll's, exclude duplicates
       string filename = file.path().filename().string();
       string path     = file.path().string();
-
-      if (filename == "")
-        Storm_LogWarn ("NetHost", "Empty filename");
       if (std::regex_match (file.path().string(), std::regex (".*\\.dll$")) &&
           libs.find (filename) == libs.end()) {
+        // CoreCLR CANNOT handle non native separators
+        // idk why its annoying
 #ifdef _WIN32
         std::replace (path.begin(), path.end(), '/', '\\');
 #else
@@ -228,7 +226,7 @@ int NetHost::Initialize (std::string app_domain,
   };
 
   auto  &exps = GetExports();
-  string msg  = std::format ("{} internal calls are available", exps.size());
+  string msg  = std::format ("{} internal symbols are available", exps.size());
   Storm_LogInfo ("NetHost", msg.c_str());
 
   // start the runtime
@@ -271,7 +269,6 @@ void *NetHost::CreateDelegate (std::string assembly, std::string type,
   }
   string msg = "Created delegate: " + type + "." + method;
   Storm_LogInfo ("NetHost", msg.c_str());
-  // TODO: add error handling for failure to get proc
   return proc;
 }
 

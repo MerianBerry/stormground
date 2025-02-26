@@ -12,5 +12,5 @@ StormProcs::StormProcs (NetHost* host) {
     "BuildFromCore");
   if (!EntryFromCore || !BuildFromCore)
     throw NetException ("Failed to create core delegates");
-  Storm_LogInfo ("NativeHost", "Found all core procs");
+  Storm_LogInfo ("NetHost", "Found all core procs");
 }

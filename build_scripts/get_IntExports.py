@@ -75,7 +75,8 @@ def export_is_valid(exports: dict, export):
 
 def write_exports(exports: dict):
   out = open("exports.hpp", "w")
-  out.write("""
+  out.write("""// This is an auto-generated file. modify it, or dont idc
+
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_gamepad.h"

@@ -7,6 +7,10 @@
 #include "CLIHandler.hpp"
 
 
+extern "C" __declspec (dllexport) const char* WHAT =
+  "sg#############################################################";
+
+
 #ifdef _WIN32
 #  include <Windows.h>
 #endif

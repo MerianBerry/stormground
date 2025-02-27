@@ -10,14 +10,20 @@ import glob
 SDL_TAG = "release-3.2.4"
 WORKING_DIR = os.path.expanduser("~/source/SDL3")
 
-platform = sys.platform
+sys.platform
+INSTALL_DIR = sys.argv[1]
+INSTALL_INCLUDE_DIR = os.path.join(INSTALL_DIR, "SDL3")
 
-if platform == "win32":
+if sys.platform == "win32":
   BUILD_FLAGS = ["--config Release"]
   BINARY_DIR = "Release\\"
-  INSTALL_DIR = sys.argv[1]
-  INSTALL_INCLUDE_DIR = os.path.join(INSTALL_DIR, "SDL3")
+  LIB_PREF = ""
   LIB_EXT = ".lib"
+elif sys.platform == "linux":
+  BUILD_FLAGS = ["-j6"]
+  BINARY_DIR = ""
+  LIB_PREF = "lib"
+  LIB_EXT = ".a"
 else:
   raise RuntimeError("Unsupported platform")
 
@@ -34,8 +40,10 @@ def main():
 
   clone_and_build_shadercross();
 
-  if platform == "win32":
+  if sys.platform == "win32":
     install_binaries_windows()
+  else:
+    install_binaries_linux()
 
 
 def clone_and_build_sdl():
@@ -69,7 +77,7 @@ def clone_and_build_shadercross():
   #    shutil.rmtree(build_dir)
 
   run(f"Configuring shadercross",
-      ["cmake", "-Bbuild", "-S.", "-DCMAKE_BUILD_TYPE=Release","-DSDLSHADERCROSS_SPIRVCROSS_SHARED=ON", "-DSDL3_DIR=../SDL/build"],
+      ["cmake", "-Bbuild", "-S.", "-DCMAKE_BUILD_TYPE=Release", "-DSDLSHADERCROSS_STATIC=ON", "-DSDLSHADERCROSS_SPIRVCROSS_SHARED=ON", "-DSDLSHADERCROSS_CLI=OFF", "-DSDLSHADERCROSS_VENDORED=ON", "-DSDL3_DIR=../SDL/build"],
       cwd=git_dir)
   build_args = ["cmake", "--build", "build"]
   for i in BUILD_FLAGS:
@@ -78,8 +86,7 @@ def clone_and_build_shadercross():
 
 
 def installed():
-  if platform == "win32":
-    return os.path.exists(os.path.join(INSTALL_INCLUDE_DIR, "SDL_shadercross.h"))
+  return os.path.exists(os.path.join(INSTALL_INCLUDE_DIR, "SDL_shadercross.h"))
 
 
 def install_binaries_windows():
@@ -123,6 +130,35 @@ def install_binaries_windows():
   shutil.copytree(os.path.join(shadercross_source_dir, "include", "SDL3_shadercross"), INSTALL_INCLUDE_DIR, dirs_exist_ok=True)
 
   #shutil.rmtree(WORKING_DIR)
+
+def install_binaries_linux():
+  print(f"Installing binaries to {INSTALL_DIR}")
+
+  shadercross_source_dir = os.path.join(WORKING_DIR, "SDL_shadercross")
+
+  shadercross_build_dir = os.path.join(shadercross_source_dir, "build")
+
+  shutil.copy(os.path.join(shadercross_build_dir, BINARY_DIR, "libSDL3_shadercross.a"), INSTALL_DIR)
+
+  spirv_cross_build_dir = os.path.join(shadercross_build_dir, "external", "SPIRV-Cross")
+
+  spirv_cross_libs = glob.glob(os.path.join(spirv_cross_build_dir, "*.so*"))
+  for x in spirv_cross_libs:
+    shutil.copy(x, os.path.join(INSTALL_DIR, os.path.basename(x)))
+
+
+  directx_shader_compiler_build_dir = os.path.join(shadercross_build_dir, "external", "DirectXShaderCompiler")
+
+  shutil.copy(os.path.join(directx_shader_compiler_build_dir, "lib", "libdxcompiler.so"), INSTALL_DIR)
+  #shutil.copy(os.path.join(directx_shader_compiler_build_dir, "lib", "libdxcompiler.a"), INSTALL_DIR)
+
+  sdl_source_dir = os.path.join(WORKING_DIR, "SDL")
+  sdl_build_dir = os.path.join(sdl_source_dir, "build")
+
+  shutil.copy(os.path.join(sdl_build_dir, "libSDL3.a"), INSTALL_DIR)
+
+  shutil.copytree(os.path.join(sdl_source_dir, "include", "SDL3"), INSTALL_INCLUDE_DIR, dirs_exist_ok=True)
+  shutil.copytree(os.path.join(shadercross_source_dir, "include", "SDL3_shadercross"), INSTALL_INCLUDE_DIR, dirs_exist_ok=True)
 
 
 

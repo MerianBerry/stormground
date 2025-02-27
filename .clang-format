@@ -20,7 +20,6 @@ AllowShortFunctionsOnASingleLine: None
 AllowShortLoopsOnASingleLine: false
 AllowShortLambdasOnASingleLine: Empty
 AlwaysBreakBeforeMultilineStrings: true
-BreakArrays: true
 BinPackArguments: false
 BinPackParameters: true
 IndentCaseLabels: false

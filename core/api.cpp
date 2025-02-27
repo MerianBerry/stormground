@@ -4,6 +4,7 @@
 #include "api.hpp"
 #include "NetHost/NetHost.hpp"
 
+
 namespace fs = std::filesystem;
 using string = std::string;
 using path   = fs::path;
@@ -71,6 +72,9 @@ path Storm_ExecutablePath() {
   char buf[MAX_PATH + 1];
   memset (buf, 0, sizeof (buf));
   GetModuleFileName (NULL, buf, MAX_PATH);
+#else
+  char    buf[PATH_MAX];
+  ssize_t count = readlink ("/proc/self/exe", buf, PATH_MAX);
 #endif
   fs::path ed = buf;
   return ed;

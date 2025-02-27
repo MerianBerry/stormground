@@ -7,6 +7,11 @@
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <Windows.h>
+#  define DLLEXPORT extern "C" __declspec(dllexport)
+#else
+#  include <limits.h>
+#  include <unistd.h>
+#  define DLLEXPORT extern "C" __attribute__ ((visibility ("default")))
 #endif
 
 void Storm_Free (void* ptr);

@@ -5,7 +5,7 @@ function(genHeader list in)
   set(${list} "${${list}};${out}" CACHE STRING "${list}" FORCE)
   #list(APPEND ${list} ${out})
   add_custom_command(OUTPUT ${out}
-    COMMAND python
+    COMMAND ${PYTHON_CMD}
     ${CMAKE_SOURCE_DIR}/build_scripts/headerfy.py
     ${in}
     ${out}
@@ -22,7 +22,7 @@ function(target_genHeader target in)
   #set(${list} "${${list}};${out}" CACHE STRING "${list}" FORCE)
   #list(APPEND ${list} ${out})
   add_custom_command(TARGET ${target} PRE_BUILD
-    COMMAND python
+    COMMAND ${PYTHON_CMD}
     ${CMAKE_SOURCE_DIR}/build_scripts/headerfy.py
     ${in}
     ${out}

@@ -35,7 +35,7 @@ bool Storm_CompileShader (char const* _path, char const* out) {
   std::ifstream fi (file);
   if (!fi.is_open()) {
     Storm_LogError ("NativeShader", ("Couldn't open shader " + name).c_str());
-    return NULL;
+    return false;
   }
   fi.seekg (-1, std::ios_base::end);
   int len = fi.tellg();

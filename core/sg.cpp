@@ -7,7 +7,7 @@
 #include "CLIHandler.hpp"
 
 
-extern "C" __declspec (dllexport) const char* WHAT =
+DLLEXPORT char const* WHAT =
   "sg#############################################################";
 
 

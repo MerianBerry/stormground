@@ -1,13 +1,21 @@
 #include "NetHost.hpp"
 #include "../api.hpp"
 #include <cstdlib>
-#include <format>
 #include <iostream>
 #include <regex>
 #include "exports.hpp"
 
 #ifdef _WIN32
 #  include <Windows.h>
+#  define loadlib(s)    (void *)LoadLibraryA (s)
+#  define getproc(l, s) (void *)GetProcAddress ((HMODULE)l, s)
+#  define freelib(l)    FreeLibrary ((HMODULE)l)
+#else
+#  include <dlfcn.h>
+#  define loadlib(s)    (void *)dlopen (s, RTLD_LAZY)
+#  define getproc(l, s) dlsym (l, s)
+#  define freelib(l)    dlclose (l)
+
 #endif
 
 namespace fs = std::filesystem;
@@ -47,44 +55,35 @@ static std::map<std::string, void *> PInvoked;
 
 void const *NetHost::PInvokeOverride (char const *libName, char const *symbol) {
   if (strstr (libName, "SDL3") || strstr (libName, "Storm.Native")) {
-#ifdef _WIN32
     auto &exp = GetExports();
     auto  itr = exp.find (symbol);
     if (itr != exp.end())
       return itr->second;
-    string err = std::format ("Failed to get internal symbol {}: {}",
-      symbol,
-      GetLastError());
+    string err = "Failed to get internal symbol ";
+    err += symbol;
     Storm_LogError ("NetHost", err.c_str());
     return NULL;
-#endif
   } else {
     auto itr = PInvoked.find (libName);
     if (itr == PInvoked.end()) {
-#ifdef _WIN32
-      HMODULE module = LoadLibraryA (libName);
+      void *module = loadlib (libName);
       if (!module) {
-        string err = std::format ("Ext. Native Library {} not found", libName);
+        string err = string ("Ext. Native Library ") + libName + " not found";
         Storm_LogError ("NetHost", err.c_str());
         return NULL;
       }
       // Optimize this later
       PInvoked[libName] = module;
       itr               = PInvoked.find (libName);
-#endif
     }
-#ifdef _WIN32
-    void *proc = (void *)GetProcAddress ((HMODULE)itr->second, symbol);
+    void *proc = getproc (itr->second, symbol);
     if (!proc) {
-      string err =
-        std::format ("Ext. Native Library ({}) proc ({}) does not exist",
-          libName,
-          symbol);
+      string err = string ("Ext. Native Library (") + libName + ") proc (" +
+                   symbol + ") does not exist";
       Storm_LogError ("NetHost", err.c_str());
       return NULL;
     }
     return proc;
-#endif
   }
 
   return NULL;
@@ -102,7 +101,11 @@ bool NetHost::FindDotnetRuntime() {
       return true;
     }
   }
+#ifdef _WIN32
   string PATH = getenv ("PATH");
+#else
+  string PATH    = "/usr/lib/dotnet;";
+#endif
   while (true) {
     auto p = PATH.find_first_of (';');
     if (p == string::npos)
@@ -144,41 +147,32 @@ bool NetHost::FindDotnetRuntime() {
 bool NetHost::Findcoreclr() {
   if (!FindDotnetRuntime())
     return false;
-  for (auto &i : recursive_directory_iterator (netruntime)) {
-    if (i.path().string().find ("coreclr.dll") != string::npos) {
-      coreclr = i.path();
-      return true;
-    }
-  }
-  return false;
+#ifdef _WIN32
+  string CoreCLR = "coreclr.dll";
+#else
+  string CoreCLR = "libcoreclr.so";
+#endif
+  return fs::exists (netruntime / CoreCLR) ? (coreclr = netruntime / CoreCLR),
+         true                              : false;
 }
 
 int NetHost::Initialize (std::string app_domain,
   std::vector<std::string>           trusted_directories) {
   if (!Findcoreclr())
     return Storm_LogError ("NetHost", "Failed to find coreclr"), 1;
-#ifdef _WIN32
-  lib = LoadLibraryA (coreclr.string().c_str());
-#endif
+  lib = loadlib (coreclr.string().c_str());
   if (!lib)
     return Storm_LogError ("NetHost", "Failed to open coreclr"), 1;
 
-// Get the coreclr hosting functions from the library
-#ifdef _WIN32
+
+  // Get the coreclr hosting functions from the library
   coreclr_initialize =
-    (coreclr_initialize_ptr)GetProcAddress ((HMODULE)lib, "coreclr_initialize");
+    (coreclr_initialize_ptr)getproc (lib, "coreclr_initialize");
   coreclr_create_delegate =
-    (coreclr_create_delegate_ptr)GetProcAddress ((HMODULE)lib,
-      "coreclr_create_delegate");
-  coreclr_shutdown =
-    (coreclr_shutdown_ptr)GetProcAddress ((HMODULE)lib, "coreclr_shutdown");
-#endif
+    (coreclr_create_delegate_ptr)getproc (lib, "coreclr_create_delegate");
+  coreclr_shutdown = (coreclr_shutdown_ptr)getproc (lib, "coreclr_shutdown");
   if (!(coreclr_initialize && coreclr_create_delegate && coreclr_shutdown)) {
-    string err = std::format ("Failed to get coreclr procs: {} {} {}",
-      (void *)coreclr_initialize,
-      (void *)coreclr_create_delegate,
-      (void *)coreclr_shutdown);
-    return Storm_LogError ("NetHost", err.c_str()), 1;
+    return Storm_LogError ("NetHost", "Failed to get CoreCLR delegates"), 1;
   }
 
   // Make the appdomain
@@ -191,12 +185,12 @@ int NetHost::Initialize (std::string app_domain,
       // Accept dll's, exclude duplicates
       string filename = file.path().filename().string();
       string path     = file.path().string();
-      if (std::regex_match (file.path().string(), std::regex (".*\\.dll$")) &&
+      if (std::regex_match (filename, std::regex (".*\\.dll$")) &&
           libs.find (filename) == libs.end()) {
         // CoreCLR CANNOT handle non native separators
         // idk why its annoying
-#ifdef _WIN32
-        std::replace (path.begin(), path.end(), '/', '\\');
+#if 1
+        std::replace (path.begin() + 1, path.end(), '/', '\\');
 #else
         std::replace (path.begin(), path.end(), '\\', '/');
 #endif
@@ -208,7 +202,11 @@ int NetHost::Initialize (std::string app_domain,
   for (auto const &i : libs) {
     tpa_list += i.second.string() + ';';
   }
+  if (tpa_list != "")
+    tpa_list.erase (tpa_list.end() - 1);
+
   string *edir = new string (Storm_ExecutableDir().string());
+  // std::replace (edir->begin(), edir->end(), '/', '\\');
 
   char const *property_keys[] = {
     "APP_CONTEXT_BASE_DIRECTORY",
@@ -225,13 +223,14 @@ int NetHost::Initialize (std::string app_domain,
     override_fn.c_str(),
   };
 
-  auto  &exps = GetExports();
-  string msg  = std::format ("{} internal symbols are available", exps.size());
-  Storm_LogInfo ("NetHost", msg.c_str());
+  auto &exps = GetExports();
+
+  Storm_LogInfo ("NetHost",
+    (std::to_string (exps.size()) + " internal symbols are available").c_str());
 
   // start the runtime
-  auto f  = Storm_ExecutablePath().string();
-  int  hr = coreclr_initialize (Storm_ExecutableDir().string().c_str(),
+  auto f  = Storm_ExecutableDir().string();
+  int  hr = coreclr_initialize (f.c_str(),
     app_domain.c_str(),
     sizeof (property_keys) / sizeof (char const *),
     property_keys,
@@ -283,5 +282,5 @@ NetHost::~NetHost() {
   if (!lib)
     return;
   coreclr_shutdown (host_handle, domain_id);
-  FreeLibrary ((HMODULE)lib);
+  freelib (lib);
 }

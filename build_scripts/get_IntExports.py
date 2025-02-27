@@ -8,7 +8,7 @@ platform = sys.platform
 WORKING_DIR = sys.argv[1]
 
 def main():
-  if platform == "win32":
+  if sys.platform == "win32":
     os.chdir(WORKING_DIR)
     os.system("echo Looking for candidates")
 
@@ -22,13 +22,19 @@ def main():
     get_exports_windows(cmds[0])
 
 
+  elif sys.platform == "linux":
+    os.chdir(WORKING_DIR)
+    cmd = "objdump -t"
+    get_valid_funcs()
+    get_exports_linux(cmd)
   else:
     raise RuntimeError("Unsupported platform")
+
 
 blacklist = re.compile("GDK")
 function = re.compile(r"((SDL|Storm)_[a-zA-Z]*(?= *\(.*\);))", re.S | re.M)
 searches = {"SDL3/SDL_events.h", "SDL3/SDL_video.h", "SDL3/SDL_audio.h", "SDL3/SDL_gamepad.h", "SDL3/SDL_gpu.h", "../../core/api.hpp"}
-sdlsym = re.compile("(?:External *\\| )(SDL_[a-zA-Z]*(Event|Window|Audio|GPU|Gamepad|^Init$|^Quit$)[a-zA-Z]*$)")
+sdlsym = re.compile("(SDL_[a-zA-Z]*(Event|Window|Audio|GPU|Gamepad|^Init$|^Quit$)[a-zA-Z]*$)")
 vfuncs: dict = {}
 
 
@@ -50,6 +56,14 @@ def get_exports_windows(cmd):
 
   get_exports(exports, "symbols.txt")
   write_exports(exports)
+
+def get_exports_linux(cmd):
+  os.system(cmd + " libSDL3.a > symbols.txt")
+  exports: dict = {
+  }
+  get_exports(exports, "symbols.txt")
+  write_exports(exports)
+
 
 
 def get_exports(exports: dict, path: str):

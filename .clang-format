@@ -5,30 +5,28 @@ PointerAlignment: Left
 
 SortIncludes: false
 ColumnLimit: 80
-AlignAfterOpenBracket: Align
-AlignArrayOfStructures: Left
+AlignAfterOpenBracket: DontAlign
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
-AlignTrailingComments: true
 AlignConsecutiveMacros: AcrossEmptyLines
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
-
-AllowAllArgumentsOnNextLine: true
+AlignTrailingComments: false
+AllowAllArgumentsOnNextLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: None
 AllowShortLoopsOnASingleLine: false
-
+AllowShortLambdasOnASingleLine: Empty
 AlwaysBreakBeforeMultilineStrings: true
-BinPackArguments: true
+BinPackArguments: false
 BinPackParameters: true
 IndentCaseLabels: false
 IndentGotoLabels: false
 IndentPPDirectives: AfterHash
 IndentWidth: 2
-MaxEmptyLinesToKeep: 1
+MaxEmptyLinesToKeep: 2
 SeparateDefinitionBlocks: Always
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
@@ -41,12 +39,13 @@ SpacesBeforeTrailingComments: 1
 SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
 SpacesInConditionalStatement: false
-SpacesInContainerLiterals: true
+SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 QualifierAlignment: Custom
 QualifierOrder: ['inline', 'static', 'type', 'const']
+ContinuationIndentWidth: 2
 TabWidth: 2
 UseCRLF: true
 UseTab: Never

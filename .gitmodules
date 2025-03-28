@@ -1,0 +1,12 @@
+[submodule "third_party/lz4"]
+	path = third_party/lz4
+	url = https://github.com/lz4/lz4.git
+[submodule "third_party/luajit"]
+	path = third_party/luajit
+	url = https://github.com/LuaJIT/LuaJIT.git
+[submodule "third_party/luajit-cmake"]
+	path = third_party/luajit-cmake
+	url = https://github.com/zhaozg/luajit-cmake.git
+[submodule "third_party/libgit2"]
+	path = third_party/libgit2
+	url = https://github.com/libgit2/libgit2

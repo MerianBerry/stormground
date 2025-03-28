@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION "3.22")
 
-project(SG2 LANGUAGES C CXX)
+project(SG2 LANGUAGES C)
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 20)
-set(SG_VERSION "2.0-alpha")
+set(CMAKE_C_STANDARD 11)
+set(SG_VERSION "2.0-alpha-lua")
 set(CMAKE_SKIP_INSTALL_RULES ON)
 
 include(build_scripts/clangdConfig.cmake)
@@ -19,7 +19,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>/lib")
 set(DYLIB_PREFIX "")
 set(DYLIB_EXTENSION "dll")
 set(PYTHON_CMD "python")
-set(SG_COMPILE_FLAGS "-std=c++20")
+set(SG_COMPILE_FLAGS "-std=c11")
 else()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
@@ -27,19 +27,25 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(DYLIB_PREFIX "lib")
 set(DYLIB_EXTENSION "so")
 set(PYTHON_CMD "python3")
-set(SG_COMPILE_FLAGS "-std=c++20")
+set(SG_COMPILE_FLAGS "-std=c11")
 endif()
 
 execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
 
-execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/get_IntExports.py" "${CMAKE_BINARY_DIR}/SDL3")
+#execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/get_IntExports.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 file(GLOB SDL_SHARED "${CMAKE_BINARY_DIR}/SDL3/${DYLIB_PREFIX}*.${DYLIB_EXTENSION}")
 
 link_directories("${CMAKE_BINARY_DIR}/SDL3")
 include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core")
-add_subdirectory(core)
 
+set(LUAJIT_DIR ${CMAKE_SOURCE_DIR}/third_party/luajit)
+include(third_party/luajit-cmake/LuaJIT.cmake)
+
+
+
+add_subdirectory(core)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 #set_target_properties(SDL_uclibc SDL3_test SDL3-shared PROPERTIES FOLDER SDL3)
 #set_target_properties(slang slang-rt compiler-core copy_slang_headers core slang-glslang PROPERTIES FOLDER slang)
+

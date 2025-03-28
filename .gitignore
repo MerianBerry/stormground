@@ -20,7 +20,5 @@ engine/**/bin
 tests/**/obj
 tests/**/bin
 core/hydrogen.*
-core/scl.*
-core/*.c
 .clangd
 *.aseprite

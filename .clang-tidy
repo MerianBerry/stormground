@@ -2,7 +2,6 @@
 Checks: >
   -*,
   bugprone-assert-side-effect,
-  bugprone-assignment-in-if-condition,
   bugprone-bool-pointer-implicit-conversion,
   bugprone-dangling-handle,
   bugprone-dynamic-static-initializers,

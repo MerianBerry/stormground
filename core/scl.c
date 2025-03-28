@@ -2,12 +2,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/stat.h>
+#include <io.h>
 
 #include "scl.h"
 
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
+#  define access _access
+#  define F_OK   0
+#else
+#  include <unistd.h>
 #endif
 
 #if defined(_WIN32)
@@ -69,7 +75,7 @@ void scl_waitms (double ms) {
 }
 
 static char const *scl_vfmt_static (char const *fmt, va_list args) {
-  static char buf[8192];
+  static char buf[4096];
   va_list     copy;
   int         size = vsnprintf ((void *)buf, sizeof (buf) - 1, fmt, args);
   buf[size]        = 0;
@@ -204,18 +210,55 @@ char const *scl_parentpath (char const *path) {
 }
 
 int scl_exists (char const *path) {
-  return 0;
+  char const *abs = scl_realpath (path);
+  int         r   = access (abs, F_OK) == 0;
+  free ((void *)abs);
+  return r;
+}
+
+int scl_existsf (char const *fmt, ...) {
+  va_list args;
+  va_start (args, fmt);
+  char const *path = scl_vfmt (fmt, args);
+  int         r    = scl_exists (path);
+  free ((void *)path);
+  va_end (args);
+  return r;
 }
 
 int scl_mkdir (char const *path) {
+#if defined(__unix__) || defined(__APPLE__)
+  stat_t      s     = {0};
+  char const *npath = scl_realpath (path);
+  if (stat (npath, &s) == -1) {
+    mkdir (npath, 0755);
+    return 1;
+  }
+#elif defined(_WIN32)
+  char const *npath = scl_realpath (path);
+  if (CreateDirectoryA (npath, NULL))
+    return 1;
+#endif
+  free ((void *)npath);
   return 0;
 }
 
 void scl_hide (char const *path) {
+#ifdef _WIN32
+  if (!scl_exists (path))
+    return;
+  char const *npath = scl_realpath (path);
+  SetFileAttributes (npath, FILE_ATTRIBUTE_HIDDEN);
+  free ((void *)npath);
+#endif
 }
 
 int scl_chdir (char const *dir) {
-  return 0;
+#if defined(_WIN32)
+  return !SetCurrentDirectory (dir);
+#elif defined(__unix__)
+  return chdir (dir);
+#endif
 }
 
 char const *scl_execdir() {
@@ -223,8 +266,11 @@ char const *scl_execdir() {
   char buf[MAX_PATH + 1];
   memset (buf, 0, sizeof (buf));
   GetModuleFileName (NULL, buf, MAX_PATH);
-  return scl_parentpath (buf);
+#else
+  char    buf[PATH_MAX];
+  ssize_t count = readlink ("/proc/self/exe", buf, PATH_MAX);
 #endif
+  return scl_parentpath (buf);
 }
 
 #ifndef BYTE
@@ -268,7 +314,16 @@ int scl_utf8_actual (char const *str, int ind) {
 }
 
 int scl_utf8_at (char const *str, int ind) {
-  return 0;
+  if (!str)
+    return -1;
+
+  int out = 0;
+  for (; *str && ind > 0; ind--) {
+    int s = scl_utf8_chsize (*str);
+    str += s;
+  }
+  memcpy (&out, str, scl_utf8_chsize (*str));
+  return out;
 }
 
 unsigned int scl_utf8_encode (int code) {

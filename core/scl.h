@@ -2,12 +2,18 @@
 #define SCL_H
 
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void scl_waitms (double ms);
+
+char const *scl_vfmt (char const *fmt, va_list args);
+
+char const *scl_fmt (char const *fmt, ...);
 
 typedef struct scl_file_s scl_file;
 
@@ -34,6 +40,8 @@ char const *scl_realpath (char const *rel);
 char const *scl_parentpath (char const *path);
 
 int scl_exists (char const *path);
+
+int scl_existsf (char const *fmt, ...);
 
 int scl_mkdir (char const *path);
 

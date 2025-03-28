@@ -2,6 +2,9 @@
 set(SG_SOURCES
   "sg.c"
   "sg_cli.c"
+  "sg_lua.c"
+  "sg_build.c"
+  "sg_log.c"
   "scl.c")
 add_executable(sg "resource.rc" ${SG_SOURCES})
 if (MSVC)
@@ -12,7 +15,7 @@ else()
 set(SDL_LIBS "SDL3" "SDL3_shadercross" "spirv-cross-c-shared" "dxcompiler")
 
 endif()
-target_link_libraries(sg PRIVATE ${SDL_LIBS} ${SDL_DEPS})
+target_link_libraries(sg PRIVATE ${SDL_LIBS} ${SDL_DEPS} "libluajit" "libgit2package")
 get_target_property(SG_SG_COMPILE_FLAGS sg COMPILE_FLAGS)
 set_target_properties(sg PROPERTIES CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/core" VERSION ${SG_VERSION} COMPILE_FLAGS "${SG_COMPILE_FLAGS}")
 createVersionH(sg)

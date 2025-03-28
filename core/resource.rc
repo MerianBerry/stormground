@@ -2,7 +2,7 @@
 #include "winres.h"
 #define SG_ICON 4000
 
-SG_ICON ICON "icon.ico"
+SG_ICON ICON "../resources/icon.ico"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0

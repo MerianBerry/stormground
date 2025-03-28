@@ -3,9 +3,12 @@
 
 #include "sg_version.h"
 
-#define SG_SHADER_VK  2
-#define SG_SHADER_DX  8
-#define SG_SHADER_MSL 16
+#define SG_SHADER_VK   2
+#define SG_SHADER_DX   8
+#define SG_SHADER_MSL  16
+
+#define SG_WORKER_SIZE 8
+#define SG_MAX_DEPS    128
 
 
 #ifdef _WIN32

@@ -92,8 +92,7 @@ static int sg_run (int argc, char** argv) {
     return 0;
   }
   char const* dir = *argv ? *argv : ".";
-  sg_mainInit (&sg_);
-  return 0;
+  return sg_mainInit (&sg_, dir);
 }
 
 static int sg_debug (int argc, char** argv) {

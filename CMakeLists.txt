@@ -4,7 +4,7 @@ project(SG2 LANGUAGES C)
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 11)
-set(SG_VERSION "2.0-alpha-lua")
+set(SG_VERSION "2.0-alpha")
 set(CMAKE_SKIP_INSTALL_RULES ON)
 
 include(build_scripts/clangdConfig.cmake)
@@ -30,7 +30,7 @@ set(PYTHON_CMD "python3")
 set(SG_COMPILE_FLAGS "-std=c11")
 endif()
 
-execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
+#execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 #execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/get_IntExports.py" "${CMAKE_BINARY_DIR}/SDL3")
 
@@ -39,8 +39,12 @@ file(GLOB SDL_SHARED "${CMAKE_BINARY_DIR}/SDL3/${DYLIB_PREFIX}*.${DYLIB_EXTENSIO
 link_directories("${CMAKE_BINARY_DIR}/SDL3")
 include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core")
 
+set(BUILD_SHARED_LIBS OFF)
+
 set(LUAJIT_DIR ${CMAKE_SOURCE_DIR}/third_party/luajit)
 include(third_party/luajit-cmake/LuaJIT.cmake)
+
+add_subdirectory(third_party/libgit2)
 
 
 

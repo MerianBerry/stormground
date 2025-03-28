@@ -7,3 +7,6 @@
 [submodule "third_party/luajit-cmake"]
 	path = third_party/luajit-cmake
 	url = https://github.com/zhaozg/luajit-cmake.git
+[submodule "third_party/libgit2"]
+	path = third_party/libgit2
+	url = https://github.com/libgit2/libgit2

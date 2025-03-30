@@ -3,6 +3,8 @@ set(SG_SOURCES
   "sg.c"
   "sg_cli.c"
   "sg_lua.c"
+  "sg_event.c"
+  "sg_render.c"
   "sg_build.c"
   "sg_log.c"
   "scl.c")
@@ -23,7 +25,7 @@ clangdConfigure(sg)
 
 message(${SDL_SHARED})
 
-#add_custom_command(TARGET sg PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SDL_SHARED} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+add_custom_command(TARGET sg PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SDL_SHARED} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 
 #add_custom_target(engine)

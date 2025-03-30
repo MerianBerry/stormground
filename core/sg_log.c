@@ -6,7 +6,7 @@
 #include <time.h>
 
 
-static scl_file* log    = NULL;
+static scl_file* log_   = NULL;
 static char      trylog = 1;
 static char*     error  = NULL;
 static char      doecho = 0;
@@ -30,10 +30,10 @@ void sg_echo (char echo) {
 }
 
 static int sg_preLog() {
-  if (!log && trylog) {
+  if (!log_ && trylog) {
     char const* exdir = scl_execdir();
-    log               = scl_openf ("w", "%s/storm.log", exdir);
-    trylog            = !log;
+    log_              = scl_openf ("w", "%s/storm.log_", exdir);
+    trylog            = !log_;
   }
   return !trylog;
 }
@@ -48,7 +48,7 @@ static void sg_log (char const* source, char const* severity, char const* msg) {
   strftime (buffer, sizeof (buffer), "[%H:%M:%S]", tm_info);
 
   char const* str = scl_fmt ("%s [%s/%s]: %s\n", buffer, source, severity, msg);
-  scl_write_str (log, str);
+  scl_write_str (log_, str);
   free ((void*)str);
 
   if (doecho) {

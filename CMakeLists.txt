@@ -30,14 +30,14 @@ set(PYTHON_CMD "python3")
 set(SG_COMPILE_FLAGS "-std=c11")
 endif()
 
-#execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
+execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 #execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/get_IntExports.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 file(GLOB SDL_SHARED "${CMAKE_BINARY_DIR}/SDL3/${DYLIB_PREFIX}*.${DYLIB_EXTENSION}")
 
 link_directories("${CMAKE_BINARY_DIR}/SDL3")
-include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core")
+include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_BINARY_DIR}/generated" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core")
 
 set(BUILD_SHARED_LIBS OFF)
 

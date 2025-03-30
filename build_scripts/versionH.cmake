@@ -1,6 +1,7 @@
 function(createVersionH target)
 get_target_property(version ${target} VERSION)
-get_target_property(dir ${target} CMAKE_SOURCE_DIR)
+#get_target_property(dir ${target} CMAKE_SOURCE_DIR)
+set(dir "${CMAKE_BINARY_DIR}/generated")
 
 add_custom_command(TARGET ${target} PRE_BUILD
   COMMAND ${PYTHON_CMD}

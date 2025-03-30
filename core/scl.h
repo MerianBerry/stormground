@@ -39,6 +39,8 @@ char const *scl_realpath (char const *rel);
 
 char const *scl_parentpath (char const *path);
 
+char const *scl_filename (char const *path);
+
 int scl_exists (char const *path);
 
 int scl_existsf (char const *fmt, ...);

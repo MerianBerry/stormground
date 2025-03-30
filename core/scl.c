@@ -209,6 +209,25 @@ char const *scl_parentpath (char const *path) {
   return out;
 }
 
+char const *scl_filename (char const *path) {
+  if (!path)
+    return NULL;
+  char const *abs = scl_realpath (path);
+  path            = abs;
+  int   l         = strlen (path);
+  char *p         = (char *)path + l - 1;
+  int   n         = -1;
+  for (; *p && p >= path; --p)
+    if (*p == '/' || *p == '\\') {
+      p++;
+      break;
+    }
+  n               = p - path;
+  char const *out = p != path ? scl_strncopy (p, n) : scl_strcopy (".");
+  free ((void *)path);
+  return out;
+}
+
 int scl_exists (char const *path) {
   char const *abs = scl_realpath (path);
   int         r   = access (abs, F_OK) == 0;

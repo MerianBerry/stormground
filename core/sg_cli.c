@@ -5,6 +5,8 @@
 #include "sg.h"
 #include "scl.h"
 #include "sg_version.h"
+#include <io.h>
+#include <fcntl.h>
 
 static int sg_help (int argc, char** argv);
 static int sg_version (int argc, char** argv);
@@ -119,4 +121,17 @@ int sg_handleArgs (int argc, char** argv) {
     return 1;
   }
   return cb (argc - 1, argv + 1);
+}
+
+void sg_createConsole() {
+  if (AttachConsole (ATTACH_PARENT_PROCESS) || AllocConsole()) {
+    HANDLE stdHandle;
+    int    hConsole;
+    FILE*  fp;
+    stdHandle = GetStdHandle (STD_OUTPUT_HANDLE);
+    hConsole  = _open_osfhandle ((intptr_t)stdHandle, _O_TEXT);
+    fp        = _fdopen (hConsole, "w");
+    freopen_s (&fp, "CONOUT$", "w", stdout);
+    freopen_s (&fp, "CONOUT$", "w", stderr);
+  }
 }

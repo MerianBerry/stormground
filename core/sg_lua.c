@@ -36,73 +36,31 @@ static lua_State *baseInit (SG *sg) {
 }
 
 int sg_luaInit (SG *sg) {
-  lua_State *L = baseInit (sg);
+  lua_State *L = luaL_newstate();
+  sg->L        = L;
+  luaL_openlibs (L);
 
-  sg_loadEventLib (L);
+  lua_getglobal (L, "os");
+  lua_pushnil (L);
+  lua_setfield (L, -2, "exit");
+  lua_pop (L, 1);
+  lua_pushnil (L);
+  lua_setglobal (L, "assert");
 
-  sg->L = L;
+  lua_pushinteger (L, (intptr_t)sg);
+  lua_setglobal (L, "_SG");
+
+  lua_newtable (L);
+
+  lua_newtable (L);
+  lua_setfield (L, -2, "_tickCBs");
+
+  lua_setglobal (L, "sg");
   return 0;
 };
 
-static int configBuild (SG *sg, SG_BuildInfo *bi, char const *wdir) {
-  lua_State *L = sg->L;
-
-  char const *script = scl_fmt ("%s/build.lua", wdir);
-
-  if (!scl_exists (script)) {
-    free ((void *)script);
-    sg_echoError ("build.lua does not exist in working directory");
-    return 1;
-  }
-
-  luaL_dofile (L, script);
-  free ((void *)script);
-
-  if (!lua_testtype (L, -1, LUA_TTABLE)) {
-    sg_echoError ("build.lua does not return a table");
-    return 1;
-  }
-
-  lua_getfield (L, -1, "plugins");
-
-  if (lua_testtype (L, -1, LUA_TTABLE)) {
-    int n = lua_objlen (L, -1);
-    for (int i = 1; i <= n; i++) {
-      // plugins table element
-      lua_rawgeti (L, -1, i);
-      // element is a simple plugin string
-      if (lua_testtype (L, -1, LUA_TSTRING)) {
-        char const *s        = lua_tostring (L, -1);
-        bi->depv[bi->depc++] = scl_strcopy (s);
-        sg_logInfof ("sg", "found plugin %s", s);
-      }
-      // pop the plugin table element
-      lua_pop (L, 1);
-    }
-  }
-  lua_pop (L, 1);
-
-  lua_getfield (L, -1, "build");
-  if (lua_testtype (L, -1, LUA_TFUNCTION)) {
-    lua_pcall (L, 0, 0, 0);
-    fflush (stdout);
-  }
-  lua_pop (L, 1);
-
-  return 0;
-}
-
-int sg_runBuild (SG *sg, SG_BuildInfo *bi) {
-  memset (bi, 0, sizeof (SG_BuildInfo));
-  bi->depv = malloc (sizeof (char *) * SG_MAX_DEPS);
-  memset (bi->depv, 0, sizeof (char *) * SG_MAX_DEPS);
-
-  lua_State *L = baseInit (sg);
-
-  configBuild (sg, bi, sg->wdir);
-
-  lua_close (L);
-  sg->L = NULL;
+int sg_loadLibs (SG *sg) {
+  sg_loadEventLib (sg->L);
   return 0;
 }
 

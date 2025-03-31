@@ -96,13 +96,13 @@ def install_binaries_windows():
 
   shadercross_build_dir = os.path.join(shadercross_source_dir, "build")
 
-  shutil.copy(os.path.join(shadercross_build_dir, BINARY_DIR + "shadercross.exe"), INSTALL_DIR)
+  #shutil.copy(os.path.join(shadercross_build_dir, BINARY_DIR + "shadercross.exe"), INSTALL_DIR)
 
   shutil.copy(os.path.join(shadercross_build_dir, BINARY_DIR, "SDL3_shadercross-static.lib"), INSTALL_DIR)
 
   spirv_cross_build_dir = os.path.join(shadercross_build_dir, "external", "SPIRV-Cross", BINARY_DIR)
 
-  spirv_cross_libs = glob.glob(os.path.join(spirv_cross_build_dir, "*"))
+  spirv_cross_libs = glob.glob(os.path.join(spirv_cross_build_dir, "*-shared.*"))
   for x in spirv_cross_libs:
     shutil.copy(x, os.path.join(INSTALL_DIR, os.path.basename(x)))
 

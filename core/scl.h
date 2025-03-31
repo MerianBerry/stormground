@@ -53,6 +53,8 @@ int scl_chdir (char const *dir);
 
 char const *scl_execdir();
 
+char const **scl_scanDir (char const *dir, char const *mask, int *count);
+
 int scl_utf8_chsize (unsigned char c);
 
 int scl_utf8_strlen (char const *str);
@@ -78,7 +80,27 @@ char const *scl_strncat (char const *str, char const *str2, int n, int n2,
 
 char const *scl_strcat (char const *str, char const *str2, char freestr);
 
+char const *scl_strncat2 (char *str, char const *str2, int n, int n2);
+
+char const *scl_strcat2 (char *str, char const *str2);
+
 char const *scl_strreplace (char const *str, char const *old, char const *with);
+
+typedef struct scl_htab scl_htab;
+
+scl_htab *scl_htabnew();
+
+void scl_htabset (scl_htab *h, char const *key, void const *ptr);
+
+void scl_htabremove (scl_htab *h, char const *key);
+
+void *scl_htabget (scl_htab const *h, char const *key);
+
+char const *scl_htabnext (scl_htab const *h, char const *key);
+
+scl_htab *scl_htabcopy (scl_htab const *h);
+
+unsigned char scl_log2i (unsigned x);
 
 
 typedef struct xml_doc_s  xml_doc;
@@ -155,7 +177,7 @@ char const *xml_print (xml_doc *doc);
 
 typedef struct xpath_exp_s xpath_exp;
 
-xpath_exp *xml_xpath (char const *exp, xpath_exp *up);
+xpath_exp *xml_xpath (char const *exp);
 
 
 #ifdef __cplusplus

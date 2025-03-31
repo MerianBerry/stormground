@@ -1,6 +1,8 @@
 #include <ctype.h>
 #include "SDL3/SDL_shadercross.h"
 #include "scl.h"
+#include "sg_shader.h"
+#include "sg_log.h"
 
 void sg_initShaderCompiler() {
   if (SDL_ShaderCross_Init()) {
@@ -15,7 +17,7 @@ void sg_quitShaderCompiler() {
 /* Compiles an hlsl source file into a spirv binary form
   and writes it to `out`.
  */
-int sg_compileShader (char const* _path, char const* out) {
+int sg_compileShader (char const* path, char const* out) {
   // TODO:
   // Load and read file
   // Determine stage entrypoints via custom pragmas
@@ -23,7 +25,7 @@ int sg_compileShader (char const* _path, char const* out) {
   // Compile all specified or implied entrypoints
   // Insert shader stage as 4 bytes at the start of the spirv
   // (3 as magic number, 1 for actual information)
-  scl_file* F = scl_open ("rb", _path);
+  scl_file* F = scl_open ("rb", path);
   if (!F) {
     return 0;
   }
@@ -33,53 +35,42 @@ int sg_compileShader (char const* _path, char const* out) {
     return 0;
   }
   scl_close (F);
+  char const* P = contents;
 
+  struct {
+    char entry[256];
+    int  l;
+  } stages[3];
 
-  SDL_GPUShaderStage stage      = SDL_GPU_SHADERSTAGE_VERTEX;
-  bool               foundStage = false;
-  char const*        entry      = "";
-  char const*        P          = contents;
+  memset (stages, 0, sizeof (stages));
+
   while (true) {
-    P = strstr (P, "#pragma stormground ");
+    P = strstr (P, "#pragma ");
     if (!P)
       break;
-    P += sizeof ("#pragma stormground ");
-    if (!strcmp (P, "stage ")) {
-      P += sizeof ("stage ");
-      if (!strcmp (P, "vertex"))
-        foundStage = true;
-      else if (!strcmp (P, "fragment")) {
-        stage      = SDL_GPU_SHADERSTAGE_FRAGMENT;
-        foundStage = true;
-      } else {
-        // Storm_LogWarn ("NativeShader", "Unknown shader stage name");
-      }
-    } else if (!strcmp (P, "entry ")) {
-      P += sizeof ("entry ");
-      while (isalnum (*P)) {
-        entry += *P;
+    P += 9;
+    if (!strcmp (P, "vertex ")) {
+      P += 8;
+      while (isalnum (*P) || *P == '_') {
+        stages[0].entry[stages[0].l++] = *P;
         P++;
       }
-      if (!strcmp (entry, "")) {
-        /*Storm_LogWarn ("NativeShader",
-          "No entry point name given, defaulting to \"main\"");*/
-        entry = "main";
+    } else if (!strcmp (P, "fragment ")) {
+      P += 10;
+      while (isalnum (*P) || *P == '_') {
+        stages[1].entry[stages[1].l++] = *P;
+        P++;
       }
-    } else {
-      // Storm_LogWarn ("NativeShader", "Unknown stormground pragma");
     }
   }
-  if (!foundStage) {
-    /*Storm_LogWarn ("NativeShader",
-      "Shader stage was not defined, defaulting to vertex");*/
+  if (!stages[0].l && !stages[1].l) {
+    sg_logWarnf ("sg", "shader %s has no entrypoints", path);
+    return 1;
   }
 
   SDL_ShaderCross_HLSL_Info info;
 
-  SDL_ShaderCross_CompileSPIRVFromHLSL (SDL_ShaderCross_HLSL_Info const* info,
-    size_t*                                                              size)
-
-    return true;
+  return 0;
 }
 
 /* Loads spirv binary code, and turns it into an sdl compatible shader object
@@ -96,5 +87,7 @@ SDL_GPUShader* sg_loadShader (SDL_GPUDevice* dev, SDL_GPUShaderFormat format,
   size -= 4;
   SDL_ShaderCross_GraphicsShaderMetadata meta;
   SDL_ShaderCross_ReflectGraphicsSPIRV (code, size, &meta);
+
+
   return NULL;
 }

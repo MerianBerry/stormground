@@ -21,16 +21,11 @@
     free ((void *)fmsg);                            \
   }
 
-typedef struct SG_BuildInfo {
-  char const **depv;
-  uint32_t     depc;
-} SG_BuildInfo;
-
 char const *sg_luaTrace (lua_State *L);
 
 int sg_luaInit (SG *sg);
 
-int sg_runBuild (SG *sg, SG_BuildInfo *bi);
+int sg_loadLibs (SG *sg);
 
 int sg_runInit (SG *sg, char const *dir);
 

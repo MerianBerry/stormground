@@ -16,6 +16,10 @@
 #  include <unistd.h>
 #endif
 
+#ifndef PATH_MAX
+#  define PATH_MAX MAX_PATH
+#endif
+
 #if defined(_WIN32)
 #  ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
 #    define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
@@ -178,14 +182,14 @@ void scl_close (scl_file *F) {
 }
 
 char const *scl_realpath (char const *rel) {
-  static char fpath[MAX_PATH];
+  static char fpath[PATH_MAX];
 #if defined(_WIN32)
-  _fullpath (fpath, rel, MAX_PATH);
+  _fullpath (fpath, rel, PATH_MAX);
 #elif defined(__unix__)
   realpath (path, fpath);
 #endif
-  char *copy = malloc (MAX_PATH);
-  memcpy (copy, fpath, MAX_PATH);
+  char *copy = malloc (PATH_MAX);
+  memcpy (copy, fpath, PATH_MAX);
   return copy;
 }
 
@@ -282,14 +286,88 @@ int scl_chdir (char const *dir) {
 
 char const *scl_execdir() {
 #ifdef _WIN32
-  char buf[MAX_PATH + 1];
+  char buf[PATH_MAX + 1];
   memset (buf, 0, sizeof (buf));
-  GetModuleFileName (NULL, buf, MAX_PATH);
+  GetModuleFileName (NULL, buf, PATH_MAX);
 #else
   char    buf[PATH_MAX];
   ssize_t count = readlink ("/proc/self/exe", buf, PATH_MAX);
 #endif
   return scl_parentpath (buf);
+}
+
+#define scl_checkScanR(buf, dsect, n, m)                          \
+  if (n > m) {                                                    \
+    m              = n + 3;                                       \
+    char **nbuf_   = malloc (sizeof (char *) * m + PATH_MAX * m); \
+    char  *ndsect_ = (char *)nbuf_ + sizeof (char *) * m;         \
+    memset (nbuf_, 0, sizeof (char *) * m + PATH_MAX * m);        \
+    if (buf) {                                                    \
+      memcpy (ndsect_, dsect, PATH_MAX *n);                       \
+      free ((void *)buf);                                         \
+    }                                                             \
+    int i_ = 0;                                                   \
+    for (; i_ < m; i_++) {                                        \
+      nbuf_[i_] = ndsect_ + PATH_MAX * i_;                        \
+    }                                                             \
+    dsect = ndsect_;                                              \
+    buf   = nbuf_;                                                \
+  }
+
+#define scl_addScanRI(buf, dsect, n, m, I)                    \
+  {                                                           \
+    n++;                                                      \
+    scl_checkScanR (buf, dsect, n, m);                        \
+    if (strlen (I) < PATH_MAX)                                \
+      memcpy (dsect + PATH_MAX * (n - 1), I, strlen (I) + 1); \
+  }
+
+static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
+  char **dsect_, int *n_, int *m_) {
+  char **buf   = *buf_;
+  char  *dsect = *dsect_;
+  int    n     = *n_;
+  int    m     = *m_;
+
+#ifdef _WIN32
+  HANDLE           hFind = NULL;
+  WIN32_FIND_DATAA ffd;
+  char const      *spec = scl_fmt_static ("%s\\%s", dir, mask);
+  hFind                 = FindFirstFileA (spec, &ffd);
+  if (hFind == NULL)
+    return 1;
+  do {
+    if (!!strcmp (ffd.cFileName, ".") && !!strcmp (ffd.cFileName, "..")) {
+      char const *I = scl_fmt ("%s\\%s", dir, ffd.cFileName);
+      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        scl_scanDir_ (I, mask, &buf, &dsect, &n, &m);
+      } else {
+        scl_addScanRI (buf, dsect, n, m, I);
+      }
+      free ((void *)I);
+    }
+  } while (FindNextFile (hFind, &ffd) != 0);
+  FindClose (hFind);
+#endif
+  (*buf_)   = buf;
+  (*dsect_) = dsect;
+  (*n_)     = n;
+  (*m_)     = m;
+  return 0;
+}
+
+char const **scl_scanDir (char const *dir, char const *mask, int *count) {
+  char **buf   = NULL;
+  char  *dsect = NULL;
+  int    n     = 0;
+  int    m     = -1;
+
+  // char const *abs = scl_realpath (dir);
+  scl_scanDir_ (dir, mask, &buf, &dsect, &n, &m);
+  // free ((void *)abs);
+
+  (*count) = n;
+  return (char const **)buf;
 }
 
 #ifndef BYTE
@@ -454,13 +532,29 @@ char const *scl_strncat (char const *str, char const *str2, int n, int n2,
 }
 
 char const *scl_strcat (char const *str, char const *str2, char freestr) {
-  if (!str && !str2)
-    return NULL;
   return scl_strncat (str,
     str2,
     strlen (str ? str : ""),
     strlen (str2 ? str2 : ""),
     freestr);
+}
+
+char const *scl_strncat2 (char *str, char const *str2, int n, int n2) {
+  if (!str)
+    return NULL;
+  n  = n >= 0 ? n : 0;
+  n2 = n2 >= 0 ? n2 : 0;
+  if (str2 && n2)
+    memcpy (str + n, str2, n2);
+  str[n + n2] = 0;
+  return str + n + n2;
+}
+
+char const *scl_strcat2 (char *str, char const *str2) {
+  return scl_strncat2 (str,
+    str2,
+    str ? strlen (str) : 0,
+    str2 ? strlen (str2) : 0);
 }
 
 char const *scl_strreplace (char const *str, char const *old,
@@ -490,6 +584,211 @@ char const *scl_strreplace (char const *str, char const *old,
     str += p + strlen (old);
   }
   return out;
+}
+
+static uint64_t fasthash64_mix (uint64_t h) {
+  h ^= h >> 23;
+  h *= 0x2127599bf4325c37ULL;
+  h ^= h >> 47;
+  return h;
+}
+
+static uint64_t fasthash64 (void const *buf, size_t len, uint64_t seed) {
+  uint64_t const       m   = 0x880355f21e6d1965ULL;
+  uint64_t const      *pos = (uint64_t const *)buf;
+  uint64_t const      *end = pos + (len / 8);
+  unsigned char const *pos2;
+  uint64_t             h = seed ^ (len * m);
+  uint64_t             v;
+
+  while (pos != end) {
+    v = *pos++;
+    h ^= fasthash64_mix (v);
+    h *= m;
+  }
+
+  pos2 = (unsigned char const *)pos;
+  v    = 0;
+
+  switch (len & 7) {
+  case 7:
+    v ^= (uint64_t)pos2[6] << 48;
+  case 6:
+    v ^= (uint64_t)pos2[5] << 40;
+  case 5:
+    v ^= (uint64_t)pos2[4] << 32;
+  case 4:
+    v ^= (uint64_t)pos2[3] << 24;
+  case 3:
+    v ^= (uint64_t)pos2[2] << 16;
+  case 2:
+    v ^= (uint64_t)pos2[1] << 8;
+  case 1:
+    v ^= (uint64_t)pos2[0];
+    h ^= fasthash64_mix (v);
+    h *= m;
+  }
+
+  return fasthash64_mix (h);
+}
+
+unsigned int scl_strhash (char const *str) {
+  uint64_t h = fasthash64 (str, strlen (str), 1024);
+  return h - (h >> 32);
+}
+
+#define HTAB_MIN 2
+
+typedef struct scl_hnode {
+  struct scl_hnode *next;
+  char const       *key;
+  void const       *data;
+  unsigned          hash;
+} *scl_hnode;
+
+typedef struct scl_htab {
+  unsigned char hsz;
+  unsigned      hnum;
+  scl_hnode    *ht;
+} scl_htab;
+
+#define modi(x, y)      ((x) % (y))
+
+#define hisnstrained(t) ((t)->hnum > (1 << ((t)->hsz - 1)))
+#define hisnbig(t)      ((t)->hnum > ((t)->hsz >> 3) && (t->hsz > HTAB_MIN))
+#define hisoptimal(t) \
+  (!hisnstrained (t) && !hisnbig (t) && (t->hsz) >= HTAB_MIN)
+#define hoptimal(t)                                   \
+  ((scl_log2i ((t)->hnum) + 2 <= HTAB_MIN) ? HTAB_MIN \
+                                           : (scl_log2i ((t)->hnum) + 2))
+#define hfreenode(n)       (free ((void *)(n)->key), free ((void *)(n)))
+#define hnodei(t, hash)    modi (hash, 1 << (t)->hsz)
+#define gnodehash(t, hash) ((t)->ht[hnodei (t, hash)])
+
+scl_htab *scl_htabnew() {
+  scl_htab *h = (scl_htab *)malloc (sizeof (scl_htab));
+  memset (h, 0, sizeof (scl_htab));
+  return h;
+}
+
+static void scl_htabput (scl_htab *h, scl_hnode node) {
+  node->next  = NULL;
+  scl_hnode n = gnodehash (h, node->hash);
+  while (n && n->next && n->hash != node->hash)
+    n = n->next;
+  h->hnum++;
+  if (!n)
+    h->ht[hnodei (h, node->hash)] = node;
+  // Replace existing nodes data
+  else if (n->hash != node->hash) {
+    n->data = node->data;
+    hfreenode (node);
+  } else
+    n->next = node;
+}
+
+static void scl_htabrehash (scl_htab *h, scl_hnode *oh, unsigned char ohsz) {
+  for (unsigned i = 0; i < ((unsigned)1 << ohsz); i++) {
+    scl_hnode n = oh[i];
+    for (; n;) {
+      scl_hnode next = n->next;
+      scl_htabput (h, n);
+      n = next;
+    }
+    oh[i] = NULL;
+  }
+}
+
+static void scl_htaboptimize (scl_htab *h) {
+  scl_hnode    *oh   = h->ht;
+  unsigned char ohsz = h->hsz;
+  h->hsz             = hoptimal (h);
+  unsigned s         = (unsigned)sizeof (scl_hnode) * (1 << h->hsz);
+  h->ht              = (scl_hnode *)malloc (s);
+  memset (h->ht, 0, s);
+  h->hnum = 0;
+  if (oh)
+    scl_htabrehash (h, oh, ohsz), free ((void *)oh);
+}
+
+void scl_htabset (scl_htab *h, char const *key, void const *ptr) {
+  if (!hisoptimal (h))
+    scl_htaboptimize (h);
+  scl_hnode node = malloc (sizeof (struct scl_hnode));
+  node->key      = scl_strcopy (key);
+  node->data     = ptr;
+  node->hash     = scl_strhash (key);
+  node->next     = NULL;
+  scl_htabput (h, node);
+}
+
+void scl_htabremove (scl_htab *h, char const *key) {
+  unsigned  hash = scl_strhash (key);
+  scl_hnode n    = gnodehash (h, hash);
+  while (n && n->next && n->next->hash != hash)
+    n = n->next;
+  if (n->next && n->next->hash == hash) {
+    scl_hnode node = n->next;
+    n->next        = node->next;
+    hfreenode (node);
+    return;
+  } else if (n->hash == hash) {
+    unsigned i = hnodei (h, hash);
+    h->ht[i]   = n->next;
+    hfreenode (n);
+  }
+}
+
+void *scl_htabget (scl_htab const *h, char const *key) {
+  unsigned  hash = scl_strhash (key);
+  scl_hnode n    = gnodehash (h, hash);
+  while (n && n->hash != hash && n->next)
+    n = n->next;
+  if (n->hash == hash)
+    return (void *)n->data;
+  return NULL;
+}
+
+char const *scl_htabnext (scl_htab const *h, char const *key) {
+  if (!h->hnum)
+    return NULL;
+  if (!key)
+    for (unsigned i = 0; i < 1 << h->hsz; i++)
+      if (h->ht[i])
+        return h->ht[i]->key;
+  unsigned  hash = scl_strhash (key);
+  scl_hnode n    = gnodehash (h, hash);
+  while (n && n->next && n->hash != hash)
+    n = n->next;
+  // Key does not exist in table
+  if (n->hash != hash)
+    return NULL;
+  // If there is another node in the chain
+  if (n->next)
+    return n->next->key;
+  // Continue on from the next node in the htab array
+  for (unsigned i = hnodei (h, hash) + 1; i < 1 << h->hsz; i++)
+    if (h->ht[i])
+      return h->ht[i]->key;
+  // No next node could be found
+  return NULL;
+}
+
+scl_htab *scl_htabcopy (scl_htab const *h) {
+  scl_htab   *out = scl_htabnew();
+  char const *k   = NULL;
+  while ((k = scl_htabnext (h, k))) {
+    void *ptr = scl_htabget (h, k);
+    scl_htabset (out, k, ptr);
+  }
+  return out;
+}
+
+unsigned char scl_log2i (unsigned x) {
+  unsigned char r = 0;
+  while (x >>= 1)
+    r++;
+  return r;
 }
 
 #define XML_FREE_PATCH     0
@@ -522,6 +821,7 @@ typedef enum {
   XPATH_LE,
   XPATH_G,
   XPATH_GE,
+  XPATH_ANY,
   XPATH_EXP_OR,
   XPATH_EXP_AND,
   XPATH_EXP_ETAG,
@@ -1259,119 +1559,123 @@ static void xpath_tag (xml_view *view, char **s, char **p) {
   // e.tag is already null for * case
 }
 
-// If calling this externally, set `up` to NULL
-xpath_exp *xml_xpath (char const *exp, xpath_exp *up) {
-  char     *s = (char *)exp, *p = (char *)exp;
-  xpath_exp e;
-  memset (&e, 0, sizeof (e));
-  // Path exp
-  if (*exp == '/') {
-    // Post attr paths are forbidden
-    if (up && (up->type == XPATH_EXP_ATAG || up->type == XPATH_EXP_RATAG))
-      return NULL;
-    if (exp[1] != '/') {
-      // Element
-      if (exp[1] != '@') {
-        e.type = XPATH_EXP_ETAG;
-        xpath_tag (&e.tag, &s, &p);
-        goto post_exp;
+xpath_exp *xml_xpath (char const *exp) {
+  char      *s = (char *)exp, *p = (char *)exp;
+  xpath_exp *top  = NULL;
+  xpath_exp *last = NULL;
+  while (*p) {
+    s = p;
+    xpath_exp e;
+    memset (&e, 0, sizeof (e));
+    // Path exp
+    if (*p == '/') {
+      // Post attr paths are forbidden
+      if (last &&
+          (last->type == XPATH_EXP_ATAG || last->type == XPATH_EXP_RATAG))
+        return NULL;
+      if (p[1] != '/') {
+        // Element
+        if (p[1] != '@') {
+          e.type = XPATH_EXP_ETAG;
+          xpath_tag (&e.tag, &s, &p);
+          goto post_exp;
+          // Attribute
+        } else {
+          // NOTE matching attributes are forbidden from using math exps
+          // and any further path matches are also forbidden
+          e.type = XPATH_EXP_ATAG;
+          ++s, ++p; // to skip @
+          xpath_tag (&e.tag, &s, &p);
+          goto post_exp;
+        }
+      } else { // Recursive match
+        ++s, ++p;
+        // Element
+        if (p[1] != '@') {
+          e.type = XPATH_EXP_RETAG;
+          xpath_tag (&e.tag, &s, &p);
+          goto post_exp;
+          // Attribute
+        } else {
+          // NOTE matching attributes are forbidden from using math exps
+          // and any further path matches are also forbidden
+          e.type = XPATH_EXP_RATAG;
+          ++s, ++p; // to skip @
+          xpath_tag (&e.tag, &s, &p);
+          goto post_exp;
+        }
+      }
+      // Math exp
+    } else if (*p == '[') {
+      xpath_math math;
+      memset (&math, 0, sizeof (math));
+      e.type = XPATH_EXP_MATH;
+      // Macro or element
+      if (xissym (p[1])) {
         // Attribute
-      } else {
-        // NOTE matching attributes are forbidden from using math exps
-        // and any further path matches are also forbidden
-        e.type = XPATH_EXP_ATAG;
-        ++s, ++p; // to skip @
-        xpath_tag (&e.tag, &s, &p);
+      } else if (p[1] == '@') {
+        math.type = XPATH_MATH_ATTRIBUTE;
+        ++s, ++p;
+        xpath_tag (&math.tag, &s, &p);
+        if (*p == '=') {
+          math.op = XPATH_EQ;
+        } else if (*p == '<' && p[1] == '=') {
+          math.op = XPATH_LE;
+          ++p;
+        } else if (*p == '>' && p[1] == '=') {
+          math.op = XPATH_GE;
+          ++p;
+        } else if (*p == '<') {
+          math.op = XPATH_L;
+        } else if (*p == '>') {
+          math.op = XPATH_G;
+        } else
+          math.op = XPATH_ANY;
+        s = ++p;
+        if (xisdigit (*p)) {
+          int dot = 0;
+          do
+            ++p;
+          while (xisdigit (*p) || (!dot && (dot = *p == '.')));
+          char const *tmp = scl_strncopy (s, p - s);
+          math.n          = atof (tmp);
+          free ((void *)tmp);
+        } else if (*p == '\'' || *p == '\"' && math.op == XPATH_EQ) {
+        }
+        e.math = math;
         goto post_exp;
-      }
-    } else { // Recursive match
-      ++s, ++p;
-      // Element
-      if (exp[2] != '@') {
-        e.type = XPATH_EXP_RETAG;
-        xpath_tag (&e.tag, &s, &p);
-        goto post_exp;
-        // Attribute
-      } else {
-        // NOTE matching attributes are forbidden from using math exps
-        // and any further path matches are also forbidden
-        e.type = XPATH_EXP_RATAG;
-        ++s, ++p; // to skip @
-        xpath_tag (&e.tag, &s, &p);
-        goto post_exp;
-      }
-    }
-    // Math exp
-  } else if (*p == '[') {
-    xpath_math math;
-    memset (&math, 0, sizeof (math));
-    e.type = XPATH_EXP_MATH;
-    // Macro or element
-    if (xissym (p[1])) {
-      // Attribute
-    } else if (p[1] == '@') {
-      math.type = XPATH_MATH_ATTRIBUTE;
-      ++s, ++p;
-      xpath_tag (&math.tag, &s, &p);
-      if (*p == '=') {
-        math.op = XPATH_EQ;
-      } else if (*p == '<' && p[1] == '=') {
-        math.op = XPATH_LE;
-        ++p;
-      } else if (*p == '>' && p[1] == '=') {
-        math.op = XPATH_GE;
-        ++p;
-      } else if (*p == '<') {
-        math.op = XPATH_L;
-      } else if (*p == '>') {
-        math.op = XPATH_G;
-      }
-      s = ++p;
-      if (xisdigit (*p)) {
-        int dot = 0;
+        // Index
+      } else if (xisdigit (p[1])) {
+        int dot   = 0;
+        math.op   = XPATH_EQ;
+        math.type = XPATH_MATH_POS;
+        ++s, ++p;
         do
           ++p;
         while (xisdigit (*p) || (!dot && (dot = *p == '.')));
+        // Invalid math exp
+        if (*p != ']' && *p != ' ')
+          return NULL;
         char const *tmp = scl_strncopy (s, p - s);
         math.n          = atof (tmp);
         free ((void *)tmp);
-      } else if (*p == '\'' || *p == '\"' && math.op == XPATH_EQ) {
+        // Invalid index
+        if (math.n == 0.f)
+          return NULL;
+        e.math = math;
+        goto post_exp;
       }
-
-      // Index
-    } else if (xisdigit (p[1])) {
-      int dot   = 0;
-      math.op   = XPATH_EQ;
-      math.type = XPATH_MATH_POS;
-      ++s, ++p;
-      do
-        ++p;
-      while (xisdigit (*p) || (!dot && (dot = *p == '.')));
-      // Invalid math exp
-      if (*p != ']' && *p != ' ')
-        return NULL;
-      char const *tmp = scl_strncopy (s, p - s);
-      math.n          = atof (tmp);
-      free ((void *)tmp);
-      // Invalid index
-      if (math.n == 0.f)
-        return NULL;
-      e.math = math;
-      goto post_exp;
     }
-  }
 
 post_exp:
-  if (*p)
-    xml_xpath (p, &e);
-  xpath_exp *copy = (xpath_exp *)malloc (sizeof (e));
-  memcpy (copy, &e, sizeof (e));
-  if (up)
-    up->sub = copy;
-  else
-    return copy;
-
-  return NULL;
+    xpath_exp *copy = (xpath_exp *)malloc (sizeof (e));
+    memcpy (copy, &e, sizeof (e));
+    if (top)
+      last->sub = copy, last = copy;
+    else
+      top = copy, last = copy;
+  }
+  return top;
 }
 
 void xml_eval (xpath_exp *xpath) {

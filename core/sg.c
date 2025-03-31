@@ -3,7 +3,7 @@
 #include "sg_lua.h"
 #include "sg_event.h"
 #include "sg_render.h"
-#include "scl.h"
+#include "sg_build.h"
 #include <stdio.h>
 #include <io.h>
 #include <fcntl.h>
@@ -19,6 +19,7 @@ int main (int argc, char** argv) {
 #ifdef _WIN32
   _dup2 (_fileno (stdout), _fileno (stderr));
 #endif
+
   return sg_handleArgs (argc, argv);
 }
 
@@ -67,8 +68,7 @@ int sg_mainInit (SG* sg, char const* dir) {
   sg->runstate = 1;
   sg->wdir     = dir;
 
-  SG_BuildInfo bi;
-  sg_runBuild (sg, &bi);
+  sg_runBuild (sg);
 
   SDL_Init (SDL_INIT_VIDEO | SDL_INIT_GAMEPAD);
 

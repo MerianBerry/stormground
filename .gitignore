@@ -3,6 +3,7 @@ asan
 old
 .vscode
 .cache
+**/.sg
 engine/**/obj
 engine/**/bin
 *.o

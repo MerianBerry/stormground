@@ -3,8 +3,10 @@ set(SG_SOURCES
   "sg.c"
   "sg_cli.c"
   "sg_lua.c"
+  "sg_build.c"
   "sg_event.c"
   "sg_render.c"
+  "sg_shader.c"
   "sg_build.c"
   "sg_log.c"
   "scl.c")

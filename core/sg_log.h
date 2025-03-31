@@ -8,6 +8,11 @@
   sg_logError ("sg", msg); \
   sg_echo (0)
 
+#define sg_echoErrorf(msg, ...)          \
+  sg_echo (1);                           \
+  sg_logErrorf ("sg", msg, __VA_ARGS__); \
+  sg_echo (0)
+
 char const *sg_getError();
 
 void sg_echo (char echo);

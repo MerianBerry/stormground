@@ -10,7 +10,6 @@ set(CMAKE_SKIP_INSTALL_RULES ON)
 include(build_scripts/clangdConfig.cmake)
 include(build_scripts/headerGenerator.cmake)
 include(build_scripts/versionH.cmake)
-include(build_scripts/enginebuild.cmake)
 
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIG>/bin")
@@ -30,22 +29,23 @@ set(PYTHON_CMD "python3")
 set(SG_COMPILE_FLAGS "-std=c11")
 endif()
 
-execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
+#execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 #execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/get_IntExports.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 file(GLOB SDL_SHARED "${CMAKE_BINARY_DIR}/SDL3/${DYLIB_PREFIX}*.${DYLIB_EXTENSION}")
 
 link_directories("${CMAKE_BINARY_DIR}/SDL3")
-include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_BINARY_DIR}/generated" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core")
+include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_BINARY_DIR}/generated" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core" "${CMAKE_SOURCE_DIR}/third_party/libgit2/include")
 
 set(BUILD_SHARED_LIBS OFF)
 
-set(LUAJIT_DIR ${CMAKE_SOURCE_DIR}/third_party/luajit)
-include(third_party/luajit-cmake/LuaJIT.cmake)
+include(build_scripts/luajit.cmake)
+
+#set(LUAJIT_DIR ${CMAKE_SOURCE_DIR}/third_party/luajit)
+#include(third_party/luajit-cmake/LuaJIT.cmake)
 
 add_subdirectory(third_party/libgit2)
-
 
 
 add_subdirectory(core)

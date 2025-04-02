@@ -1,5 +1,6 @@
 #include "sg_event.h"
 #include "sg_lua.h"
+#include <stdlib.h>
 
 #define sg_luaSetKeyI(ind, k, i) \
   lua_pushstring (L, k);         \
@@ -134,60 +135,6 @@ static int sgl_getButton (lua_State *L) {
 int sg_loadEventLib (lua_State *L) {
   lua_getglobal (L, "sg");
 
-  lua_newtable (L);
-
-  char buf[4] = {0, 0};
-  for (char c = '0'; c <= (char)'9'; c++) {
-    buf[0] = c;
-    ikey (buf, c);
-  }
-  for (char c = 'a'; c <= (char)'z'; c++) {
-    buf[0] = c;
-    ikey (buf, c);
-  }
-  buf[0] = 'F';
-  for (int i = 1; i <= 12; i++) {
-    itoa (i, buf + 1, 10);
-    ikey (buf, sk (SDLK_F1 + i - 1));
-  }
-  ikey ("escape", SDLK_ESCAPE);
-  ikey ("backspace", SDLK_BACKSPACE);
-  ikey ("tab", SDLK_TAB);
-  ikey ("space", SDLK_SPACE);
-  ikey ("comma", SDLK_COMMA);
-  ikey ("minus", SDLK_MINUS);
-  ikey ("period", SDLK_PERIOD);
-  ikey ("slash", SDLK_SLASH);
-  ikey ("semicolon", SDLK_SEMICOLON);
-  ikey ("equals", SDLK_EQUALS);
-  ikey ("lbracket", SDLK_LEFTBRACKET);
-  ikey ("backslash", SDLK_BACKSLASH);
-  ikey ("rightbracket", SDLK_RIGHTBRACKET);
-  ikey ("grave", SDLK_GRAVE);
-  ikey ("lbrace", SDLK_LEFTBRACE);
-  ikey ("rbrace", SDLK_RIGHTBRACE);
-  ikey ("delete", SDLK_DELETE);
-
-  ikey ("insert", sk (SDLK_INSERT));
-  ikey ("home", sk (SDLK_HOME));
-  ikey ("pageup", sk (SDLK_PAGEUP));
-  ikey ("end", sk (SDLK_END));
-  ikey ("pagedown", sk (SDLK_PAGEDOWN));
-  ikey ("right", sk (SDLK_RIGHT));
-  ikey ("left", sk (SDLK_LEFT));
-  ikey ("down", sk (SDLK_DOWN));
-  ikey ("up", sk (SDLK_UP));
-  ikey ("lctrl", sk (SDLK_LCTRL));
-  ikey ("lshift", sk (SDLK_LSHIFT));
-  ikey ("lalt", sk (SDLK_LALT));
-  ikey ("rctrl", sk (SDLK_RCTRL));
-  ikey ("rshift", sk (SDLK_RSHIFT));
-  ikey ("ralt", sk (SDLK_RALT));
-  lua_setfield (L, -2, "basemap");
-
-  // Copy the mappings table
-  luaL_dostring (L, "sg.mappings = sg.basemap");
-
   sg_setcfunfield (L, -1, onTick);
 
   sg_setcfunfield (L, -1, getScreen);
@@ -197,6 +144,62 @@ int sg_loadEventLib (lua_State *L) {
   sg_setcfunfield (L, -1, getButton);
   lua_pop (L, 1);
   return 0;
+}
+
+#define kkey(n, k) scl_htabset (sg->basemap, n, (void *)(intptr_t)k)
+
+void sg_loadMappings (SG *sg) {
+  sg->basemap = scl_htabnew();
+
+  char buf[4] = {0, 0};
+  for (char c = '0'; c <= (char)'9'; c++) {
+    buf[0] = c;
+    kkey (buf, c);
+  }
+  for (char c = 'a'; c <= (char)'z'; c++) {
+    buf[0] = c;
+    kkey (buf, c);
+  }
+  buf[0] = 'F';
+  for (int i = 1; i <= 12; i++) {
+    sprintf (buf + 1, "%d", i);
+    kkey (buf, sk (SDLK_F1 + i - 1));
+  }
+  kkey ("escape", SDLK_ESCAPE);
+  kkey ("backspace", SDLK_BACKSPACE);
+  kkey ("tab", SDLK_TAB);
+  kkey ("space", SDLK_SPACE);
+  kkey ("comma", SDLK_COMMA);
+  kkey ("minus", SDLK_MINUS);
+  kkey ("period", SDLK_PERIOD);
+  kkey ("slash", SDLK_SLASH);
+  kkey ("semicolon", SDLK_SEMICOLON);
+  kkey ("equals", SDLK_EQUALS);
+  kkey ("lbracket", SDLK_LEFTBRACKET);
+  kkey ("backslash", SDLK_BACKSLASH);
+  kkey ("rightbracket", SDLK_RIGHTBRACKET);
+  kkey ("grave", SDLK_GRAVE);
+  kkey ("lbrace", SDLK_LEFTBRACE);
+  kkey ("rbrace", SDLK_RIGHTBRACE);
+  kkey ("delete", SDLK_DELETE);
+
+  kkey ("insert", sk (SDLK_INSERT));
+  kkey ("home", sk (SDLK_HOME));
+  kkey ("pageup", sk (SDLK_PAGEUP));
+  kkey ("end", sk (SDLK_END));
+  kkey ("pagedown", sk (SDLK_PAGEDOWN));
+  kkey ("right", sk (SDLK_RIGHT));
+  kkey ("left", sk (SDLK_LEFT));
+  kkey ("down", sk (SDLK_DOWN));
+  kkey ("up", sk (SDLK_UP));
+  kkey ("lctrl", sk (SDLK_LCTRL));
+  kkey ("lshift", sk (SDLK_LSHIFT));
+  kkey ("lalt", sk (SDLK_LALT));
+  kkey ("rctrl", sk (SDLK_RCTRL));
+  kkey ("rshift", sk (SDLK_RSHIFT));
+  kkey ("ralt", sk (SDLK_RALT));
+
+  sg->mappings = scl_htabcopy (sg->basemap);
 }
 
 int sg_processEvent (SG *sg, SDL_Event *e) {

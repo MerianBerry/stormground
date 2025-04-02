@@ -1,23 +1,32 @@
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
 #include <sys/stat.h>
-#include <io.h>
+#include <time.h>
+#include <limits.h>
+
 
 #include "scl.h"
 
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
+#  include <io.h>
 #  define access _access
 #  define F_OK   0
 #else
 #  include <unistd.h>
+#  include <dirent.h>
+typedef struct timespec timespec_t;
+typedef struct stat     stat_t;
+typedef struct DIR      DIR_t;
+typedef struct dirent   dirent_t;
 #endif
 
 #ifndef PATH_MAX
-#  define PATH_MAX MAX_PATH
+#  define PATH_MAX 512
 #endif
 
 static void scl_pageset (scl_page *page, unsigned size) {
@@ -108,10 +117,9 @@ static BOOLEAN _nanosleep (LONGLONG ns) {
 
 void scl_waitms (double ms) {
 #if defined(__unix__) || defined(__APPLE__)
-  h_timepoint s  = timenow();
-  timespec_t  ts = {2000, 0};
-  ts.tv_sec      = ms / 1000.0;
-  ts.tv_nsec     = fmodf (ms, 1000) * 1000000.0;
+  timespec_t ts = {2000, 0};
+  ts.tv_sec     = ms / 1000.0;
+  ts.tv_nsec    = fmodf (ms, 1000) * 1000000.0;
   while (nanosleep (&ts, &ts) == -1)
     ;
 #elif defined(_WIN32)
@@ -120,13 +128,13 @@ void scl_waitms (double ms) {
   LARGE_INTEGER lf;
   QueryPerformanceFrequency (&lf);
   while (1) {
-    LARGE_INTEGER li2;
-    QueryPerformanceCounter (&li2);
-    if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 >
+      LARGE_INTEGER li2;
+      QueryPerformanceCounter (&li2);
+      if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 >
         ms) {
-      break;
+        break;
     }
-    _nanosleep (1000);
+      _nanosleep (1000);
   }
 #endif
 }
@@ -263,7 +271,7 @@ char const *scl_realpath (char const *rel) {
 #if defined(_WIN32)
   _fullpath (fpath, rel, PATH_MAX);
 #elif defined(__unix__)
-  realpath (path, fpath);
+  realpath (rel, fpath);
 #endif
   char *copy = malloc (PATH_MAX);
   memcpy (copy, fpath, PATH_MAX);
@@ -368,7 +376,7 @@ char const *scl_execdir() {
   GetModuleFileName (NULL, buf, PATH_MAX);
 #else
   char    buf[PATH_MAX];
-  ssize_t count = readlink ("/proc/self/exe", buf, PATH_MAX);
+  ssize_t count  = readlink ("/proc/self/exe", buf, PATH_MAX);
 #endif
   return scl_parentpath (buf);
 }
@@ -425,6 +433,27 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
     }
   } while (FindNextFile (hFind, &ffd) != 0);
   FindClose (hFind);
+#else
+  DIR    *handle = opendir (dir);
+  while (handle) {
+      struct dirent *dp;
+      if ((dp = readdir (handle))) {
+        if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
+          struct stat file_stat;
+          char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
+          if (!stat (path, &file_stat)) {
+            if (S_ISDIR (file_stat.st_mode))
+            scl_scanDir_ (path, mask, &buf, &dsect, &n, &m);
+          else if (scl_strmatch (dp->d_name, mask))
+            scl_addScanRI (buf, dsect, n, m, path);
+          free ((void *)path);
+        }
+      }
+    } else {
+        closedir (handle);
+        handle = NULL;
+    }
+  }
 #endif
   (*buf_)   = buf;
   (*dsect_) = dsect;
@@ -663,6 +692,26 @@ char const *scl_strreplace (char const *str, char const *old,
   return out;
 }
 
+static char match (char const *pattern, char const *candidate, int p, int c) {
+  if (pattern[p] == '\0') {
+    return candidate[c] == '\0';
+  } else if (pattern[p] == '*') {
+    for (; candidate[c] != '\0'; c++) {
+      if (match (pattern, candidate, p + 1, c))
+        return 1;
+    }
+    return match (pattern, candidate, p + 1, c);
+  } else if (pattern[p] != '?' && pattern[p] != candidate[c]) {
+    return 0;
+  } else {
+    return match (pattern, candidate, p + 1, c + 1);
+  }
+}
+
+char scl_strmatch (char const *str, char const *pattern) {
+  return match (pattern, str, 0, 0);
+}
+
 static uint64_t fasthash64_mix (uint64_t h) {
   h ^= h >> 23;
   h *= 0x2127599bf4325c37ULL;
@@ -721,7 +770,7 @@ typedef struct scl_hnode {
   char const       *key;
   void const       *data;
   unsigned          hash;
-} *scl_hnode;
+} * scl_hnode;
 
 typedef struct scl_htab {
   unsigned char hsz;

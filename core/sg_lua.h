@@ -4,17 +4,18 @@
 #include "sg.h"
 #include "scl.h"
 #include "sg_log.h"
+#include <stdlib.h>
 
 #define lua_testtype(L, narg, t) (lua_type (L, narg) == t)
 
 #define sg_setcfunfield(L, i, name)    \
   lua_pushcfunction ((L), sgl_##name); \
-  lua_setfield ((L), (i) - 1, #name)
+  lua_setfield ((L), (i)-1, #name)
 
 #define sg_throwLuaError(L, msg)                    \
   {                                                 \
-    const char *s__  = sg_luaTrace (L);             \
-    const char *fmsg = scl_fmt ("%s %s", s__, msg); \
+    char const *s__  = sg_luaTrace (L);             \
+    char const *fmsg = scl_fmt ("%s %s", s__, msg); \
     sg_echoError (fmsg);                            \
     lua_pushstring (L, fmsg);                       \
     lua_error (L);                                  \

@@ -5,8 +5,11 @@
 #include "sg.h"
 #include "scl.h"
 #include "sg_version.h"
-#include <io.h>
 #include <fcntl.h>
+
+#ifdef _WIN32
+#  include <io.h>
+#endif
 
 static int sg_help (int argc, char** argv);
 static int sg_version (int argc, char** argv);
@@ -124,6 +127,7 @@ int sg_handleArgs (int argc, char** argv) {
 }
 
 void sg_createConsole() {
+#ifdef _WIN32
   if (AttachConsole (ATTACH_PARENT_PROCESS) || AllocConsole()) {
     HANDLE stdHandle;
     int    hConsole;
@@ -134,4 +138,5 @@ void sg_createConsole() {
     freopen_s (&fp, "CONOUT$", "w", stdout);
     freopen_s (&fp, "CONOUT$", "w", stderr);
   }
+#endif
 }

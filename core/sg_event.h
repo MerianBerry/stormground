@@ -10,6 +10,8 @@
 
 int sg_loadEventLib (lua_State *L);
 
+void sg_loadMappings (SG *sg);
+
 int sg_processEvent (SG *sg, SDL_Event *e);
 
 void sg_advanceInputs (SG *sg);

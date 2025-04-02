@@ -118,6 +118,8 @@ char const *scl_strcat2 (char *str, char const *str2);
 
 char const *scl_strreplace (char const *str, char const *old, char const *with);
 
+char scl_strmatch (char const *str, char const *pattern);
+
 typedef struct scl_htab scl_htab;
 
 scl_htab *scl_htabnew();
@@ -197,7 +199,6 @@ char const *xml_print (xml_doc *doc);
 typedef struct xpath_exp_s xpath_exp;
 
 xpath_exp *xml_xpath (char const *exp);
-
 
 #ifdef __cplusplus
 }

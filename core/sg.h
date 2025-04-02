@@ -3,9 +3,9 @@
 #include "sgconf.h"
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_gpu.h"
-#include "luajit/src/lua.h"
-#include "luajit/src/lualib.h"
-#include "luajit/src/lauxlib.h"
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 #include "scl.h"
 
 #define SDL_LAST_KEY SDLK_ENDCALL - SDLK_CAPSLOCK + SDLK_PLUSMINUS + 1

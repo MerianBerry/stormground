@@ -1,5 +1,6 @@
 #include "sg_render.h"
 #include "sg_log.h"
+#include <stdlib.h>
 
 SG_RT *sg_createRT (SG *sg, SDL_GPUTextureFormat format,
   SDL_GPUTextureUsageFlags usage, SDL_GPUSampleCount samples,

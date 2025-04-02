@@ -4,6 +4,7 @@
 
 int main (int argc, char **argv) {
   scl_resetclock();
+  int       c;
   scl_file *f = scl_open ("r", "xml_big.xml");
   if (f) {
     char const *content;

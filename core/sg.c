@@ -5,8 +5,11 @@
 #include "sg_render.h"
 #include "sg_build.h"
 #include <stdio.h>
-#include <io.h>
 #include <fcntl.h>
+
+#ifdef _WIN32
+#  include <io.h>
+#endif
 
 SG sg_;
 
@@ -67,6 +70,8 @@ int sg_mainInit (SG* sg, char const* dir) {
   memset (sg, 0, sizeof (SG));
   sg->runstate = 1;
   sg->wdir     = dir;
+
+  sg_loadMappings (sg);
 
   sg_runBuild (sg);
 

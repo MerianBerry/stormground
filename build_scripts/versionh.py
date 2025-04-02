@@ -14,7 +14,6 @@ buildDateNum=datetime.date.today().strftime("%x")
 buildTime=datetime.datetime.now().strftime("%X")
 
 
-
 content = f"""#ifndef {nupper}_VERSION_H
 #define {nupper}_VERSION_H
 
@@ -30,8 +29,6 @@ print(f"-> {out}")
 def get_last_write_time(path):
   timestamp = os.path.getmtime(path)
   return time.localtime(timestamp)
-
-
 
 if not os.path.exists(out) or datetime.date.today().day != get_last_write_time(out).tm_mday:
   os.makedirs(os.path.dirname(out), exist_ok=True)

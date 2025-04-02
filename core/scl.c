@@ -19,6 +19,14 @@
 #ifndef PATH_MAX
 #  define PATH_MAX MAX_PATH
 #endif
+
+static void scl_pageset (scl_page *page, unsigned size) {
+  page->next_ = NULL;
+  page->data  = malloc (size);
+  page->size  = size;
+  page->used  = 0;
+}
+
 scl_page *scl_pagenew (unsigned size) {
   scl_page *page = malloc (sizeof (scl_page));
   page->next_    = NULL;
@@ -204,38 +212,38 @@ scl_file *scl_openf (char const *mode, char const *path_fmt, ...) {
   return r;
 }
 
-int scl_read (scl_file *F, void *buffer, int const n) {
-  if (!F)
-    return -1;
-  if (!buffer) {
-    int off = ftell ((FILE *)F->stream);
-    fseek ((FILE *)F->stream, 0, SEEK_END);
-    int len = ftell ((FILE *)F->stream);
-    fseek ((FILE *)F->stream, off, SEEK_SET);
-    return len;
-  }
-  return fread (buffer, 1, n, (FILE *)F->stream);
+unsigned scl_fsize (scl_file *F) {
+  if (!F || !F->stream)
+    return 0;
+  unsigned off = ftell ((FILE *)F->stream);
+  fseek ((FILE *)F->stream, 0, SEEK_END);
+  unsigned len = ftell ((FILE *)F->stream);
+  fseek ((FILE *)F->stream, off, SEEK_SET);
+  return len;
 }
 
-int scl_read_malloc (scl_file *F, void **buffer, int const n) {
+unsigned scl_read (scl_file *F, void *buffer, unsigned const n) {
+  if (!F)
+    return 0;
+  unsigned size = scl_fsize (F);
   if (!buffer)
-    return -1;
-  int size = scl_read (F, NULL, 0);
-  if (size <= 0) {
-    (*buffer) = NULL;
-    return -1;
-  }
-  char *buf = (char *)malloc ((size_t)size + 1);
+    return size;
+  return fread (buffer, 1, size < n ? size : n, (FILE *)F->stream);
+}
+
+unsigned scl_read_malloc (scl_file *F, void **buffer, unsigned const n) {
+  if (!buffer)
+    return 0;
+  unsigned size = scl_fsize (F);
+  char    *buf  = (char *)malloc ((size_t)size + 1);
   memset (buf, 0, (size_t)size + 1);
   (*buffer) = buf;
-  return scl_read (F, buf, n <= 0 ? size : n);
+  return scl_read (F, buf, n);
 }
 
 int scl_write (scl_file *F, void const *buffer, int const n) {
   if (!F || !F->stream || !buffer || n < 0)
     return -1;
-  if (n == 0)
-    return 0;
   return fwrite (buffer, 1, n, (FILE *)F->stream);
 }
 
@@ -1052,6 +1060,7 @@ static void xml_free_elem (xml_elem *elem, char mode) {
         } else if ((xml_elem *)i->next == elem)
           i->next = elem->next;
     }
+    memset (elem, 0, sizeof (xml_elem));
     xrawfreeel (elem);
   }
 }
@@ -1060,44 +1069,9 @@ void xml_free_doc (xml_doc *doc) {
   if (!doc)
     return;
   xml_free_elem ((xml_elem *)doc, XML_FREE_RECURSIVE);
+  scl_freepages (&doc->txt);
   scl_freepages (&doc->nodes);
 }
-
-/*static void xml_page_add (xml_doc *doc) {
-  if (!doc)
-    return;
-  xml_page **npages =
-    (xml_page **)malloc (sizeof (xml_page *) * (doc->_pgc + 1));
-  if (doc->_pgs) {
-    memcpy (npages, doc->_pgs, sizeof (xml_page *) * doc->_pgc);
-    free ((void *)doc->_pgs);
-  }
-  xml_page *page = (xml_page *)malloc (sizeof (xml_page));
-  page->b        = (xml_elem *)malloc (sizeof (xml_elem) * XML_PAGE_SLOTS);
-  memset (page->b, 0, sizeof (xml_elem) * XML_PAGE_SLOTS);
-  page->p           = page->b;
-  page->pe          = page->b + XML_PAGE_SLOTS;
-  npages[doc->_pgc] = page;
-  doc->_pgs         = npages;
-  doc->_pgc++;
-}
-
-static xml_elem *xml_page_slot (xml_doc *doc) {
-  if (!doc)
-    return NULL;
-  for (int i = doc->_pgc - 1; i >= 0; i--) {
-    xml_page *page = doc->_pgs[i];
-    if (page->p < page->pe) {
-      xml_elem *slot = page->p;
-      slot->_page    = page;
-      for (++page->p; page->p < page->pe && page->p->_page; page->p++) {
-      }
-      return slot;
-    }
-  }
-  xml_page_add (doc);
-  return xml_page_slot (doc);
-}*/
 
 void xml_add_attr (xml_elem *elem, xml_attr *attr) {
   if (!elem || !attr)
@@ -1120,7 +1094,7 @@ void xml_add_attr (xml_elem *elem, xml_attr *attr) {
 void xml_add_elem (xml_elem *elem, xml_elem *child) {
   if (!elem || !child)
     return;
-  child->parent = elem->parent;
+  child->parent = elem;
   if (elem->child) {
     elem = elem->child;
     if (elem->tail)
@@ -1257,13 +1231,15 @@ static xml_attr *xml_parse_attr (xml_doc *doc, char const *s, char const **ep) {
 static xml_elem *xml_parse_elem (xml_doc *doc, xml_elem *parent, char const *s,
   char const **ep) {
   static int  leave = 0;
-  xml_elem    elem;
-  char const *p = s;
+  char const *p     = s;
+  xskipspace (p);
+  s = p;
   if (*p != '<')
     return NULL;
-  memset (&elem, 0, sizeof (xml_elem));
-  elem.parent = parent;
-  s           = ++p;
+  xml_elem *elem = xrawalloc (doc, sizeof (xml_elem));
+  memset (elem, 0, sizeof (xml_elem));
+  elem->parent = parent;
+  s            = ++p;
   if (*p == '/')
     goto end_elem;
   if (*p == '?')
@@ -1272,37 +1248,37 @@ static xml_elem *xml_parse_elem (xml_doc *doc, xml_elem *parent, char const *s,
     p++;
   if (s == p)
     return NULL;
-  elem.tag = xview (s, p);
+  elem->tag = xview (s, p);
   xskipspace (p);
   while (*p != '>' && *p != '/' && *p) {
     xml_attr *attr = xml_parse_attr (doc, p, &p);
     if (attr)
-      xml_add_attr (&elem, attr);
+      xml_add_attr (elem, attr);
     xskipspace (p);
   }
   if (*p == '>') {
     p++;
     if (*p != '<')
-      elem.data = xml_parse_text (p, &p, '<');
+      elem->data = xml_parse_text (p, &p, '<');
     while (1) {
       s               = p;
-      xml_elem *celem = xml_parse_elem (doc, &elem, p, &p);
+      xml_elem *celem = xml_parse_elem (doc, elem, p, &p);
       if (celem)
-        xml_add_elem (&elem, celem);
+        xml_add_elem (elem, celem);
       else if (leave) {
         leave = 0;
         break;
       } else
-        return xml_free_elem (&elem, XML_FREE_ONLY), NULL;
+        return NULL;
     }
-    return ((*ep) = p), xml_copy_elem (doc, &elem);
+    return ((*ep) = p), elem;
   } else if (*p == '/' || leave) {
     p += 1 + (*p == '/');
     leave = 0;
     s     = p;
-    return ((*ep) = p), xml_copy_elem (doc, &elem);
+    return ((*ep) = p), elem;
   }
-  return xml_free_elem (&elem, XML_FREE_ONLY), NULL;
+  return NULL;
 end_elem:
   s = ++p;
   while (xisalnum (*p))
@@ -1328,18 +1304,17 @@ prelude_elem:
 xml_doc *xml_parse_string (char const *str) {
   xml_doc doc;
   memset (&doc, 0, sizeof (doc));
-  unsigned  l = strlen (str);
-  scl_page *P = scl_pagenew (l + 1);
-  if (!P)
+  unsigned l = strlen (str);
+  scl_pageset (&doc.txt, l + 1);
+  if (!doc.txt.data)
     return NULL;
-  doc.txt = *P;
-  free (P);
   char *p = scl_pagealloc (&doc.txt, l + 1);
   memcpy (p, str, l);
   p[l]           = 0;
   xml_elem *root = xml_parse_elem (&doc, NULL, p, (char const **)&p);
   if (!root) {
     scl_freepages (&doc.txt);
+    scl_freepages (&doc.nodes);
     return NULL;
   }
   memcpy (&doc, root, sizeof (xml_elem));

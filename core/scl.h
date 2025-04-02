@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define SCL_DEFAULT_PAGE_SIZE 2048
+#define SCL_DEFAULT_PAGE_SIZE 4096
 
 typedef struct scl_page {
   struct scl_page *next_;
@@ -55,9 +55,11 @@ scl_file *scl_open (char const *mode, char const *path);
 
 scl_file *scl_openf (char const *mode, char const *path_fmt, ...);
 
-int scl_read (scl_file *, void *buffer, int n);
+unsigned scl_fsize (scl_file *);
 
-int scl_read_malloc (scl_file *, void **buffer, int n);
+unsigned scl_read (scl_file *, void *buffer, unsigned n);
+
+unsigned scl_read_malloc (scl_file *, void **buffer, unsigned n);
 
 int scl_write (scl_file *, void const *buffer, int n);
 

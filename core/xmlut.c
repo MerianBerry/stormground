@@ -4,7 +4,7 @@
 
 int main (int argc, char **argv) {
   scl_resetclock();
-  scl_file *f = scl_open ("r", "a10.xml");
+  scl_file *f = scl_open ("r", "xml_big.xml");
   if (f) {
     char const *content;
     int         size = scl_read_malloc (f, (void **)&content, -1);

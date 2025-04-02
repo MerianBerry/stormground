@@ -9,7 +9,37 @@
 extern "C" {
 #endif
 
+#define SCL_DEFAULT_PAGE_SIZE 2048
+
+typedef struct scl_page {
+  struct scl_page *next_;
+  void            *data;
+  unsigned         used;
+  unsigned         size;
+} scl_page;
+
+scl_page *scl_pagenew (unsigned size);
+
+void *scl_pagealloc (scl_page *page, unsigned size);
+
+void scl_freepages (scl_page *page);
+
+typedef struct scl_time {
+#if defined(_WIN32)
+  long s;
+  long c;
+#else
+  long s;
+  long ns;
+#endif
+} scl_time;
+
 void scl_waitms (double ms);
+
+void scl_resetclock();
+
+// Returns a time point in seconds
+double scl_clock();
 
 char const *scl_vfmt (char const *fmt, va_list args);
 
@@ -111,13 +141,9 @@ typedef struct xml_attr_s xml_attr;
 
 void xml_free_doc (xml_doc *doc);
 
-void xml_add_root (xml_doc *doc, xml_elem *elem);
-
 void xml_add_attr (xml_elem *elem, xml_attr *attr);
 
-void xml_add_elem (xml_elem *elem, xml_elem *elem2);
-
-void xml_add_child (xml_elem *elem, xml_elem *child);
+void xml_add_elem (xml_elem *elem, xml_elem *child);
 
 xml_doc *xml_parse_string (char const *str);
 
@@ -126,16 +152,7 @@ xml_doc *xml_new_doc();
 
 xml_elem *xml_new_elem (xml_doc *doc, char const *tag, char const *str);
 
-xml_elem *xml_copy_elem (xml_elem *elem);
-
-typedef enum {
-  XML_FIND_CHILD,
-  XML_FIND_SURFACE,
-  XML_FIND_RECURSIVE
-} xml_find_mode;
-
-xml_elem **xml_find_elems (xml_elem *from, char const *tag, xml_find_mode mode,
-  int *count);
+xml_elem *xml_copy_elem (xml_doc *doc, xml_elem *elem);
 
 void xml_replace_elem (xml_elem *elem, xml_elem *with);
 
@@ -151,7 +168,7 @@ int xml_attribute_as_int (xml_attr *attr);
 
 float xml_attribute_as_float (xml_attr *attr);
 
-xml_attr *xml_copy_attribute (xml_attr *attr);
+xml_attr *xml_copy_attribute (xml_doc *doc, xml_attr *attr);
 
 xml_attr *xml_find_attribute (xml_elem *elem, char const *tag);
 

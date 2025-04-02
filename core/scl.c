@@ -19,6 +19,51 @@
 #ifndef PATH_MAX
 #  define PATH_MAX MAX_PATH
 #endif
+scl_page *scl_pagenew (unsigned size) {
+  scl_page *page = malloc (sizeof (scl_page));
+  page->next_    = NULL;
+  page->data     = malloc (size);
+  page->size     = size;
+  page->used     = 0;
+  return page;
+}
+
+void *scl_pagealloc (scl_page *page, unsigned size) {
+  if (!page->data) {
+    unsigned req = size > SCL_DEFAULT_PAGE_SIZE ? size : SCL_DEFAULT_PAGE_SIZE;
+    page->data   = malloc (req);
+    memset (page->data, 0, req);
+    page->size = req;
+  }
+  if (page->used + size > page->size) {
+    /* make a new page, and swap input page for new one */
+    /* saves performance and cpu time looking of open slot */
+    unsigned  req = size > SCL_DEFAULT_PAGE_SIZE ? size : SCL_DEFAULT_PAGE_SIZE;
+    scl_page *npage = scl_pagenew (req);
+    scl_page  tmp   = *npage;
+    *npage          = *page;
+    *page           = tmp;
+    page->next_     = npage;
+    return scl_pagealloc (page, size);
+  }
+  void *ptr = (char *)page->data + page->used;
+  page->used += size;
+  return ptr;
+}
+
+void scl_freepages (scl_page *page) {
+  if (page->data)
+    free ((void *)page->data);
+  // Dont free the first page
+  page = page->next_;
+  for (; page;) {
+    scl_page *next = page->next_;
+    if (page->data)
+      free ((void *)page->data);
+    free (page);
+    page = next;
+  }
+}
 
 #if defined(_WIN32)
 #  ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
@@ -75,6 +120,30 @@ void scl_waitms (double ms) {
     }
     _nanosleep (1000);
   }
+#endif
+}
+
+#ifdef _WIN32
+static LARGE_INTEGER base_clock = {.QuadPart = 0};
+#endif
+
+void scl_resetclock() {
+#ifdef _WIN32
+  QueryPerformanceCounter (&base_clock);
+#endif
+}
+
+double scl_clock() {
+#if defined(_WIN32)
+  LARGE_INTEGER pc;
+  LARGE_INTEGER pf;
+  QueryPerformanceCounter (&pc);
+  QueryPerformanceFrequency (&pf);
+  return (double)(pc.QuadPart - base_clock.QuadPart) / (double)pf.QuadPart;
+#elif defined(__unix__)
+  timespec_t ts;
+  timespec_get (&ts, 1);
+  return (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000.0;
 #endif
 }
 
@@ -802,8 +871,8 @@ unsigned char scl_log2i (unsigned x) {
 #endif
 
 typedef struct xml_view_s {
-  char        *p;
-  unsigned int l;
+  char *p;
+  char *e;
 } xml_view;
 
 typedef enum {
@@ -857,104 +926,107 @@ typedef struct xpath_exp_s {
   };
 } xpath_exp;
 
+#define XML_MAX_LOST 2048
+
+typedef struct xml_buf {
+  char    *buf;
+  unsigned used;
+  unsigned length;
+  unsigned lost;
+} xml_buf;
+
+#define xml_node_fields    \
+  xml_view         tag;    \
+  xml_view         data;   \
+  xml_elem        *parent; \
+  struct xml_node *next
+
+typedef struct xml_node {
+  xml_node_fields;
+} xml_node;
+
 typedef struct xml_attr_s {
-  xml_elem *parent;
-  xml_attr *prev;
-  xml_attr *next;
-  xml_view  tag;
-  xml_view  data;
+  xml_node_fields;
 } xml_attr;
 
+#define xml_elem_fields \
+  xml_node_fields;      \
+  xml_elem *child;      \
+  xml_elem *tail;       \
+  xml_attr *attr
+
 typedef struct xml_elem_s {
-  xml_elem *parent;
-  xml_elem *prev;
-  xml_elem *next;
-  xml_elem *_tail;
-  xml_elem *child;
-  xml_attr *attr;
-  xml_view  tag;
-  xml_view  data;
-  xml_view  _post;
+  xml_elem_fields;
 } xml_elem;
 
-typedef struct xml_page_s {
-  xml_elem *b;
-  xml_elem *p;
-  xml_elem *pe;
-} xml_page;
-
 typedef struct xml_doc_s {
-  char const  *ob;
-  unsigned int obl;
-  char        *mb;
-  char        *mbp;
-  unsigned int mbl;
-  xml_view    *mh;
-  xml_view    *mt;
-
-  xml_elem *root;
+  xml_elem_fields;
+  scl_page txt;
+  scl_page nodes;
 } xml_doc;
 
-#define xview(_p, _l) ((xml_view){.p = (char *)(_p), .l = (unsigned int)(_l)})
+#define xview(_p, _e) ((xml_view){.p = (char *)(_p), .e = (char *)(_e)})
 
-static int xml_viewcmp (xml_view *sv, xml_view *sv2) {
-  if (!sv->p || !sv2->p)
-    return 1;
-  unsigned int l1 = sv->l;
-  unsigned int l2 = sv2->l;
-  unsigned int l  = l1 < l2 ? l1 : l2;
-  for (unsigned int i = 0; i < l; i++) {
-    if (sv->p[i] != sv2->p[i])
-      return 1;
-  }
-  if (l1 - l2 != 0)
-    return 1;
-  return 0;
+static int xml_viewcmp (xml_view sv, xml_view sv2) {
+  for (; *sv.p && *sv2.p && sv.p < sv.e && sv2.p < sv2.e && *sv.p != *sv2.p;
+       sv.p++, sv2.p++)
+    ;
+  return *sv.p - *sv2.p;
 }
 
-static int xml_viewstrncmp (xml_view view, char const *str, int n) {
-  if (!view.p || !str)
+static int xml_viewstrncmp (xml_view sv, char const *str, int n) {
+  if (!str)
     return 1;
-  unsigned int l1 = view.l;
-  unsigned int l2 = n;
-  unsigned int l  = l1 < l2 ? l1 : l2;
-  for (unsigned int i = 0; i < l; i++) {
-    if (view.p[i] != str[i])
-      return 1;
-  }
-  if (l1 - l2 != 0)
-    return 1;
-  return 0;
+  for (; n > 0 && sv.p < sv.e && *sv.p != *str; sv.p++, str++, n--)
+    ;
+  return *sv.p - *str;
 }
 
-static int xml_viewstrcmp (xml_view view, char const *str) {
-  if (!view.p || !str)
+static int xml_viewstrcmp (xml_view sv, char const *str) {
+  if (!sv.p || !str)
     return 1;
-  return xml_viewstrncmp (view, str, strlen (str));
+  return xml_viewstrncmp (sv, str, strlen (str));
 }
+
+#define xml_viewffi(v, c) scl_strnffi (v.p, c, v.e - v.p)
+
+#define xfreeview(v)
+
+#if 0
+#  define xrawfree(n)      free ((void *)n)
+#  define xrawfreeel(n)    free ((void *)n)
+#  define xrawallocel(doc) (xml_elem *)malloc (sizeof (xml_elem))
+#else
+
+#  define xrawalloc(doc, s) (scl_pagealloc (&doc->nodes, s))
+#  define xrawfreeel(n)
+#  define xrawfreeat(a)
+#  define xstr2view(v, s)      ((v.p = (char *)s), (v.e = v.p + strlen (v.p)))
+#  define xcopyviews(to, from) (*to) = (*from)
+#endif
+
 
 static void xml_free_attr (xml_attr *attr, char mode) {
   if (!attr)
     return;
-  attr->tag.p  = NULL;
-  attr->data.p = NULL;
+  xfreeview (attr->data);
   if (mode == XML_FREE_RECURSIVE) {
-    if (attr->prev)
-      attr->prev->next = NULL;
-    for (xml_attr *i = attr->next; i;) {
-      xml_attr *n = i->next;
-      xml_free_attr (i, XML_FREE_ONLY);
-      free ((void *)i);
+    for (xml_node *i = attr->next; i;) {
+      xml_node *n = i->next;
+      xml_free_attr ((xml_attr *)i, XML_FREE_ONLY);
+      xrawfreeat (i);
       i = n;
     }
-    free ((void *)attr);
   } else if (mode == XML_FREE_PATCH) {
-    if (attr->prev)
-      attr->prev->next = attr->next;
-    if (attr->next)
-      attr->next->prev = attr->prev;
-    free ((void *)attr);
+    if (attr->parent->attr != attr) {
+      for (xml_attr *i = attr->parent->attr; i && i->next;)
+        if (!xml_viewcmp (i->next->tag, attr->tag))
+          i->next = attr->next;
+    } else
+      attr->parent->attr = (xml_attr *)attr->next;
   }
+  xfreeview (attr->tag);
+  xrawfreeat (attr);
 }
 
 static void xml_free_elem (xml_elem *elem, char mode) {
@@ -962,32 +1034,33 @@ static void xml_free_elem (xml_elem *elem, char mode) {
     return;
   xml_free_attr (elem->attr, 1);
   xml_free_elem (elem->child, 1);
+  xfreeview (elem->tag);
+  xfreeview (elem->data);
   if (mode == XML_FREE_RECURSIVE) {
-    if (elem->prev)
-      elem->prev->next = NULL;
-    for (xml_elem *i = elem->next; i;) {
-      xml_elem *n = i->next;
+    for (xml_elem *i = (xml_elem *)elem->next; i;) {
+      xml_elem *n = (xml_elem *)i->next;
       xml_free_elem (i, XML_FREE_ONLY);
-      free ((void *)i);
       i = n;
     }
-  } else if (mode == XML_FREE_PATCH) {
-    if (elem->prev)
-      elem->prev->next = elem->next;
-    if (elem->next)
-      elem->next->prev = elem->prev;
-    free ((void *)elem);
-  } else {
-    return;
+    elem->next = NULL;
   }
-  free ((void *)elem);
+  if (mode != XML_FREE_ONLY) {
+    if (elem->parent) {
+      for (xml_elem *i = elem->parent->child; i && i->next;)
+        if (i == elem) {
+          elem->parent->child = (xml_elem *)elem->next;
+        } else if ((xml_elem *)i->next == elem)
+          i->next = elem->next;
+    }
+    xrawfreeel (elem);
+  }
 }
 
 void xml_free_doc (xml_doc *doc) {
   if (!doc)
     return;
-  xml_free_elem (doc->root, XML_FREE_RECURSIVE);
-  free ((void *)doc);
+  xml_free_elem ((xml_elem *)doc, XML_FREE_RECURSIVE);
+  scl_freepages (&doc->nodes);
 }
 
 /*static void xml_page_add (xml_doc *doc) {
@@ -1026,74 +1099,131 @@ static xml_elem *xml_page_slot (xml_doc *doc) {
   return xml_page_slot (doc);
 }*/
 
-void xml_add_root (xml_doc *doc, xml_elem *elem) {
-  if (!doc || !elem)
-    return;
-  if (doc->root)
-    xml_free_elem (doc->root, XML_FREE_RECURSIVE);
-  doc->root    = elem;
-  elem->parent = NULL;
-}
-
 void xml_add_attr (xml_elem *elem, xml_attr *attr) {
-  if (!elem || !attr || !attr->tag.p || !attr->data.p)
+  if (!elem || !attr)
     return;
-  attr->parent = elem;
   if (elem->attr) {
-    xml_attr *i = elem->attr;
+    xml_node *i = (xml_node *)elem->attr;
     for (; i && i->next; i = i->next) {
-      if (!xml_viewcmp (&i->tag, &attr->tag)) {
+      if (!xml_viewcmp (i->tag, attr->tag)) {
         i->data = attr->data;
         xml_free_attr (attr, XML_FREE_ONLY);
         return;
       }
     }
-    i->next    = attr;
-    attr->prev = i;
+    i->next = (xml_node *)attr;
   } else
     elem->attr = attr;
+  attr->parent = elem;
 }
 
-void xml_add_elem (xml_elem *elem, xml_elem *elem2) {
-  if (!elem || !elem2)
-    return;
-  elem2->parent = elem->parent;
-  if (elem->_tail)
-    elem->_tail->next = elem2, elem2->prev = elem->_tail, elem->_tail = elem2;
-  else
-    elem->next = elem2, elem->_tail = elem2;
-}
-
-void xml_add_child (xml_elem *elem, xml_elem *child) {
+void xml_add_elem (xml_elem *elem, xml_elem *child) {
   if (!elem || !child)
     return;
-  child->parent = elem;
-  if (elem->child)
-    xml_add_elem (elem->child, child);
-  else
+  child->parent = elem->parent;
+  if (elem->child) {
+    elem = elem->child;
+    if (elem->tail)
+      elem->tail->next = (xml_node *)child, elem->tail = (xml_elem *)child;
+    else
+      elem->next = (xml_node *)child, elem->tail = (xml_elem *)child;
+  } else {
+    xml_free_elem ((xml_elem *)child->next, XML_FREE_RECURSIVE);
+    child->next = NULL;
     elem->child = child;
+  }
 }
 
-#define xisalnum(c) \
-  (((c & 64) && ((c - 'A') & 31) <= 25) || (c >= '0' && c <= '9'))
-#define xisdigit(c) (c >= '0' && c <= '9')
-#define xisspace(c) (c == ' ' || c == '\n' || c == '\r')
+static void xml_add_next (xml_elem *elem, xml_elem *next) {
+  if (!elem || !next)
+    return;
+  next->parent = elem->parent;
+  if (elem->tail)
+    elem->tail->next = (xml_node *)next, elem->tail = (xml_elem *)next;
+  else
+    elem->next = (xml_node *)next, elem->tail = (xml_elem *)next;
+}
 
-#define xissym(c)   (xisalnum (c) || c == '_' || ((unsigned char)c & 0x80))
+#define SPACEBIT 1
+#define ALPHABIT 2
+#define DIGITBIT 4
+
+/* clang-format off */
+static char const xctypes[] = {
+  /* 1 */
+  0,0,0,0,0,0,0,0, /* 0-7*/
+  0,0,1,0,0,1,0,0, /* 8-15 */
+  /* 2 */
+  0,0,0,0,0,0,0,0, /* 16-23 */
+  0,0,0,0,0,0,0,0, /* 24-31 */
+  /* 3 */
+  1,0,0,0,0,0,0,0, /* 32-39 */
+  0,0,0,0,0,0,0,0, /* 40-47 */
+  /* 4 */
+  4,4,4,4,4,4,4,4, /* 48-55 */
+  4,4,0,0,0,0,0,0, /* 56-63 */
+  /* 5 */
+  0,2,2,2,2,2,2,2, /* 64-71 */
+  2,2,2,2,2,2,2,2, /* 72-79 */
+  /* 6 */
+  2,2,2,2,2,2,2,2, /* 80-87 */
+  2,2,2,0,0,0,0,2, /* 88-95 */
+  /* 7 */
+  0,2,2,2,2,2,2,2, /* 96-103 */
+  2,2,2,2,2,2,2,2, /* 104-111 */
+  /* 8 */
+  2,2,2,2,2,2,2,2, /* 112-119 */
+  2,2,2,0,0,0,0,0, /* 120-127 */
+
+  /* 128-255 */
+  2,0,0,0,0,0,0,0, /* 0-7*/
+  0,0,0,0,0,0,0,0, /* 8-15 */
+  /* 2 */
+  0,0,0,0,0,0,0,0, /* 16-23 */
+  0,0,0,0,0,0,0,0, /* 24-31 */
+  /* 3 */
+  0,0,0,0,0,0,0,0, /* 32-39 */
+  0,0,0,0,0,0,0,0, /* 40-47 */
+  /* 4 */
+  0,0,0,0,0,0,0,0, /* 48-55 */
+  0,0,0,0,0,0,0,0, /* 56-63 */
+  /* 5 */
+  0,0,0,0,0,0,0,0, /* 64-71 */
+  0,0,0,0,0,0,0,0, /* 72-79 */
+  /* 6 */
+  0,0,0,0,0,0,0,0, /* 80-87 */
+  0,0,0,0,0,0,0,0, /* 88-95 */
+  /* 7 */
+  0,0,0,0,0,0,0,0, /* 96-103 */
+  0,0,0,0,0,0,0,0, /* 104-111 */
+  /* 8 */
+  0,0,0,0,0,0,0,0, /* 112-119 */
+  0,0,0,0,0,0,0,0, /* 120-127 */
+};
+/* clang-format on */
+
+#define xisalnum(c) (xctypes[c] & (ALPHABIT | DIGITBIT))
+#define xisdigit(c) (xctypes[c] & DIGITBIT)
+#define xisspace(c) (xctypes[c] & SPACEBIT)
+
+#define xskipspace(p)   \
+  while (xisspace (*p)) \
+  p++
 
 static int xml_parse_textchar (char const *s, char const **ep, char *out) {
   if (*s != '&') {
     return ((*ep)++), (*out = *s), 1;
   } else {
-    if (!strncmp (s, "&lt;", 4))
+    s++;
+    if (!strncmp (s, "lt;", 3))
       return ((*ep) += 4), (*out = '<'), 1;
-    if (!strncmp (s, "&gt;", 4))
+    if (!strncmp (s, "gt;", 3))
       return ((*ep) += 4), (*out = '>'), 1;
-    if (!strncmp (s, "&amp;", 5))
+    if (!strncmp (s, "amp;", 4))
       return ((*ep) += 5), (*out = '&'), 1;
-    if (!strncmp (s, "&apos;", 6))
+    if (!strncmp (s, "apos;", 5))
       return ((*ep) += 6), (*out = '\''), 1;
-    if (!strncmp (s, "&quot;", 6))
+    if (!strncmp (s, "quot;", 5))
       return ((*ep) += 6), (*out = '\"'), 1;
     return ((*ep)++), 1;
   }
@@ -1103,25 +1233,25 @@ static xml_view xml_parse_text (char const *s, char const **ep, char delim) {
   char const *p = s;
   while (*p && *p != delim)
     p++;
-  return ((*ep) = p), xview (s, p - s);
+  return ((*ep) = p), xview (s, p);
 }
 
-static xml_attr *xml_parse_attr (char const *s, char const **ep) {
+static xml_attr *xml_parse_attr (xml_doc *doc, char const *s, char const **ep) {
   xml_attr    attr;
   char const *p = s;
-  if (!xissym (*p))
+  if (!xisalnum (*p))
     return NULL;
   memset (&attr, 0, sizeof (attr));
   do
     p++;
-  while (xissym (*p));
-  attr.tag = xview (s, p - s);
+  while (xisalnum (*p));
+  attr.tag = xview (s, p);
   if (p[0] != '=' && p[1] != '\"' && p[1] != '\'')
     return NULL;
   char delim = p[1];
   s          = (p += 2);
   attr.data  = xml_parse_text (s, &p, delim);
-  return ((*ep) = ++p), xml_copy_attribute (&attr);
+  return ((*ep) = ++p), xml_copy_attribute (doc, &attr);
 }
 
 static xml_elem *xml_parse_elem (xml_doc *doc, xml_elem *parent, char const *s,
@@ -1134,90 +1264,88 @@ static xml_elem *xml_parse_elem (xml_doc *doc, xml_elem *parent, char const *s,
   memset (&elem, 0, sizeof (xml_elem));
   elem.parent = parent;
   s           = ++p;
-  if (xissym (*p)) {
-    do
-      p++;
-    while (xissym (*p));
-    elem.tag = xview (s, p - s);
-    while (xisspace (*p)) {
-      do
-        p++;
-      while (xisspace (*p));
-      xml_attr *attr = xml_parse_attr (p, &p);
-      if (attr)
-        xml_add_attr (&elem, attr);
-      else
+  if (*p == '/')
+    goto end_elem;
+  if (*p == '?')
+    goto prelude_elem;
+  while (xisalnum (*p))
+    p++;
+  if (s == p)
+    return NULL;
+  elem.tag = xview (s, p);
+  xskipspace (p);
+  while (*p != '>' && *p != '/' && *p) {
+    xml_attr *attr = xml_parse_attr (doc, p, &p);
+    if (attr)
+      xml_add_attr (&elem, attr);
+    xskipspace (p);
+  }
+  if (*p == '>') {
+    p++;
+    if (*p != '<')
+      elem.data = xml_parse_text (p, &p, '<');
+    while (1) {
+      s               = p;
+      xml_elem *celem = xml_parse_elem (doc, &elem, p, &p);
+      if (celem)
+        xml_add_elem (&elem, celem);
+      else if (leave) {
+        leave = 0;
+        break;
+      } else
         return xml_free_elem (&elem, XML_FREE_ONLY), NULL;
     }
-    if (*p == '>') {
-      p++;
-      if (xissym (*p) || xisspace (*p)) {
-        elem.data = xml_parse_text (p, &p, '<');
-      }
-      while (*p == '<') { // While there are child elems
-        s               = p;
-        xml_elem *celem = xml_parse_elem (doc, &elem, p, &p);
-        if (celem && !leave)
-          xml_add_child (&elem, celem);
-        else if (leave)
-          break;
-        else if (!celem)
-          return xml_free_elem (&elem, XML_FREE_ONLY), NULL;
-      }
-    }
-    if (*p == '/' || leave) {
-      p += 1 + (*p == '/');
-      leave = 0;
-      s     = p;
-      while (xisspace (*p) && elem._post.l < 63) {
-        elem._post.p = (char *)s;
-        elem._post.l++;
-        p++;
-      }
-      return ((*ep) = p), xml_copy_elem (&elem);
-    } else // Is a parent, but ended before being terminated
-      return xml_free_elem (&elem, XML_FREE_ONLY), NULL;
-  } else if (*p == '/') {
-    if (parent) {
-      s = ++p;
-      while (xissym (*p))
-        p++;
-      xml_view tv = xview (s, p - s);
-      if (!xml_viewcmp (&parent->tag, &tv))
-        return (leave |= 1), ((*ep) = p), NULL;
-      else
-        return NULL;
-    } else
-      return NULL;
-  } else if (*p == '?') {
-    if (!parent) { // ordered like this for branch opt
-      p++;
-      while (p[0] && p[0] != '?' && p[1] != '>')
-        p++;
-      if (p[1] == '>')
-        return p += 2, xml_parse_elem (doc, NULL, p, ep);
-      else
-        return NULL;
-    } else
-      return NULL;
+    return ((*ep) = p), xml_copy_elem (doc, &elem);
+  } else if (*p == '/' || leave) {
+    p += 1 + (*p == '/');
+    leave = 0;
+    s     = p;
+    return ((*ep) = p), xml_copy_elem (doc, &elem);
   }
-  return NULL;
+  return xml_free_elem (&elem, XML_FREE_ONLY), NULL;
+end_elem:
+  s = ++p;
+  while (xisalnum (*p))
+    p++;
+  xml_view tv = xview (s, p);
+  if (!xml_viewcmp (parent->tag, tv))
+    return (leave |= 1), ((*ep) = ++p), NULL;
+  else
+    return NULL;
+prelude_elem:
+  if (!parent) { // ordered like this for branch opt
+    p++;
+    while (p[0] && p[0] != '?' && p[1] != '>')
+      p++;
+    if (p[1] == '>')
+      return p += 2, xml_parse_elem (doc, NULL, p, ep);
+    else
+      return NULL;
+  } else
+    return NULL;
 }
 
 xml_doc *xml_parse_string (char const *str) {
-  xml_doc     doc;
-  char const *p = str;
+  xml_doc doc;
   memset (&doc, 0, sizeof (doc));
-  doc.ob  = scl_strcopy (str);
-  doc.obl = strlen (str);
-  // xml_page_add (&doc);
-  xml_elem *root = xml_parse_elem (&doc, NULL, doc.ob, &p);
-  if (!root)
+  unsigned  l = strlen (str);
+  scl_page *P = scl_pagenew (l + 1);
+  if (!P)
     return NULL;
-  doc.root      = root;
+  doc.txt = *P;
+  free (P);
+  char *p = scl_pagealloc (&doc.txt, l + 1);
+  memcpy (p, str, l);
+  p[l]           = 0;
+  xml_elem *root = xml_parse_elem (&doc, NULL, p, (char const **)&p);
+  if (!root) {
+    scl_freepages (&doc.txt);
+    return NULL;
+  }
+  memcpy (&doc, root, sizeof (xml_elem));
+  xrawfreeel (root);
   xml_doc *copy = (xml_doc *)malloc (sizeof (xml_doc));
   memcpy (copy, &doc, sizeof (xml_doc));
-  copy->ob = doc.ob;
   return copy;
 }
 
@@ -1232,38 +1360,30 @@ xml_elem *xml_new_elem (xml_doc *doc, char const *tag, char const *str) {
     return NULL;
   xml_elem elem;
   memset (&elem, 0, sizeof (elem));
-  elem.tag.p = (char *)scl_strcopy (tag);
-  elem.tag.l = strlen (tag);
-  if (str) {
-    elem.data.p = (char *)scl_strcopy (str);
-    elem.data.l = strlen (str);
-  }
-  return memcpy (malloc (sizeof (xml_elem)), &elem, sizeof (elem));
+  xstr2view (elem.tag, scl_strcopy (tag));
+  if (str)
+    xstr2view (elem.data, scl_strcopy (str));
+  return memcpy (xrawalloc (doc, sizeof (xml_elem)), &elem, sizeof (elem));
 }
 
-xml_elem *xml_copy_elem (xml_elem *elem) {
+xml_elem *xml_copy_elem (xml_doc *doc, xml_elem *elem) {
   if (!elem)
     return NULL;
-  return memcpy (malloc (sizeof (xml_elem)), elem, sizeof (xml_elem));
-}
-
-xml_elem **xml_find_elems (xml_elem *from, char const *tag, xml_find_mode mode,
-  int *count) {
-  return NULL;
+  xml_elem *copy = xrawalloc (doc, sizeof (xml_elem));
+  memcpy (copy, elem, sizeof (xml_elem));
+  xcopyviews (copy, elem);
+  return copy;
 }
 
 void xml_replace_elem (xml_elem *elem, xml_elem *with) {
-  if (!elem)
+  if (!elem || !with)
     return;
   if (with) {
-    with->parent = elem->parent;
-    with->prev   = elem->prev;
-    with->next   = elem->next;
-    if (elem->prev)
-      elem->prev->next = with;
-    if (elem->next)
-      elem->next->prev = with;
-    xml_free_elem (elem, XML_FREE_ONLY);
+    xml_free_elem (elem->child, XML_FREE_RECURSIVE);
+    xfreeview (elem->tag);
+    xfreeview (elem->data);
+    memcpy (elem, with, sizeof (xml_elem));
+    xrawfreeel (with);
   } else {
     xml_free_elem (elem, XML_FREE_PATCH);
   }
@@ -1274,10 +1394,8 @@ xml_attr *xml_str_attribute (char const *tag, char const *str) {
     return NULL;
   xml_attr attr;
   memset (&attr, 0, sizeof (attr));
-  attr.tag.p     = (char *)scl_strcopy (tag);
-  attr.tag.l     = strlen (tag);
-  attr.data.p    = (char *)scl_strcopy (str);
-  attr.data.l    = strlen (str);
+  xstr2view (attr.tag, scl_strcopy (tag));
+  xstr2view (attr.data, scl_strcopy (str));
   xml_attr *copy = (xml_attr *)malloc (sizeof (attr));
   memcpy (copy, &attr, sizeof (attr));
   return copy;
@@ -1288,9 +1406,8 @@ xml_attr *xml_int_attribute (char const *tag, int i) {
     return NULL;
   xml_attr attr;
   memset (&attr, 0, sizeof (attr));
-  attr.tag.p     = (char *)scl_strcopy (tag);
-  attr.tag.l     = strlen (tag);
-  attr.data.p    = (char *)scl_fmt ("%i", i);
+  xstr2view (attr.tag, scl_strcopy (tag));
+  xstr2view (attr.data, scl_fmt ("%i", i));
   xml_attr *copy = (xml_attr *)malloc (sizeof (attr));
   memcpy (copy, &attr, sizeof (attr));
   return copy;
@@ -1301,19 +1418,19 @@ xml_attr *xml_float_attribute (char const *tag, float n) {
     return NULL;
   xml_attr attr;
   memset (&attr, 0, sizeof (attr));
-  attr.tag.p     = (char *)scl_strcopy (tag);
-  attr.tag.l     = strlen (tag);
-  attr.data.p    = (char *)scl_fmt ("%f", n);
+  xstr2view (attr.tag, scl_strcopy (tag));
+  xstr2view (attr.data, scl_fmt ("%f", n));
   xml_attr *copy = (xml_attr *)malloc (sizeof (attr));
   memcpy (copy, &attr, sizeof (attr));
   return copy;
 }
 
-xml_attr *xml_copy_attribute (xml_attr *attr) {
+xml_attr *xml_copy_attribute (xml_doc *doc, xml_attr *attr) {
   if (!attr)
     return NULL;
-  xml_attr *copy = (xml_attr *)malloc (sizeof (xml_attr));
+  xml_attr *copy = xrawalloc (doc, sizeof (xml_attr));
   memcpy (copy, attr, sizeof (xml_attr));
+  xcopyviews (copy, attr);
   return copy;
 }
 
@@ -1321,8 +1438,8 @@ xml_attr *xml_find_attribute (xml_elem *elem, char const *tag) {
   if (!elem || !elem->attr || !tag)
     return NULL;
   xml_view tv = xview (tag, strlen (tag));
-  for (xml_attr *attr = elem->attr; attr; attr = attr->next)
-    if (!xml_viewcmp (&attr->tag, &tv))
+  for (xml_attr *attr = elem->attr; attr; attr = (xml_attr *)attr->next)
+    if (!xml_viewcmp (attr->tag, tv))
       return attr;
   return NULL;
 }
@@ -1362,14 +1479,6 @@ static void xml_checkset (char **out, char **wp, int *size, int nlen,
     free ((void *)__text);                       \
     *wp += __tlen;                               \
   }
-#define xml_app(out, wp, size, str)              \
-  {                                              \
-    char *__text = (char *)str;                  \
-    int   __tlen = strlen (__text);              \
-    xml_checkset (out, wp, size, __tlen, 32768); \
-    memcpy (*wp, __text, __tlen);                \
-    *wp += __tlen;                               \
-  }
 #define xml_napp(out, wp, size, str, max)        \
   {                                              \
     char *__text = (char *)str;                  \
@@ -1382,7 +1491,7 @@ static void xml_checkset (char **out, char **wp, int *size, int nlen,
 static int xml_print_string (xml_view v, char **out, char **wp, int *size,
   char keepquot) {
   char *p = (char *)v.p;
-  for (; p != v.p + v.l; p++) {
+  for (; p < v.e; p++) {
     if (*p == '<') {
       xml_napp (out, wp, size, "&lt;", 4);
     } else if (*p == '>') {
@@ -1404,13 +1513,13 @@ static int xml_print_string (xml_view v, char **out, char **wp, int *size,
 static int xml_print_attr (xml_attr *attr, char **out, char **wp, int *size) {
   if (!attr)
     return 0;
-  char        noapos    = scl_strnffi (attr->data.p, "\'", attr->data.l) == -1;
-  char        noquot    = scl_strnffi (attr->data.p, "\"", attr->data.l) == -1;
+  char        noapos    = xml_viewffi (attr->data, "\'") == -1;
+  char        noquot    = xml_viewffi (attr->data, "\"") == -1;
   char        aposdelim = (noapos && !noquot) ? 1 : 0;
   char const *q         = !aposdelim ? "\"" : "\'";
   char const *q2        = !aposdelim ? "=\"" : "=\'";
   xml_napp (out, wp, size, " ", 1);
-  xml_napp (out, wp, size, attr->tag.p, attr->tag.l);
+  xml_napp (out, wp, size, attr->tag.p, attr->tag.e - attr->tag.p);
   xml_napp (out, wp, size, q2, 2);
   xml_print_string (attr->data, out, wp, size, aposdelim);
   xml_napp (out, wp, size, q, 1);
@@ -1422,12 +1531,12 @@ static int xml_print_elem (xml_elem *elem, char **out, char **wp, int *size,
   if (!elem)
     return 0;
   xml_elem *ielem = elem;
-  for (; ielem && ielem->tag.p; ielem = ielem->next) {
+  for (; ielem && ielem->tag.p; ielem = (xml_elem *)ielem->next) {
     xml_napp (out, wp, size, "<", 1);
-    xml_napp (out, wp, size, ielem->tag.p, ielem->tag.l);
+    xml_napp (out, wp, size, ielem->tag.p, ielem->tag.e - ielem->tag.p);
     if (ielem->attr) {
       xml_attr *attr = ielem->attr;
-      for (; attr; attr = attr->next)
+      for (; attr; attr = (xml_attr *)attr->next)
         xml_print_attr (attr, out, wp, size);
     }
     if (ielem->child || isroot || ielem->data.p) {
@@ -1436,19 +1545,17 @@ static int xml_print_elem (xml_elem *elem, char **out, char **wp, int *size,
         xml_print_string (ielem->data, out, wp, size, 0);
       xml_print_elem (ielem->child, out, wp, size, 0);
       xml_napp (out, wp, size, "</", 2);
-      xml_napp (out, wp, size, ielem->tag.p, ielem->tag.l);
+      xml_napp (out, wp, size, ielem->tag.p, ielem->tag.e - ielem->tag.p);
       xml_napp (out, wp, size, ">", 1);
     } else {
       xml_napp (out, wp, size, "/>", 2);
     }
-    if (ielem->_post.p)
-      xml_napp (out, wp, size, ielem->_post.p, ielem->_post.l);
   }
   return 1;
 }
 
 char const *xml_print (xml_doc *doc) {
-  if (!doc || !doc->root)
+  if (!doc)
     return NULL;
 
   // char const prologue[] = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
@@ -1458,7 +1565,7 @@ char const *xml_print (xml_doc *doc) {
   memset (out, 0, size);
   memcpy (out, prologue, sizeof (prologue) - 1);
   char *wp = out + sizeof (prologue) - 1;
-  xml_print_elem (doc->root, &out, &wp, &size, 1);
+  xml_print_elem ((xml_elem *)doc, &out, &wp, &size, 1);
   return out;
 }
 
@@ -1548,7 +1655,7 @@ static void xpath_tag (xml_view *view, char **s, char **p) {
   char *s2 = *s, *p2 = *p;
   // Skip to tag start
   s2 = ++p2;
-  while (xissym (*p2) || (*p2 == '*' && *(p2 - 1) != '*'))
+  while (xisalnum (*p2) || (*p2 == '*' && *(p2 - 1) != '*'))
     p2++;
   xml_view v = xview (s2, p2 - s2);
   if (xml_viewstrncmp (v, "*", 1)) {
@@ -1611,7 +1718,7 @@ xpath_exp *xml_xpath (char const *exp) {
       memset (&math, 0, sizeof (math));
       e.type = XPATH_EXP_MATH;
       // Macro or element
-      if (xissym (p[1])) {
+      if (xisalnum (p[1])) {
         // Attribute
       } else if (p[1] == '@') {
         math.type = XPATH_MATH_ATTRIBUTE;

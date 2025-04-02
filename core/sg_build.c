@@ -97,6 +97,8 @@ int sg_runBuild (SG *sg) {
     scl_close (f);
   }*/
 
+  xml_parse_string ("<root><t h=\"s\"/></root>");
+
   xml_xpath ("//t[@*]");
 
   if (configBuild (sg, &bi, sg->wdir))

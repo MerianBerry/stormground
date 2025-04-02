@@ -29,6 +29,6 @@ message(${SDL_SHARED})
 
 add_custom_command(TARGET sg PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SDL_SHARED} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-
+add_executable("xlut" "xmlut.c" "scl.c")
 #add_custom_target(engine)
 #enginebuild(engine debug)

@@ -803,13 +803,15 @@ static void scl_htabput (scl_htab *h, scl_hnode node) {
   while (n && n->next && n->hash != node->hash)
     n = n->next;
   h->hnum++;
+  // New node in the array
   if (!n)
     h->ht[hnodei (h, node->hash)] = node;
   // Replace existing nodes data
-  else if (n->hash != node->hash) {
+  else if (n->hash == node->hash) {
     n->data = node->data;
     hfreenode (node);
   } else
+    // Chain node
     n->next = node;
 }
 
@@ -865,7 +867,7 @@ void scl_htabremove (scl_htab *h, char const *key) {
   }
 }
 
-void *scl_htabget (scl_htab const *h, char const *key) {
+void const *scl_htabget (scl_htab const *h, char const *key) {
   unsigned  hash = scl_strhash (key);
   scl_hnode n    = gnodehash (h, hash);
   while (n && n->hash != hash && n->next)
@@ -875,7 +877,7 @@ void *scl_htabget (scl_htab const *h, char const *key) {
   return NULL;
 }
 
-char const *scl_htabnext (scl_htab const *h, char const *key) {
+void const *scl_htabnext (scl_htab const *h, char const *key) {
   if (!h->hnum)
     return NULL;
   if (!key)
@@ -904,7 +906,7 @@ scl_htab *scl_htabcopy (scl_htab const *h) {
   scl_htab   *out = scl_htabnew();
   char const *k   = NULL;
   while ((k = scl_htabnext (h, k))) {
-    void *ptr = scl_htabget (h, k);
+    void const *ptr = scl_htabget (h, k);
     scl_htabset (out, k, ptr);
   }
   return out;

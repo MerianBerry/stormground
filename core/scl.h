@@ -128,9 +128,9 @@ void scl_htabset (scl_htab *h, char const *key, void const *ptr);
 
 void scl_htabremove (scl_htab *h, char const *key);
 
-void *scl_htabget (scl_htab const *h, char const *key);
+void const *scl_htabget (scl_htab const *h, char const *key);
 
-char const *scl_htabnext (scl_htab const *h, char const *key);
+void const *scl_htabnext (scl_htab const *h, char const *key);
 
 scl_htab *scl_htabcopy (scl_htab const *h);
 

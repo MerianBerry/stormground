@@ -1,5 +1,6 @@
 #include "sg_event.h"
 #include "sg_lua.h"
+#include "scl.h"
 #include <stdlib.h>
 
 #define sg_luaSetKeyI(ind, k, i) \
@@ -19,7 +20,7 @@ static int sgl_onTick (lua_State *L) {
   lua_getglobal (L, "sg");
   lua_getfield (L, -1, "_tickCBs");
   int n = lua_objlen (L, -1);
-  lua_pushinteger (L, n + 1);
+  lua_pushinteger (L, (lua_Integer)n + 1);
   lua_pushvalue (L, -4);
   lua_rawset (L, -3);
 
@@ -62,20 +63,11 @@ static int sgl_getKey (lua_State *L) {
     sg_throwLuaError (L, "expected string argument");
     return 1;
   }
+  char const *k = lua_tostring (L, 1);
   lua_getglobal (L, "_SG");
   SG *sg = (SG *)(intptr_t)lua_tointeger (L, -1);
   lua_pop (L, 1);
-  lua_getglobal (L, "sg");
-  lua_getfield (L, -1, "mappings");
-  lua_pushvalue (L, 1);
-  lua_gettable (L, -2);
-  if (!lua_testtype (L, -1, LUA_TNUMBER)) {
-    lua_pop (L, 3);
-    lua_pushnil (L);
-    return 1;
-  }
-  int key = lua_tointeger (L, -1);
-  lua_pop (L, 3);
+  int key = (int)(intptr_t)scl_htabget (sg->mappings, k);
   if (key <= 0 || key >= SDL_LAST_KEY) {
     lua_pushnil (L);
     return 1;

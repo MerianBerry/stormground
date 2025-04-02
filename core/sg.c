@@ -91,6 +91,7 @@ int sg_mainInit (SG* sg, char const* dir) {
 
 
   sg_luaInit (sg);
+  sg_loadLibs (sg);
   sg_runInit (sg, dir);
   fflush (stdout);
 

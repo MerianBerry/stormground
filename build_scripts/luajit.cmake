@@ -10,7 +10,7 @@ set(LJCMAKE_DIR "${LJCMAKE_DIR}/luajit-cmake")
 if (NOT EXISTS ${LJBUILD_DIR})
 execute_process(COMMAND "git" "clone" "https://github.com/LuaJIT/LuaJIT.git" "${LJBUILD_DIR}")
 endif()
-if (NOT EXISTS ${LJCMAKE_DIR})
+if (NOT EXISTS ${LJCMAKE_DIR} AND MSVC)
 execute_process(COMMAND "git" "clone" "https://github.com/zhaozg/luajit-cmake.git" "${LJCMAKE_DIR}")
 execute_process(COMMAND ${CMAKE_COMMAND}
   "."
@@ -25,21 +25,27 @@ include_directories("${LJBUILD_DIR}/src")
 
 if (MSVC)
 # Use luajit-cmake because there is no way in hell i am doing it manually
-set(LJLIB_PATH "${LJBUILD_DIR}/build/Release/libluajit.lib")
+set(LJLIB_PATH "${LJBUILD_DIR}/build/Release/libluajit.dll")
 add_custom_command(OUTPUT ${LJLIB_PATH}
                   COMMAND ${CMAKE_COMMAND} "--build" "." "--config" "Release"
                   WORKING_DIRECTORY "${LJBUILD_DIR}/build")
 add_custom_target("luajit_target" DEPENDS "${LJLIB_PATH}")
 link_directories("${LJBUILD_DIR}/build/Release")
-set(LUAJIT_LIB "libluajit" CACHE STRING "luajit lib name" FORCE)
+set(LUAJIT_LIB ${LUAJIT_PATH})
 elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
 # Just use make, and make it compilable from cmake
-set(LJLIB_PATH "${LJBUILD_DIR}/src/libluajit.a")
+set(LJLIB_PATH "${LJBUILD_DIR}/src/libluajit.so")
 add_custom_command(OUTPUT "${LJLIB_PATH}"
-COMMAND "make" "-j8"
+COMMAND "make" "-C" "src" "libluajit.so" "-j8"
 WORKING_DIRECTORY "${LJBUILD_DIR}")
 add_custom_target("luajit_target" DEPENDS "${LJLIB_PATH}")
 link_directories("${LJBUILD_DIR}/src")
-set(LUAJIT_LIB "luajit" CACHE STRING "luajit lib name" FORCE)
+set(LUAJIT_LIB ${LUAJIT_PATH})
 endif()
 
+cmake_path(GET LJLIB_PATH FILENAME LJLIB_FILE)
+add_custom_command(TARGET luajit_target POST_BUILD
+  COMMAND ${CMAKE_COMMAND}
+  "-E" "copy_if_different"
+  "${LJLIB_PATH}"
+  "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${LJLIB_FILE}")

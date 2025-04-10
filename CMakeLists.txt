@@ -36,7 +36,7 @@ execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_S
 file(GLOB SDL_SHARED "${CMAKE_BINARY_DIR}/SDL3/${DYLIB_PREFIX}*.${DYLIB_EXTENSION}")
 
 link_directories("${CMAKE_BINARY_DIR}/SDL3")
-include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_BINARY_DIR}/generated" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/core" "${CMAKE_SOURCE_DIR}/third_party/libgit2/include")
+include_directories("${CMAKE_BINARY_DIR}/SDL3/" "${CMAKE_BINARY_DIR}/generated" "${CMAKE_SOURCE_DIR}/third_party" "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/third_party/libgit2/include")
 
 set(BUILD_SHARED_LIBS OFF)
 
@@ -45,10 +45,10 @@ include(build_scripts/luajit.cmake)
 #set(LUAJIT_DIR ${CMAKE_SOURCE_DIR}/third_party/luajit)
 #include(third_party/luajit-cmake/LuaJIT.cmake)
 
-add_subdirectory(third_party/libgit2)
+#add_subdirectory(third_party/libgit2)
 
 
-add_subdirectory(core)
+add_subdirectory(src/core)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 #set_target_properties(SDL_uclibc SDL3_test SDL3-shared PROPERTIES FOLDER SDL3)
 #set_target_properties(slang slang-rt compiler-core copy_slang_headers core slang-glslang PROPERTIES FOLDER slang)

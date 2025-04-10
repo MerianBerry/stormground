@@ -1,8 +1,7 @@
 #include <ctype.h>
 #include "SDL3/SDL_shadercross.h"
 #include "scl.h"
-#include "sg_shader.h"
-#include "sg_log.h"
+#include "amp_shader.h"
 
 void sg_initShaderCompiler() {
   if (SDL_ShaderCross_Init()) {
@@ -64,7 +63,7 @@ int sg_compileShader (char const* path, char const* out) {
     }
   }
   if (!stages[0].l && !stages[1].l) {
-    sg_logWarnf ("sg", "shader %s has no entrypoints", path);
+    // sg_logWarnf ("sg", "shader %s has no entrypoints", path);
     return 1;
   }
 

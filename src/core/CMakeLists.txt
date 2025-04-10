@@ -3,21 +3,20 @@ set(SG_SOURCES
   "sg.c"
   "sg_cli.c"
   "sg_lua.c"
-  "sg_build.c"
   "sg_event.c"
   "sg_render.c"
-  "sg_shader.c"
-  "sg_build.c"
   "sg_log.c"
-  "scl.c")
+  "../scl.c")
 add_executable(sg "resource.rc" ${SG_SOURCES})
 if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
 message(STATUS "MUNDOS")
 #target_compile_options(sg PRIVATE "/fsanitize=address")
-set(SDL_LIBS "SDL3-static" "SDL3_shadercross-static" "spirv-cross-c-shared" "dxcompiler")
+set(SDL_LIBS "SDL3-static")
+# "SDL3_shadercross-static" "spirv-cross-c-shared" "dxcompiler"
 set(SDL_DEPS kernel32 user32 gdi32 winmm imm32 ole32 oleaut32 version uuid advapi32 setupapi shell32)
 else()
-set(SDL_LIBS "SDL3" "SDL3_shadercross" "spirv-cross-c-shared" "dxcompiler")
+set(SDL_LIBS "SDL3" )
+# "SDL3_shadercross" "spirv-cross-c-shared" "dxcompiler"
 set(SDL_DEPS "m")
 endif()
 target_link_libraries(sg PRIVATE ${SDL_LIBS} ${SDL_DEPS} ${LUAJIT_LIB})
@@ -30,7 +29,5 @@ clangdConfigure(sg)
 
 add_custom_command(TARGET sg PRE_LINK COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SDL_SHARED} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-add_executable("xlut" "xmlut.c" "scl.c")
-target_link_libraries("xlut" PRIVATE "m")
 #add_custom_target(engine)
 #enginebuild(engine debug)

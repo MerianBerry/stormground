@@ -7,7 +7,6 @@
 #include <time.h>
 #include <limits.h>
 
-
 #include "scl.h"
 
 #ifdef _WIN32

@@ -3,7 +3,6 @@
 #include "sg_lua.h"
 #include "sg_event.h"
 #include "sg_render.h"
-#include "sg_build.h"
 #include <stdio.h>
 #include <fcntl.h>
 
@@ -72,8 +71,6 @@ int sg_mainInit (SG* sg, char const* dir) {
   sg->wdir     = dir;
 
   sg_loadMappings (sg);
-
-  sg_runBuild (sg);
 
   SDL_Init (SDL_INIT_VIDEO | SDL_INIT_GAMEPAD);
 

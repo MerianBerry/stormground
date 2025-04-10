@@ -15,6 +15,7 @@ execute_process(COMMAND "git" "clone" "https://github.com/zhaozg/luajit-cmake.gi
 execute_process(COMMAND ${CMAKE_COMMAND}
   "."
   "-B" "${LJBUILD_DIR}/build"
+  "-DBUILD_SHARED_LIBS=TRUE"
   "-DLUAJIT_DIR=${LJBUILD_DIR}" 
   "-DCMAKE_BUILD_TYPE=Release"
   WORKING_DIRECTORY ${LJCMAKE_DIR})
@@ -42,4 +43,3 @@ link_directories("${LJBUILD_DIR}/src")
 set(LUAJIT_LIB "luajit" CACHE STRING "luajit lib name" FORCE)
 endif()
 
-    

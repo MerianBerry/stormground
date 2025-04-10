@@ -121,8 +121,8 @@ typedef struct WorkerParam {
 } WorkerParam;
 
 static int gitWorker (WorkerParam *p) {
-  git_libgit2_init();
-  git_libgit2_shutdown();
+  // git_libgit2_init();
+  // git_libgit2_shutdown();
 }
 
 int sg_downloadDeps (SG *sg, SG_BuildInfo *bi) {

@@ -128,13 +128,13 @@ void scl_waitms (double ms) {
   LARGE_INTEGER lf;
   QueryPerformanceFrequency (&lf);
   while (1) {
-      LARGE_INTEGER li2;
-      QueryPerformanceCounter (&li2);
-      if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 >
+    LARGE_INTEGER li2;
+    QueryPerformanceCounter (&li2);
+    if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 >
         ms) {
-        break;
+      break;
     }
-      _nanosleep (1000);
+    _nanosleep (1000);
   }
 #endif
 }
@@ -376,7 +376,7 @@ char const *scl_execdir() {
   GetModuleFileName (NULL, buf, PATH_MAX);
 #else
   char    buf[PATH_MAX];
-  ssize_t count  = readlink ("/proc/self/exe", buf, PATH_MAX);
+  ssize_t count = readlink ("/proc/self/exe", buf, PATH_MAX);
 #endif
   return scl_parentpath (buf);
 }
@@ -434,15 +434,15 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
   } while (FindNextFile (hFind, &ffd) != 0);
   FindClose (hFind);
 #else
-  DIR    *handle = opendir (dir);
+  DIR *handle = opendir (dir);
   while (handle) {
-      struct dirent *dp;
-      if ((dp = readdir (handle))) {
-        if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
-          struct stat file_stat;
-          char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
-          if (!stat (path, &file_stat)) {
-            if (S_ISDIR (file_stat.st_mode))
+    struct dirent *dp;
+    if ((dp = readdir (handle))) {
+      if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
+        struct stat file_stat;
+        char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
+        if (!stat (path, &file_stat)) {
+          if (S_ISDIR (file_stat.st_mode))
             scl_scanDir_ (path, mask, &buf, &dsect, &n, &m);
           else if (scl_strmatch (dp->d_name, mask))
             scl_addScanRI (buf, dsect, n, m, path);
@@ -450,8 +450,8 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
         }
       }
     } else {
-        closedir (handle);
-        handle = NULL;
+      closedir (handle);
+      handle = NULL;
     }
   }
 #endif
@@ -770,7 +770,7 @@ typedef struct scl_hnode {
   char const       *key;
   void const       *data;
   unsigned          hash;
-} * scl_hnode;
+} *scl_hnode;
 
 typedef struct scl_htab {
   unsigned char hsz;

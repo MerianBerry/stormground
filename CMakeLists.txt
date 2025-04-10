@@ -29,7 +29,7 @@ set(PYTHON_CMD "python3")
 set(SG_COMPILE_FLAGS "-std=c11")
 endif()
 
-#execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
+execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/build_SDL.py" "${CMAKE_BINARY_DIR}/SDL3")
 
 #execute_process(COMMAND ${PYTHON_CMD} "${CMAKE_SOURCE_DIR}/build_scripts/get_IntExports.py" "${CMAKE_BINARY_DIR}/SDL3")
 

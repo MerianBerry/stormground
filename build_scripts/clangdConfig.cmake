@@ -1,7 +1,7 @@
 
 function(clangdConfigure target)
 get_target_property(inc_dirs ${target} INCLUDE_DIRECTORIES)
-message(STATUS "DIRS: ${inc_dirs}")
+#message(STATUS "DIRS: ${inc_dirs}")
 set(CLANGD_INCLUDE_DIRS "")
 
 foreach(dir ${inc_dirs})

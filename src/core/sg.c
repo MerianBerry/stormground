@@ -87,6 +87,7 @@ int sg_mainInit (SG* sg, char const* dir) {
   SDL_ShowWindow (sg->win);
 
 
+  sg_logInfof ("sg", "Initing %s", dir);
   sg_luaInit (sg);
   sg_loadLibs (sg);
   sg_runInit (sg, dir);
@@ -94,6 +95,7 @@ int sg_mainInit (SG* sg, char const* dir) {
 
   // SDL_GPU_SHADERFORMAT_DXBC
 
+  sg_logInfo ("sg", "Beginning main loop");
   sg_mainLoop (sg);
   return 0;
 }

@@ -8,9 +8,11 @@ set(LJCMAKE_DIR "${LJCMAKE_DIR}/luajit-cmake")
 # Clone luajit repos
 
 if (NOT EXISTS ${LJBUILD_DIR})
+message("Cloning luajit...")
 execute_process(COMMAND "git" "clone" "https://github.com/LuaJIT/LuaJIT.git" "${LJBUILD_DIR}")
 endif()
 if (NOT EXISTS ${LJCMAKE_DIR} AND MSVC)
+message("Cloning luajit-cmake...")
 execute_process(COMMAND "git" "clone" "https://github.com/zhaozg/luajit-cmake.git" "${LJCMAKE_DIR}")
 execute_process(COMMAND ${CMAKE_COMMAND}
   "."

@@ -77,6 +77,8 @@ int scl_exists (char const *path);
 
 int scl_existsf (char const *fmt, ...);
 
+long scl_wtime (char const *path);
+
 int scl_mkdir (char const *path);
 
 void scl_hide (char const *path);
@@ -136,12 +138,42 @@ scl_htab *scl_htabcopy (scl_htab const *h);
 
 unsigned char scl_log2i (unsigned x);
 
-
-typedef struct xml_doc_s  xml_doc;
-typedef struct xml_page_s xml_page;
-typedef struct xml_view_s xml_view;
 typedef struct xml_elem_s xml_elem;
-typedef struct xml_attr_s xml_attr;
+
+typedef struct xml_view_s {
+  char *p;
+  char *e;
+} xml_view;
+
+#define xml_node_fields    \
+  xml_view         tag;    \
+  xml_view         data;   \
+  xml_elem        *parent; \
+  struct xml_node *next
+
+typedef struct xml_node {
+  xml_node_fields;
+} xml_node;
+
+typedef struct xml_attr_s {
+  xml_node_fields;
+} xml_attr;
+
+#define xml_elem_fields \
+  xml_node_fields;      \
+  xml_elem *child;      \
+  xml_elem *tail;       \
+  xml_attr *attr
+
+typedef struct xml_elem_s {
+  xml_elem_fields;
+} xml_elem;
+
+typedef struct xml_doc_s {
+  xml_elem_fields;
+  scl_page txt;
+  scl_page nodes;
+} xml_doc;
 
 void xml_free_doc (xml_doc *doc);
 
@@ -149,7 +181,9 @@ void xml_add_attr (xml_elem *elem, xml_attr *attr);
 
 void xml_add_elem (xml_elem *elem, xml_elem *child);
 
-xml_doc *xml_parse_string (char const *str);
+xml_doc *xml_load_string (char const *str);
+
+xml_doc *xml_load_file (char const *path);
 
 
 xml_doc *xml_new_doc();
@@ -160,7 +194,7 @@ xml_elem *xml_copy_elem (xml_doc *doc, xml_elem *elem);
 
 void xml_replace_elem (xml_elem *elem, xml_elem *with);
 
-xml_attr *xml_str_attribute (char const *tag, char const *str);
+/*xml_attr *xml_str_attribute (char const *tag, char const *str);
 
 xml_attr *xml_int_attribute (char const *tag, int i);
 
@@ -170,13 +204,19 @@ char const *xml_attribute_as_str (xml_attr *attr);
 
 int xml_attribute_as_int (xml_attr *attr);
 
-float xml_attribute_as_float (xml_attr *attr);
+float xml_attribute_as_float (xml_attr *attr);*/
 
 xml_attr *xml_copy_attribute (xml_doc *doc, xml_attr *attr);
 
 xml_attr *xml_find_attribute (xml_elem *elem, char const *tag);
 
 void xml_remove_attribute (xml_elem *elem, char const *tag);
+
+#define xml_tag(n) xml_tag_ ((xml_node *)n)
+char const *xml_tag_ (xml_node *n);
+
+#define xml_data(n) xml_data_ ((xml_node *)n)
+char const *xml_data_ (xml_node *n);
 
 typedef enum {
   XPATH_RESULT_ELEMENT,

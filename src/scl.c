@@ -127,13 +127,13 @@ void scl_waitms (double ms) {
   LARGE_INTEGER lf;
   QueryPerformanceFrequency (&lf);
   while (1) {
-    LARGE_INTEGER li2;
-    QueryPerformanceCounter (&li2);
-    if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 >
+      LARGE_INTEGER li2;
+      QueryPerformanceCounter (&li2);
+      if ((double)(li2.QuadPart - li.QuadPart) / (double)lf.QuadPart * 1000.0 >
         ms) {
-      break;
+        break;
     }
-    _nanosleep (1000);
+      _nanosleep (1000);
   }
 #endif
 }
@@ -333,6 +333,18 @@ int scl_existsf (char const *fmt, ...) {
   return r;
 }
 
+long scl_wtime (char const *path) {
+#if defined(__unix__)
+  stat_t s = {0};
+  if (stat (path, &s) == -1) {
+    return 0;
+  }
+  return s.st_mtim.tv_sec;
+#elif defined(_WIN32)
+  return 0;
+#endif
+}
+
 int scl_mkdir (char const *path) {
 #if defined(__unix__) || defined(__APPLE__)
   stat_t      s     = {0};
@@ -375,7 +387,7 @@ char const *scl_execdir() {
   GetModuleFileName (NULL, buf, PATH_MAX);
 #else
   char    buf[PATH_MAX];
-  ssize_t count = readlink ("/proc/self/exe", buf, PATH_MAX);
+  ssize_t count  = readlink ("/proc/self/exe", buf, PATH_MAX);
 #endif
   return scl_parentpath (buf);
 }
@@ -433,15 +445,15 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
   } while (FindNextFile (hFind, &ffd) != 0);
   FindClose (hFind);
 #else
-  DIR *handle = opendir (dir);
+  DIR    *handle = opendir (dir);
   while (handle) {
-    struct dirent *dp;
-    if ((dp = readdir (handle))) {
-      if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
-        struct stat file_stat;
-        char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
-        if (!stat (path, &file_stat)) {
-          if (S_ISDIR (file_stat.st_mode))
+      struct dirent *dp;
+      if ((dp = readdir (handle))) {
+        if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
+          struct stat file_stat;
+          char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
+          if (!stat (path, &file_stat)) {
+            if (S_ISDIR (file_stat.st_mode))
             scl_scanDir_ (path, mask, &buf, &dsect, &n, &m);
           else if (scl_strmatch (dp->d_name, mask))
             scl_addScanRI (buf, dsect, n, m, path);
@@ -449,8 +461,8 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
         }
       }
     } else {
-      closedir (handle);
-      handle = NULL;
+        closedir (handle);
+        handle = NULL;
     }
   }
 #endif
@@ -769,7 +781,7 @@ typedef struct scl_hnode {
   char const       *key;
   void const       *data;
   unsigned          hash;
-} *scl_hnode;
+} * scl_hnode;
 
 typedef struct scl_htab {
   unsigned char hsz;
@@ -928,11 +940,6 @@ unsigned char scl_log2i (unsigned x) {
     __pragma (pack (push, 1)) __Declaration__ __pragma (pack (pop))
 #endif
 
-typedef struct xml_view_s {
-  char *p;
-  char *e;
-} xml_view;
-
 typedef enum {
   XPATH_MATH_POS,
   XPATH_MATH_LAST,
@@ -992,36 +999,6 @@ typedef struct xml_buf {
   unsigned length;
   unsigned lost;
 } xml_buf;
-
-#define xml_node_fields    \
-  xml_view         tag;    \
-  xml_view         data;   \
-  xml_elem        *parent; \
-  struct xml_node *next
-
-typedef struct xml_node {
-  xml_node_fields;
-} xml_node;
-
-typedef struct xml_attr_s {
-  xml_node_fields;
-} xml_attr;
-
-#define xml_elem_fields \
-  xml_node_fields;      \
-  xml_elem *child;      \
-  xml_elem *tail;       \
-  xml_attr *attr
-
-typedef struct xml_elem_s {
-  xml_elem_fields;
-} xml_elem;
-
-typedef struct xml_doc_s {
-  xml_elem_fields;
-  scl_page txt;
-  scl_page nodes;
-} xml_doc;
 
 #define xview(_p, _e) ((xml_view){.p = (char *)(_p), .e = (char *)(_e)})
 
@@ -1351,7 +1328,7 @@ prelude_elem:
     return NULL;
 }
 
-xml_doc *xml_parse_string (char const *str) {
+xml_doc *xml_load_string (char const *str) {
   xml_doc doc;
   memset (&doc, 0, sizeof (doc));
   unsigned l = strlen (str);
@@ -1372,6 +1349,24 @@ xml_doc *xml_parse_string (char const *str) {
   xml_doc *copy = (xml_doc *)malloc (sizeof (xml_doc));
   memcpy (copy, &doc, sizeof (xml_doc));
   return copy;
+}
+
+xml_doc *xml_load_file (char const *path) {
+  scl_file *f = scl_open ("r", "cached.xml");
+  if (!f) {
+    return NULL;
+  }
+  char const *content;
+  scl_read_malloc (f, (void **)&content, -1);
+  if (!content) {
+    scl_close (f);
+    return NULL;
+  }
+  xml_doc *doc = xml_load_string (content);
+
+  free ((void *)content);
+  scl_close (f);
+  return doc;
 }
 
 xml_doc *xml_new_doc() {
@@ -1475,6 +1470,20 @@ void xml_remove_attribute (xml_elem *elem, char const *tag) {
   xml_attr *attr = xml_find_attribute (elem, tag);
   if (attr)
     xml_free_attr (attr, XML_FREE_PATCH);
+}
+
+/* TODO: allocate pulled strings on the doc, and use a hash table to prevent
+ * copies */
+char const *xml_tag_ (xml_node *n) {
+  if (!n || !n->tag.p || !n->tag.e)
+    return NULL;
+  return scl_strncopy (n->tag.p, n->tag.e - n->tag.p);
+}
+
+char const *xml_data_ (xml_node *n) {
+  if (!n || !n->data.p || !n->data.e)
+    return NULL;
+  return scl_strncopy (n->data.p, n->data.e - n->data.p);
 }
 
 static void xml_checkset (char **out, char **wp, int *size, int nlen,

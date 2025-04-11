@@ -11,7 +11,7 @@ int main (int argc, char **argv) {
     int         size = scl_read_malloc (f, (void **)&content, -1);
     if (content) {
       double   cs  = scl_clock();
-      xml_doc *doc = xml_parse_string (content);
+      xml_doc *doc = xml_load_string (content);
       double   ce  = scl_clock();
       double   mbs = (double)size / 1048576.0 / (ce - cs);
       if (doc) {

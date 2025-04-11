@@ -10,7 +10,6 @@
 ]]
 
 return {
-  "merianberry/blahblah",
   builders = {{
     -- A pattern for source files to compile
     -- rules cannot share source patterns, or overlap

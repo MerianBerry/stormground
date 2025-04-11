@@ -1,9 +1,5 @@
-#include "scl.h"
 #include <stdio.h>
-#include "SDL3/SDL_thread.h"
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+#include "amp.h"
 
 /* TODO, logging api from core */
 
@@ -40,6 +36,7 @@ static void checkSGDir (char const *dir) {
 /* Use cached data and functions to build files */
 /* File packing is handled by the core */
 static int l_build (lua_State *L) {
+  char const *dir = lua_tostring (L, 1);
 }
 
 /* Prepares the build system for user projects */
@@ -56,8 +53,30 @@ static int l_configure (lua_State *L) {
   if (!scl_exists (script)) {
     return 0;
   }
-
   luaL_dofile (L, script);
+
+  if (!lua_testtype (L, -1, LUA_TTABLE)) {
+    lua_error (L);
+    return 0;
+  }
+
+  lua_getfield (L, -1, "builders");
+  if (lua_testtype (L, -1, LUA_TTABLE)) {
+    int n = lua_objlen (L, -1);
+    // lua indexes at 1
+    for (int i = 1; i <= n; i++) {
+      lua_rawgeti (L, -1, i);
+      if (lua_testtype (L, -1, LUA_TTABLE)) {
+      }
+    }
+  }
+
+  lua_getfield (L, -1, "config");
+  if (lua_testtype (L, -1, LUA_TFUNCTION)) {
+  }
+  lua_pcall (L, 0, 0, 0);
+  lua_pop (L, 1);
+  return 0;
 }
 
 int luaopen_amp (lua_State *L) {

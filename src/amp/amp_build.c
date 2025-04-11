@@ -60,5 +60,6 @@ static int l_configure (lua_State *L) {
   luaL_dofile (L, script);
 }
 
-int luaopen_sgsdk (lua_State *L) {
+int luaopen_amp (lua_State *L) {
+  return 0;
 }

@@ -26,12 +26,18 @@ include_directories("${LJBUILD_DIR}/src")
 if (MSVC)
 # Use luajit-cmake because there is no way in hell i am doing it manually
 set(LJLIB_PATH "${LJBUILD_DIR}/build/Release/libluajit.dll")
+set(LJIMPLIB_PATH "${LJBUILD_DIR}/build/Release/libluajit.lib")
 add_custom_command(OUTPUT ${LJLIB_PATH}
                   COMMAND ${CMAKE_COMMAND} "--build" "." "--config" "Release"
                   WORKING_DIRECTORY "${LJBUILD_DIR}/build")
 add_custom_target("luajit_target" DEPENDS "${LJLIB_PATH}")
 link_directories("${LJBUILD_DIR}/build/Release")
-set(LUAJIT_LIB ${LUAJIT_PATH})
+
+add_library(libluajit SHARED IMPORTED GLOBAL)
+add_dependencies(libluajit luajit_target)
+set_target_properties(libluajit PROPERTIES
+  IMPORTED_LOCATION ${LJLIB_PATH}
+  IMPORTED_IMPLIB ${LJIMPLIB_PATH})
 elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
 # Just use make, and make it compilable from cmake
 set(LJLIB_PATH "${LJBUILD_DIR}/src/libluajit.so")
@@ -40,7 +46,11 @@ COMMAND "make" "-C" "src" "libluajit.so" "-j8"
 WORKING_DIRECTORY "${LJBUILD_DIR}")
 add_custom_target("luajit_target" DEPENDS "${LJLIB_PATH}")
 link_directories("${LJBUILD_DIR}/src")
-set(LUAJIT_LIB ${LUAJIT_PATH})
+
+add_library(libluajit SHARED IMPORTED)
+add_dependencies(libluajit luajit_target)
+set_target_properties(libluajit PROPERTIES
+  IMPORTED_LOCATION ${LJLIB_PATH})
 endif()
 
 cmake_path(GET LJLIB_PATH FILENAME LJLIB_FILE)

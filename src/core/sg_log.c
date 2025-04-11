@@ -32,7 +32,7 @@ void sg_echo (char echo) {
 static int sg_preLog() {
   if (!log_ && trylog) {
     char const* exdir = scl_execdir();
-    log_              = scl_openf ("w", "%s/storm.log_", exdir);
+    log_              = scl_openf ("w", "%s/storm.log", exdir);
     trylog            = !log_;
   }
   return !trylog;

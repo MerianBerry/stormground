@@ -8,11 +8,11 @@ import sys
 import glob
 
 SDL_TAG = "release-3.2.4"
-WORKING_DIR = os.path.expanduser("~/source/SDL3")
 
 sys.platform
 INSTALL_DIR = sys.argv[1]
 INSTALL_INCLUDE_DIR = os.path.join(INSTALL_DIR, "SDL3")
+WORKING_DIR = INSTALL_DIR + "/source"
 
 if sys.platform == "win32":
   BUILD_FLAGS = ["--config Release"]

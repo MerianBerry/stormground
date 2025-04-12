@@ -9,14 +9,13 @@
   so using `require` in build time functions will not have significant impace.
 ]]
 
+
 return {
-  builders = {{
+  rules = {{
     -- A pattern for source files to compile
     -- rules cannot share source patterns, or overlap
     from = "*.hlsl",
-    -- A list of possible output patterns to check
-    -- different rules can share the same output pattern
-    to = {"*.bin"},
+    to = "*.bin",
     -- A build function that respects the given constraints.
     -- This function is not required to output a file.
     -- but if a given input should be skipped for this rule, return nil.
@@ -31,7 +30,6 @@ return {
     end
   }},
   config = function()
-
   end,
   build = function()
 

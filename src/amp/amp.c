@@ -60,25 +60,38 @@ static int l_configure (lua_State *L) {
     return 0;
   }
 
-  lua_getfield (L, -1, "builders");
+
+  lua_getfield (L, -1, "rules");
   if (lua_testtype (L, -1, LUA_TTABLE)) {
     int n = lua_objlen (L, -1);
     // lua indexes at 1
     for (int i = 1; i <= n; i++) {
       lua_rawgeti (L, -1, i);
       if (lua_testtype (L, -1, LUA_TTABLE)) {
+        lua_getfield (L, -1, "from");
+        lua_getfield (L, -2, "to");
+        lua_getfield (L, -3, "build");
       }
+      lua_pop (L, 1);
     }
   }
+  lua_pop (L, 1);
 
   lua_getfield (L, -1, "config");
   if (lua_testtype (L, -1, LUA_TFUNCTION)) {
+    lua_pcall (L, 0, 0, 0);
   }
-  lua_pcall (L, 0, 0, 0);
   lua_pop (L, 1);
   return 0;
 }
 
+static const luaL_Reg amplib[] = {
+  {"configure", l_configure},
+  {"build", l_build},
+  {NULL, NULL},
+};
+
 int luaopen_amp (lua_State *L) {
+  luaL_openlib (L, "amp", amplib, 0);
   return 0;
 }

@@ -56,11 +56,25 @@ int sg_luaInit (SG *sg) {
   lua_setfield (L, -2, "_tickCBs");
 
   lua_setglobal (L, "sg");
+  lua_getglobal (L, "package");
+  lua_getfield (L, -1, "cpath");
+  char const *exdir = scl_execdir();
+  char const *fpath = scl_fmt ("%s;%s/lib?.so", lua_tostring (L, -1), exdir);
+  free ((void *)exdir);
+  lua_pop (L, 1);
+  lua_pushstring (L, fpath);
+  lua_setfield (L, -2, "cpath");
+  free ((void *)fpath);
   return 0;
 };
 
 int sg_loadLibs (SG *sg) {
   sg_loadEventLib (sg->L);
+  luaL_dostring (sg->L, "amp = require\"amp\"");
+  if (lua_testtype (sg->L, -1, LUA_TSTRING)) {
+    sg_echoErrorf ("lua hates fun: %s", lua_tostring (sg->L, -1));
+    return 0;
+  }
   return 0;
 }
 

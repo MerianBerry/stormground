@@ -14,4 +14,7 @@
     lua_pcall (L, 2, 0, 0);          \
   }
 
+#define amp_dumpfun(L, i) \
+  { lua_pushvalue (L, i); }
+
 #endif

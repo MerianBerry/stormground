@@ -9,6 +9,12 @@ typedef struct amp_cached {
   long        owtime;
 } amp_cached;
 
+typedef struct amp_rule {
+  char const *from;
+  char const *to;
+  char const *dump;
+} amp_rule;
+
 typedef struct amp_cache {
   scl_page  mem;
   scl_htab *caches;

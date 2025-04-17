@@ -1,6 +1,10 @@
 
 function onTick()
-  stormground.setColor(255,255,255)
   x,y=stormground.getCursor()
-  stormground.drawLine(50,50,x,y)
+  if stormground.getKey("space") == "pressed" then
+    print "hello"
+  end
+  if stormground.getScroll() ~= 0 then
+    print(stormground.getScroll())
+  end
 end

@@ -15,14 +15,7 @@
 #include "sgapi.h"
 #include "sgimage.h"
 
-#define shad(name)                                    \
-  extern char const _binary_shaders_##name##_start[]; \
-  extern char const _binary_shaders_##name##_end[];   \
-  static size_t     _binary_shaders_##name##_size = 0
-
-shad (main_vert);
-shad (main_frag);
-shad (main_comp);
+#include "minilua.h"
 
 static SGstate state;
 
@@ -95,6 +88,7 @@ typedef struct PackedVert {
 int main (int argc, char** argv) {
   state          = (SGstate){0};
   state.mappings = scl_htabnew();
+  state.bmaps    = scl_htabnew();
 
   ssboBuf = malloc (sizeof (struct SSBO));
   if (!ssboBuf) {
@@ -108,8 +102,12 @@ int main (int argc, char** argv) {
   state.tfps = 60.f;
   state.ssbo = ssboBuf;
 
-  if (sgRunCli (&state, argc, argv)) {
+  /*if (sgRunCli (&state, argc, argv)) {
     return 1;
+  }*/
+
+  if (!state.name) {
+    state.name = (char*)scl_strcopy ("Stormground 1.4");
   }
 
   glfwInit();
@@ -173,32 +171,7 @@ int main (int argc, char** argv) {
   glfwSetCursorPosCallback (state.win, sgCursorPosCallback);
   // glfwSetJoystickCallback (sgJoystickCallback);
 
-  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable (GL_BLEND);
-
-  _binary_shaders_main_vert_size =
-      _binary_shaders_main_vert_end - _binary_shaders_main_vert_start;
-  uint32_t vShader =
-      sgCompileShader (GL_VERTEX_SHADER, _binary_shaders_main_vert_start,
-                       _binary_shaders_main_vert_size);
-  if (!vShader) {
-    fprintf (stderr, "Vertex shader compile fail\n");
-    glfwTerminate();
-    exit (3);
-  }
-
-  _binary_shaders_main_frag_size =
-      _binary_shaders_main_frag_end - _binary_shaders_main_frag_start;
-  uint32_t fShader =
-      sgCompileShader (GL_FRAGMENT_SHADER, _binary_shaders_main_frag_start,
-                       _binary_shaders_main_frag_size);
-  if (!fShader) {
-    fprintf (stderr, "Fragment shader compile fail\n");
-    glfwTerminate();
-    exit (3);
-  }
-  _binary_shaders_main_comp_size =
-      _binary_shaders_main_comp_end - _binary_shaders_main_comp_start;
+#if 0
   uint32_t cShader =
       sgCompileShader (GL_COMPUTE_SHADER, _binary_shaders_main_comp_start,
                        _binary_shaders_main_comp_size);
@@ -275,9 +248,13 @@ int main (int argc, char** argv) {
                 GL_DYNAMIC_READ);
   glBindBufferBase (GL_SHADER_STORAGE_BUFFER, 1, ssbo);
   glBindBuffer (GL_SHADER_STORAGE_BUFFER, 0);
-
-  SGscript sgscr = {0};
-  sgDoFile (&sgscr, &state, "main.lua");
+#endif
+  lua_State* L = sgNewScript (&state);
+  if (!scl_exists ("main.lua"))
+    return fprintf (stderr, "failed to open main.lua\n"), 1;
+  if (luaL_dofile (L, "main.lua")) {
+    return fprintf (stderr, "script error: %s\n", lua_tostring (L, -1)), 1;
+  }
 
   double cputime = 0.0;
   float  delta   = 0.0;
@@ -326,12 +303,13 @@ int main (int argc, char** argv) {
       notef ("Pressed A! %.3f\n",
              state.gpads[1].gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
     }*/
-    if (sgCallGlobal (&sgscr, "onTick")) {
-      exit (5);
+    lua_getglobal (L, "onTick");
+    if (lua_pcall (L, 0, 0, 0)) {
+      return fprintf (stderr, "script error: %s\n", lua_tostring (L, -1)), 5;
     }
 
     ssboBuf->time = state.time / 1000.0;
-
+#if 0
     glBindBuffer (GL_SHADER_STORAGE_BUFFER, ssbo);
     glBufferSubData (
         GL_SHADER_STORAGE_BUFFER, 0,
@@ -356,6 +334,7 @@ int main (int argc, char** argv) {
     glBindVertexArray (0);
 
     glfwSwapBuffers (state.win);
+#endif
     sgAdvanceInputs();
     glfwPollEvents();
 
@@ -374,7 +353,7 @@ int main (int argc, char** argv) {
     state.delta = delta;
   }
 
-  glDeleteVertexArrays (1, &VAO);
+  // glDeleteVertexArrays (1, &VAO);
 
   free ((void*)state.name);
   free ((void*)state.projectDir);

@@ -1,23 +1,25 @@
 #define _XOPEN_SOURCE 700
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <limits.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <limits.h>
 
 #include "scl.h"
 
 #ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
-#  include <windows.h>
 #  include <io.h>
+#  include <windows.h>
+
 #  define access _access
 #  define F_OK   0
 #else
-#  include <unistd.h>
 #  include <dirent.h>
+#  include <unistd.h>
+
 typedef struct timespec timespec_t;
 typedef struct stat     stat_t;
 typedef struct DIR      DIR_t;
@@ -27,6 +29,53 @@ typedef struct dirent   dirent_t;
 #ifndef PATH_MAX
 #  define PATH_MAX 512
 #endif
+
+static int seed_ = 1;
+
+int scl_rand() {
+  seed_ *= (seed_ * 33 + 7) >> 2;
+  return seed_;
+}
+
+void scl_srand (int seed) {
+  seed_ = seed;
+}
+
+int scl_listadd (scl_list *l, void *data) {
+  if (!l)
+    return 0;
+  // Min elements is 4, where l->m==1
+  if (!l->data || l->count + 1 > (2 << l->m)) {
+    int    m    = l->m + 1;
+    void **ndat = (void **)malloc (sizeof (void *) * (2 << m));
+    if (!ndat)
+      return 0;
+    if (l->data)
+      memcpy (ndat, l->data, sizeof (void *) * (l->count)), free (l->data);
+    l->m    = m;
+    l->data = ndat;
+  }
+  l->data[l->count++] = data;
+  return l->count;
+}
+
+int scl_listrm (scl_list *l, int i) {
+  if (!l || i < 0 || i >= l->count || !l->data)
+    return 0;
+  memcpy (l->data + i, l->data + i + 1, sizeof (void *) * (l->count - i - 1));
+  return --l->count;
+}
+
+int scl_listins (scl_list *l, int i, void *data) {
+  if (!l || i < 0 || i > l->count || !l->data)
+    return 0;
+  // Cant use memcpy here
+  int i2 = l->count;
+  for (; i2 > i; i2--)
+    l->data[i2] = l->data[i2 - 1];
+  l->data[i] = data;
+  return ++l->count;
+}
 
 static void scl_pageset (scl_page *page, unsigned size) {
   page->next_ = NULL;
@@ -417,7 +466,7 @@ char const *scl_execdir() {
       memcpy (dsect + PATH_MAX * (n - 1), I, strlen (I) + 1); \
   }
 
-static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
+static int scl_scandir_ (char const *dir, char const *mask, char ***buf_,
                          char **dsect_, int *n_, int *m_) {
   char **buf   = *buf_;
   char  *dsect = *dsect_;
@@ -432,10 +481,11 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
   if (hFind == NULL)
     return 1;
   do {
-    if (!!strcmp (ffd.cFileName, ".") && !!strcmp (ffd.cFileName, "..")) {
+    if (!!strcmp (ffd.cFileName, ".") && !!strcmp (ffd.cFileName, "..") &&
+        !!strcmp (ffd.cFileName, ",")) {
       char const *I = scl_fmt ("%s\\%s", dir, ffd.cFileName);
       if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-        scl_scanDir_ (I, mask, &buf, &dsect, &n, &m);
+        scl_scandir_ (I, mask, &buf, &dsect, &n, &m);
       } else {
         scl_addScanRI (buf, dsect, n, m, I);
       }
@@ -453,7 +503,7 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
           char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
           if (!stat (path, &file_stat)) {
             if (S_ISDIR (file_stat.st_mode))
-            scl_scanDir_ (path, mask, &buf, &dsect, &n, &m);
+            scl_scandir_ (path, mask, &buf, &dsect, &n, &m);
           else if (scl_strmatch (dp->d_name, mask))
             scl_addScanRI (buf, dsect, n, m, path);
           free ((void *)path);
@@ -472,14 +522,78 @@ static int scl_scanDir_ (char const *dir, char const *mask, char ***buf_,
   return 0;
 }
 
-char const **scl_scanDir (char const *dir, char const *mask, int *count) {
+char const **scl_scandir (char const *dir, char const *mask, int *count) {
   char **buf   = NULL;
   char  *dsect = NULL;
   int    n     = 0;
   int    m     = -1;
 
   // char const *abs = scl_realpath (dir);
-  scl_scanDir_ (dir, mask, &buf, &dsect, &n, &m);
+  scl_scandir_ (dir, mask, &buf, &dsect, &n, &m);
+  // free ((void *)abs);
+
+  (*count) = n;
+  return (char const **)buf;
+}
+
+static int scl_glob_ (char const *dir, char const *mask, char ***buf_,
+                      char **dsect_, int *n_, int *m_) {
+  char **buf   = *buf_;
+  char  *dsect = *dsect_;
+  int    n     = *n_;
+  int    m     = *m_;
+
+#ifdef _WIN32
+  HANDLE           hFind = NULL;
+  WIN32_FIND_DATAA ffd;
+  char const      *spec = scl_fmt_static ("%s\\%s", dir, mask);
+  hFind                 = FindFirstFileA (spec, &ffd);
+  if (hFind == NULL)
+    return 1;
+  do {
+    if (!!strcmp (ffd.cFileName, ".") && !!strcmp (ffd.cFileName, "..") &&
+        !!strcmp (ffd.cFileName, ",")) {
+      char const *I = scl_fmt ("%s\\%s", dir, ffd.cFileName);
+      scl_addScanRI (buf, dsect, n, m, I);
+      free ((void *)I);
+    }
+  } while (FindNextFile (hFind, &ffd) != 0);
+  FindClose (hFind);
+#else
+  DIR *handle = opendir (dir);
+  while (handle) {
+      struct dirent *dp;
+      if ((dp = readdir (handle))) {
+        if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
+          struct stat file_stat;
+          char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
+          if (!stat (path, &file_stat)) {
+            if (scl_strmatch (dp->d_name, mask))
+            scl_addScanRI (buf, dsect, n, m, path);
+          free ((void *)path);
+        }
+      }
+    } else {
+        closedir (handle);
+        handle = NULL;
+    }
+  }
+#endif
+  (*buf_)   = buf;
+  (*dsect_) = dsect;
+  (*n_)     = n;
+  (*m_)     = m;
+  return 0;
+}
+
+char const **scl_glob (char const *dir, char const *mask, int *count) {
+  char **buf   = NULL;
+  char  *dsect = NULL;
+  int    n     = 0;
+  int    m     = -1;
+
+  // char const *abs = scl_realpath (dir);
+  scl_glob_ (dir, mask, &buf, &dsect, &n, &m);
   // free ((void *)abs);
 
   (*count) = n;
@@ -683,6 +797,18 @@ char const *scl_strreplace (char const *str, char const *old,
     str += p + strlen (old);
   }
   return out;
+}
+
+char const *scl_randstr (int len) {
+  static char const rchars[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  char *str = malloc ((size_t)len + 1);
+  str[len]  = 0;
+  int i;
+  for (i = 0; i < len; i++) {
+    str[i] = rchars[scl_rand_int (0, sizeof (rchars) - 1)];
+  }
+  return str;
 }
 
 static char match (char const *pattern, char const *candidate, int p, int c) {

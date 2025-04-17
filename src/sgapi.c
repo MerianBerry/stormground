@@ -7,8 +7,10 @@
 #include "sgimage.h"
 #include <string.h>
 
+#define LUA_IMPL
 #include "minilua.h"
 
+#if 0
 void dr (SGstate* sg, float x, float y, float w, float h, char hollow) {
   SGprimitive r = {0};
   r.t           = SG_PRIMITIVE_RECT;
@@ -92,10 +94,10 @@ int sgDrawStr (SGstate* sg, char* str, float _x, float _y, float size) {
   return 1;
 }
 
-#define CommonAPIHeader(state)                          \
-  lua_getglobal ((state), "__SGSTATE");                 \
-  SGstate* sgs = (SGstate*)lua_tointeger ((state), -1); \
-  lua_pop ((state), 1)
+#  define CommonAPIHeader(state)                          \
+    lua_getglobal ((state), "__SGSTATE");                 \
+    SGstate* sgs = (SGstate*)lua_tointeger ((state), -1); \
+    lua_pop ((state), 1)
 
 /*           INPUT API           */
 
@@ -385,9 +387,9 @@ int l_setColor (lua_State* L) {
   return 0;
 }
 
-#define CommonAPIFun(L, i, name)     \
-  lua_pushcfunction ((L), l_##name); \
-  lua_setfield ((L), (i), #name)
+#  define CommonAPIFun(L, i, name)     \
+    lua_pushcfunction ((L), l_##name); \
+    lua_setfield ((L), (i), #name)
 
 int sgPrepState (SGscript* script, SGstate* sgs) {
   script->L    = luaL_newstate();
@@ -470,17 +472,26 @@ int sgDoFile (SGscript* script, SGstate* sgs, char const* path) {
   return SG_API_OK;
 }
 
-int sgCallGlobal (SGscript* script, char const* name) {
-  lua_getglobal (script->L, name);
-  if (lua_isnil (script->L, -1)) {
-    lua_pop (script->L, 1);
-    errorf ("Global %s does not exist\n", name);
-    return SG_API_BAD_GLOBAL;
-  }
-  if (lua_pcall (script->L, 0, 0, 0) != 0) {
-    errorf ("Failed to call global function %s:\n\t%s\n", name,
-            lua_tostring (script->L, -1));
-    return SG_API_BAD_CALL;
-  }
-  return SG_API_OK;
+#endif
+
+lua_State* sgNewScript (SGstate* sgs) {
+  lua_State* L = luaL_newstate();
+  luaL_openlibs (L);
+
+  lua_getglobal (L, "os");
+  lua_pushnil (L);
+  lua_setfield (L, -2, "execute");
+  lua_pushnil (L);
+  lua_setfield (L, -2, "exit");
+  lua_pop (L, 1);
+
+  lua_pushinteger (L, (intptr_t)sgs);
+  lua_setglobal (L, "__SGSTATE");
+
+  lua_newtable (L);
+
+  sgInputOpenLibs (L);
+
+  lua_setglobal (L, "stormground");
+  return L;
 }

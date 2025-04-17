@@ -4,7 +4,7 @@
 
 PLAT= 
 CC= gcc
-CFLAGS= -O2 -std=c99
+CFLAGS= -O2 -std=c11
 LDFLAGS=
 SG_E= 
 LIBS= 
@@ -54,6 +54,9 @@ resource:
 all: $(OBJECTS) $(SHADEROBJS) $(RESOBJ)
 	$(CC) -L../lib -L../build $(OBJECTS) $(SHADEROBJS) $(EXTOBJECTS) $(RESOBJ) -o $(SG_E) $(LIBS)
 	@mv $(SG_E) ../build/$(SG_E)
+
+minilua: minilua.c
+	$(CC) $(CFLAGS) minilua.c $@
 
 shaders/%.o: shaders/%
 	ld -r -b binary $< -o $@

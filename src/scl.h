@@ -9,6 +9,30 @@
 extern "C" {
 #endif
 
+#if defined(_WIN32)
+#  define SCL_EXPORT __declspec(dllexport)
+#else
+#  define SCL_EXPORT
+#endif
+
+int scl_rand();
+
+#define scl_rand_int(min, max) ((scl_rand() % ((max) - (min) + 1)) + (min))
+
+void scl_srand (int);
+
+typedef struct scl_list {
+  void **data;
+  int    count;
+  int    m;
+} scl_list;
+
+int scl_listadd (scl_list *l, void *);
+
+int scl_listrm (scl_list *l, int i);
+
+int scl_listins (scl_list *l, int i, void *);
+
 #define SCL_DEFAULT_PAGE_SIZE 4096
 
 typedef struct scl_page {
@@ -87,7 +111,9 @@ int scl_chdir (char const *dir);
 
 char const *scl_execdir();
 
-char const **scl_scanDir (char const *dir, char const *mask, int *count);
+char const **scl_scandir (char const *dir, char const *mask, int *count);
+
+char const **scl_glob (char const *dir, char const *mask, int *count);
 
 int scl_utf8_chsize (unsigned char c);
 
@@ -120,7 +146,11 @@ char const *scl_strcat2 (char *str, char const *str2);
 
 char const *scl_strreplace (char const *str, char const *old, char const *with);
 
+char const *scl_randstr (int len);
+
 char scl_strmatch (char const *str, char const *pattern);
+
+unsigned int scl_strhash (char const *str);
 
 typedef struct scl_htab scl_htab;
 

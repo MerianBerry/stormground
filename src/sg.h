@@ -13,11 +13,16 @@
 #include "GLFW/glfw3.h"
 #include "scl.h"
 
-#define SG_MAJOR        1
-#define SG_MINOR        2
-#define SG_VERNAME      "1.4"
+#define SG_MAJOR         1
+#define SG_MINOR         2
+#define SG_VERNAME       "1.4"
 
-#define SG_GAMEPAD_LAST GLFW_JOYSTICK_8
+#define SG_GAMEPAD_LAST  GLFW_JOYSTICK_8
+
+#define SG_MAX_MONHEIGHT 720
+#define SG_MAX_MONWIDTH  1280
+
+#define SG_MAX_PEELS     8
 
 typedef struct lua_State lua_State;
 
@@ -81,6 +86,13 @@ typedef struct SSBO {
   int         primc;
   SGprimitive primv[0xffff];
 } SSBO;
+
+typedef struct SGrenderPipe {
+  SGimage  depth;
+  SGimage  color;
+  uint32_t program;
+
+} SGrenderPipe;
 
 typedef struct Gamepad {
   GLFWgamepadstate gstate;

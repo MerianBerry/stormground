@@ -1,6 +1,6 @@
 #include "sg.h"
 
-#include "cJSON/cJSON.h"
+#include "cJSON.h"
 
 #include <stdio.h>
 #include <stdlib.h>

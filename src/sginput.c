@@ -230,6 +230,9 @@ static const luaL_Reg libfuncs[] = {
 void sgInputOpenLibs (lua_State *L) {
   char buf[4];
   char c;
+
+  luaL_setfuncs (L, libfuncs, 0);
+
   buf[1] = 0;
   for (c = 'A'; c <= (char)'Z'; c++) {
     buf[0] = c;
@@ -283,10 +286,6 @@ void sgInputOpenLibs (lua_State *L) {
   kbut ("button6", GLFW_MOUSE_BUTTON_6);
   kbut ("button7", GLFW_MOUSE_BUTTON_7);
   kbut ("button8", GLFW_MOUSE_BUTTON_8);
-
-  lua_getglobal (L, "sg");
-  luaL_setfuncs (L, libfuncs, 0);
-  lua_setglobal (L, "sg");
 }
 
 void sgSetInputState (SGstate *state) {

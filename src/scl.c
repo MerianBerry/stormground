@@ -203,7 +203,7 @@ double scl_clock() {
   QueryPerformanceCounter (&pc);
   QueryPerformanceFrequency (&pf);
   return (double)(pc.QuadPart - base_clock.QuadPart) / (double)pf.QuadPart;
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__APPLE__)
   timespec_t ts;
   timespec_get (&ts, 1);
   return (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000.0;
@@ -317,8 +317,8 @@ char const *scl_realpath (char const *rel) {
   static char fpath[PATH_MAX];
 #if defined(_WIN32)
   _fullpath (fpath, rel, PATH_MAX);
-#elif defined(__unix__)
-  realpath (rel, fpath);
+#elif defined(__unix__) || defined(__APPLE__)
+  char *_ = realpath (rel, fpath);
 #endif
   char *copy = malloc (PATH_MAX);
   memcpy (copy, fpath, PATH_MAX);
@@ -382,7 +382,7 @@ int scl_existsf (char const *fmt, ...) {
 }
 
 long scl_wtime (char const *path) {
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
   stat_t s = {0};
   if (stat (path, &s) == -1) {
     return 0;
@@ -423,7 +423,7 @@ void scl_hide (char const *path) {
 int scl_chdir (char const *dir) {
 #if defined(_WIN32)
   return !SetCurrentDirectory (dir);
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__APPLE__)
   return chdir (dir);
 #endif
 }
@@ -1809,6 +1809,7 @@ xpath_exp *xml_xpath (char const *exp) {
   char      *s = (char *)exp, *p = (char *)exp;
   xpath_exp *top  = NULL;
   xpath_exp *last = NULL;
+  xpath_exp *copy = NULL;
   while (*p) {
     s = p;
     xpath_exp e;
@@ -1914,7 +1915,7 @@ xpath_exp *xml_xpath (char const *exp) {
     }
 
 post_exp:
-    xpath_exp *copy = (xpath_exp *)malloc (sizeof (e));
+    copy = (xpath_exp *)malloc (sizeof (e));
     memcpy (copy, &e, sizeof (e));
     if (top)
       last->sub = copy, last = copy;

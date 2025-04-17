@@ -3,4 +3,6 @@
 #include "sg.h"
 
 int sgInitRenderPipe (SGstate *sgs);
+
+int sgDrawRenderPipe (SGstate *sgs, int w, int h);
 #endif

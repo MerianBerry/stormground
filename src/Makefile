@@ -1,79 +1,61 @@
+#
 
+ALL:= all
 
 #==================BUILD SETTINGS==================#
 
-PLAT= 
-CC= gcc
-CFLAGS= -O2 -std=c11
-LDFLAGS=
-SG_E= 
-LIBS= 
-
 MKCLIFLAGS= "--no-print-directory"
-PLATS := linux mingw
-SG_N= stormground
+CC:=
+CFLAGS:=
+LDFLAGS:=
+SG_EXE:= sg
 
-RESOURCE=resource.rc
-RESOBJ=
+W32_RES= resources/resource.res
 
-ALL= all
+SG_OBJECTS= scl.o sg.o sgapi.o sgcli.o sgimage.o sginput.o sgrender.o sgshader.o cJSON.o glad.o
+SH_HEADERS= shaders/main_vert.h shaders/main_frag.h
 
-SOURCES := $(wildcard *.c)
-OBJECTS := $(patsubst %.c, %.o, $(SOURCES))
-SHADERS := $(wildcard shaders/*.vert) $(wildcard shaders/*.frag) $(wildcard shaders/*.comp)
-SHADEROBJS := $(patsubst %, %.o, $(SHADERS))
-EXTOBJECTS= ../lib/cJSON/cJSON.o ../lib/glad.o ../lib/hydrogen/hydrogen.o
+ifeq ($(PLAT), mingw)
+SG_OBJECTS:= $(SG_OBJECTS) $(W32_RES)
+endif
 
-$(if $(shell which clang-format), $(eval CFMT=clang-format), $(info clang-format isnt present and will not format code))
-
-#==================TARGET SETTINGS=================#
-
-target: $(PLAT)
-
-Linux linux:
-	@echo Building $(SG_N) for linux
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=linux SG_E=$(SG_N) LIB_PREF=lib LIB_EXT=.a CFLAGS="-O2 -std=c11 -I../include -I../lib" LIBS="-llua -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm" 
-
-mingw:
-	@echo Building $(SG_N).exe for Windows
-	$(MAKE) $(MKCLIFLAGS) $(ALL) PLAT=mingw SG_E=$(SG_N).exe RESOBJ=resource.res LIB_EXT=.lib CC="x86_64-w64-mingw32-gcc" CFLAGS="-O2 -std=c99 -Wno-overflow -I../include -I../lib" LIBS="-llua -lglfw3mingw -lm -lopengl32 -lgdi32 -ldwmapi"
-
-#======================BUILD=======================#
-
-echo:
-	@echo PLAT=$(PLAT)
-	@echo CC=$(CC)
-	@echo CFLAGS=$(CFLAGS)
-	@echo LDFLAGS=$(LDFLAGS)
-	@echo SG_E=$(SG_E)
-	@echo LIBS=$(LIBS)
-
-resource:
-	x86_64-w64-mingw32-windres resource.rc -O coff resource.res
-
-all: $(OBJECTS) $(SHADEROBJS) $(RESOBJ)
-	$(CC) -L../lib -L../build $(OBJECTS) $(SHADEROBJS) $(EXTOBJECTS) $(RESOBJ) -o $(SG_E) $(LIBS)
-	@mv $(SG_E) ../build/$(SG_E)
-
-minilua: minilua.c
-	$(CC) $(CFLAGS) minilua.c $@
-
-shaders/%.o: shaders/%
-	ld -r -b binary $< -o $@
+#=====================TARGETS======================#
 
 %.res: %.rc
 	x86_64-w64-mingw32-windres -O coff -o $@ $<
-	
 
+all: $(SG_EXE)
+	@mv $(SG_EXE) ../build/$(SG_EXE)
+
+$(SG_EXE):
+	@echo ===========STORMGROUND============
+	@$(MAKE) $(MKCLIFLAGS) PLAT=$(PLAT) CC=$(CC) CFLAGS="$(CFLAGS)" $(SG_OBJECTS)
+	@echo CC $(SG_OBJECTS)
+	@$(CC) $(SG_OBJECTS) $(LDFLAGS) -o $@
+
+shaders/main_%.h: shaders/main.%
+	@echo xxd $<
+	@xxd -i $< $@
+
+shaders: $(SH_HEADERS)
+
+minilua.o: minilua.c 
+scl.o: scl.c 
+sg.o: sg.c
+sgapi.o: sgapi.c 
+sgcli.o: sgcli.c 
+sgimage.o: sgimage.c 
+sginput.o: sginput.c 
+sgrender.o: sgrender.c $(SH_HEADERS)
+sgshader.o: sgshader.c 
+cJSON.o: cJSON.c
+glad.o: glad.c
+
+%.o: %.c
+	@echo CC $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+#========================MISC======================#
 clean:
-	rm -f $(OBJECTS) $(SG_E) shaders/*.o *.res
-
-.PHONY: target format
-
-sg.o: sg.c sg.h sgshader.h sginput.h sgcli.h 
-sginput.o: sginput.c sginput.h sg.h
-sgcli.o: sgcli.c sgcli.h sg.h
-sgshader.o: sgshader.c sgshader.h sg.h
-sgapi.o: sgapi.c sgapi.h sg.h
-sgimage.o: sgimage.c sgimage.h sg.h
+	rm -rf *.o $(SH_HEADERS)
 #end of file

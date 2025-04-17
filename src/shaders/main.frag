@@ -1,16 +1,13 @@
-#version 460 core
+#version 410 core
 
 out vec4 FragColor;
 
-in vec2           UV;
-uniform sampler2D screen;
-
-vec3 v3pow (vec3 v, float p) {
-  return vec3 (pow (v.r, p), pow (v.g, p), pow (v.b, p));
-}
+in vec3           vPos;
+in vec4           col;
+uniform sampler2D depth;
 
 void main() {
-  FragColor = texture (screen, UV);
-
-  FragColor = vec4 (pow (FragColor.rgb, vec3 (1.0)), 1.0);
+  /*if (vPos.z <= texture2D (depth, vPos.xy).r)
+    discard;*/
+  FragColor = col;
 }

@@ -10,16 +10,14 @@ PLAT= guess
 PLATS := guess linux mingw
 MKCLIFLAGS= "--no-print-directory"
 UNAME= uname
-WHICH= which
 CC:= gcc
-LDFLAGS:= 
-IDIRS:= 
 CSTANDARD:= -std=c11
 OFLAGS:= -O2
-CFLAGS= $(CSTANDARD) $(OFLAGS) $(IDIRS)
-SG_EXE:= build/sg
-
-SG_OBJECTS:= src/scl.o src/sg.o src/sgapi.o src/sgcli.o src/sgimage.o src/sginput.o src/sgrender.o src/sgshader.o src/cJSON.o src/glad.o
+IDIRS:= 
+CFLAGS:= $(CSTANDARD) $(OFLAGS) $(IDIRS)
+LDFLAGS:= 
+LDDIRS:= -L../lib
+SG_EXE:= sg
 
 #==================TARGET SETTINGS=================#
 
@@ -30,48 +28,30 @@ guess:
 	@$(MAKE) $(MKCLIFLAGS) `$(UNAME)` OFLAGS="$(OFLAGS)"
 
 Linux linux:
-	@$(MAKE) $(MKCLIFLAGS) all PLAT=linux CSTANDARD="-std=gnu11" OFLAGS="$(OFLAGS)" LDFLAGS="-Llib -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm"
+	@$(MAKE) $(MKCLIFLAGS) all CSTANDARD="-std=gnu11" OFLAGS="$(OFLAGS)" LDFLAGS="$(LDDIRS) -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm"
 
 mingw:
-	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw WHICH=where OFLAGS="$(OFLAGS)" SG_EXE=build/sg.exe
+	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw OFLAGS="$(OFLAGS)" SG_EXE=sg.exe CC="x86_64-w64-mingw32-gcc" LDFLAGS="$(LDDIRS) -lglfw3mingw -lm -lopengl32 -lgdi32 -ldwmapi"
 
 #=======================BUILD======================#
 
-all: builddir $(SG_EXE)
-	
-#	@$(MAKE) -C src PLAT=$(PLAT) ALL=echo
-#	$(MAKE) -C src PLAT=$(PLAT)
-builddir:
-	@mkdir -p build
-
+all: builddir
+	@$(MAKE) $(MKCLIFLAGS) -Csrc CC=$(CC) SG_EXE="$(SG_EXE)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" 
 
 debug:
 	@$(MAKE) $(MKCLIFLAGS) OFLAGS="-g"
 
+shaders:
+	@$(MAKE) $(MKCLIFLAGS) -Csrc shaders
 
+#========================MISC======================#
 
-$(SG_EXE): $(SG_OBJECTS)
-	@echo ===========STORMGROUND============
-	$(CC) $(SG_OBJECTS) $(LDFLAGS) -o $@
-
-
-src/minilua.o: src/minilua.c 
-src/scl.o: src/scl.c 
-src/sg.o: src/sg.c
-src/sgapi.o: src/sgapi.c 
-src/sgcli.o: src/sgcli.c 
-src/sgimage.o: src/sgimage.c 
-src/sginput.o: src/sginput.c 
-src/sgrender.o: src/sgrender.c build/main_vert.h build/main_frag.h
-src/sgshader.o: src/sgshader.c 
-src/cJSON.o: src/cJSON.c
-src/glad.o: src/glad.c
-
-build/main_%.h: src/shaders/main.%
-	xxd -i $< $@
+builddir:
+	@mkdir -p build
 
 clean:
 	rm -rf build src/*.o
+	@$(MAKE) $(MKCLIFLAGS) -C src clean
 
-.PHONY:
+.PHONY: shaders
 #end of file

@@ -64,6 +64,7 @@ void sgGenImageTexture (SGimage *img, int mip, int wrap_s, int wrap_t,
         img->channels);
     return;
   }
+  glActiveTexture (GL_TEXTURE0);
   glGenTextures (1, (GLuint *)&img->tex);
   glBindTexture (GL_TEXTURE_2D, img->tex);
 

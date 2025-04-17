@@ -8,7 +8,6 @@ build
 *.res
 *.zip
 *tar.gz
-lib/lua-5.4.6/src/lua
-lib/lua-5.4.6/src/lua.exe
+src/shaders/*.h
 gmon.out
 profile.txt

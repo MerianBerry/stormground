@@ -5,7 +5,7 @@
 #  include <unistd.h>
 #elif defined(_WIN32)
 #  define _THEWINDOWS 1
-#  include "rc.h"
+#  include "resources/rc.h"
 
 #endif
 
@@ -23,6 +23,9 @@
 #define SG_MAX_MONWIDTH  1280
 
 #define SG_MAX_PEELS     8
+
+#define SG_MIN_VERTS     8
+#define SG_MAX_VERTS     24
 
 typedef struct lua_State lua_State;
 
@@ -58,40 +61,25 @@ typedef struct SGtexture {
   short    wrap_t;
 } SGtexture;
 
-typedef struct SGtriangle {
-  scl_vec2 p1;
-  scl_vec2 p2;
-  scl_vec2 p3;
-  SGcolor  c;
-} SGtriangle;
+typedef struct SGpos {
+  unsigned short x;
+  unsigned short y;
+  unsigned short d;
+} SGpos;
 
-enum {
-  SG_PRIMITIVE_RECT     = 0,
-  SG_PRIMITIVE_CIRCLE   = 1,
-  SG_PRIMITIVE_TRIANGLE = 2,
-  SG_PRIMITIVE_LINE     = 3,
-};
-
-typedef struct SGprimitive {
-  float    c[3];
-  scl_vec2 p1;
-  scl_vec2 p2;
-  scl_vec2 p3;
-  scl_vec2 p4;
-  int      t;
-} SGprimitive;
-
-typedef struct SSBO {
-  float       time;
-  int         primc;
-  SGprimitive primv[0xffff];
-} SSBO;
+typedef struct SGvertex {
+  SGpos   p;
+  SGcolor c;
+} SGvertex;
 
 typedef struct SGrenderPipe {
-  SGimage  depth;
-  SGimage  color;
-  uint32_t program;
-
+  SGvertex* vbuf;
+  unsigned  texs[4];
+  unsigned  fbos[2];
+  unsigned  vbo, vao, udepth, uscreen;
+  unsigned  program;
+  unsigned  verts;
+  char      npeels;
 } SGrenderPipe;
 
 typedef struct Gamepad {
@@ -102,31 +90,31 @@ typedef struct Gamepad {
 } Gamepad;
 
 typedef struct SGstate {
-  Gamepad     gpads[SG_GAMEPAD_LAST + 1];
-  char        keys[GLFW_KEY_LAST + 1];
-  int         activeGpads[SG_GAMEPAD_LAST + 1];
-  SGtexture   mon;
-  scl_htab*   mappings;
-  scl_htab*   bmaps;
-  char        buttons[GLFW_MOUSE_BUTTON_LAST + 1];
-  GLFWwindow* win;
-  char const* projectDir;
-  char*       name;
-  SGscript*   main;
-  SSBO*       ssbo;
-  double      tfps;
-  double      time;
-  double      realCurX, realCurY;
-  double      fakeCurX, fakeCurY;
-  int         runstate;
-  int         width;
-  int         height;
-  int         curx;
-  int         cury;
-  int         scrollx, scrolly;
-  SGcolor     col;
-  float       delta;
-  char        usage;
+  Gamepad      gpads[SG_GAMEPAD_LAST + 1];
+  char         keys[GLFW_KEY_LAST + 1];
+  int          activeGpads[SG_GAMEPAD_LAST + 1];
+  char         buttons[GLFW_MOUSE_BUTTON_LAST + 1];
+  SGrenderPipe rp;
+  scl_htab*    mappings;
+  scl_htab*    bmaps;
+  GLFWwindow*  win;
+  char const*  projectDir;
+  char*        name;
+  SGscript*    main;
+  double       tfps;
+  double       time;
+  double       realCurX, realCurY;
+  double       fakeCurX, fakeCurY;
+  int          runstate;
+  float        aspect;
+  int          width;
+  int          height;
+  int          curx;
+  int          cury;
+  int          scrollx, scrolly;
+  SGcolor      col;
+  float        delta;
+  char         usage;
 } SGstate;
 
 enum {

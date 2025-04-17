@@ -5,20 +5,10 @@
 void sgSetImagePixel (SGimage *img, int x, int y, SGcolor c) {
   if (x > img->width - 1 || y > img->height - 1 || x < 0 || y < 0)
     return;
-  long const base = (x + y * img->width) * img->channels;
+  int const base = (x + y * img->width) * img->channels;
   if (base + 3 >= img->width * img->height * img->channels)
     return;
-  switch (img->channels) {
-  case 4:
-    img->data[base + 3] = c.a;
-  case 3:
-    img->data[base + 2] = c.b;
-  case 2:
-    img->data[base + 1] = c.g;
-  case 1:
-    img->data[base] = c.r;
-    break;
-  }
+  memcpy (img->data + base, &c, img->channels);
 }
 
 SGcolor sgGetImagePixel (SGimage *img, int x, int y) {
@@ -74,7 +64,7 @@ void sgGenImageTexture (SGimage *img, int mip, int wrap_s, int wrap_t,
         img->channels);
     return;
   }
-  glGenTextures (1, &img->tex);
+  glGenTextures (1, (GLuint *)&img->tex);
   glBindTexture (GL_TEXTURE_2D, img->tex);
 
   glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s);
@@ -104,7 +94,8 @@ void sgUpdateImageTexture (SGimage *img, int mip, int x, int y) {
 }
 
 void sgClearImage (SGimage *img) {
-  memset (img->data, 0, img->width * img->height * img->channels);
+  memset (img->data, 0,
+          (unsigned long)img->width * img->height * img->channels);
 }
 
 void sgFreeImage (SGimage *img) {
@@ -114,7 +105,7 @@ void sgFreeImage (SGimage *img) {
 }
 
 void sgFreeImageTexture (SGimage *img) {
-  glDeleteTextures (1, &img->tex);
+  glDeleteTextures (1, (GLuint *)&img->tex);
   img->tex = 0;
 }
 

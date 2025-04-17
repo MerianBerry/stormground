@@ -1,111 +1,124 @@
-#define _XOPEN_SOURCE 700
-#include "sgcli.h"
+#include "sg.h"
+
+#include "cJSON/cJSON.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 
-typedef int (*FlagCallback) (SGstate*, int, char**);
+static int sg_help (SGstate*, int argc, char** argv);
+static int sg_run (SGstate*, int argc, char** argv);
 
-typedef struct flag {
-  char const*  flag;
-  char const*  name;
-  char const*  desc;
-  FlagCallback fc;
-} flag;
+typedef int (*CmdFunction) (SGstate*, int, char**);
 
-static const flag flags[] = {
-    (flag){"-h", "Help",
-           "Prints a list of the supported flags of this\n\t"
-           "program. AKA what you are seeing now",                              sg_help},
-    (flag){"-d", "Directory",
-           "Run stormgound in target\n\t"
-           "directoryrelative to current working directory",                    sg_dir },
-    (flag){"-v", "Version",   "Prints the current Stormground program version",
-           sg_ver                                                                      },
+typedef struct Command {
+  char const* name;
+  char const* alias;
+  char const* desc;
+  CmdFunction cf;
+} Command;
+
+static const Command cmds[] = {
+    {"help", NULL,
+     "Prints usage of commands.\nUse sg help <command> for detailed "
+     "information about a command.", sg_help},
+    {"-h",   "help", NULL,           NULL   },
 };
 
-int sg_help (SGstate* sgs, int argc, char** argv) {
+Command const* sg_matchcmd (char const* name) {
   int i;
-  int s = sizeof (flags) / sizeof (flag);
-  for (i = 0; i < s; ++i) {
-    flag f = flags[i];
-    printf ("%s (%s) %s\n", f.flag, f.name, f.desc);
+  for (i = 0; i < sizeof (cmds) / sizeof (cmds[0]); i++) {
+    if (!strcmp (cmds[i].name, name) ||
+        (cmds[i].alias && !strcmp (cmds[i].alias, name))) {
+      return cmds + i;
+    }
   }
-  return 0;
+  return NULL;
 }
 
-int sg_dir (SGstate* sgs, int argc, char** argv) {
+static int sg_help (SGstate* sgs, int argc, char** argv) {
   if (argc < 1) {
-    errorf ("Directory flag requires at least 1 argument\n");
-    return -1;
   }
-  sgs->projectDir = (char*)str_cpy (argv[0], npos);
-  return 1;
 }
 
-int sg_ver (SGstate* sgs, int argc, char** argv) {
-  printf ("Stormground (sg) version " SG_VERNAME
-          "\nA Stormworks Lua render api replica "
-          "made by Merian\n");
+static int sg_run (SGstate* sgs, int argc, char** argv) {
   return 0;
 }
 
-char** getNextArgs (int i, int* vc, int argc, char** argv) {
-  char** v = NULL;
-  int    c = 0;
-  for (i = i + 1; i < argc; ++i) {
-    if (argv[i][0] != '-') {
-      v = mem_grow (v, sizeof (char*), c, &argv[i], 1);
-      ++c;
-    }
+int sgRunCli (SGstate* sgs, int argc, char** argv) {
+  if (argc < 2) {
+    return sg_run (sgs, 0, NULL);
   }
-  (*vc) = c;
-  return v;
+  Command const* cmd = sg_matchcmd (argv[1]);
+  if (!cmd) {
+    fprintf (stderr, "Unrecognized command \"%s\"\n", argv[1]);
+    return sg_help (NULL, 0, NULL), 1;
+  }
+  return cmd->cf (sgs, argc - 2, argv + 2);
 }
 
-int doTheDoThing (SGstate* sgs, int argc, char** argv) {
-  int i;
-  int i2;
-  int flagc = sizeof (flags) / sizeof (flag);
-  for (i = 1; i < argc; ++i) {
-    for (i2 = 0; i2 < flagc; ++i2) {
-      flag f = flags[i2];
-      if (!strcmp (f.flag, argv[i])) {
-        int    c = 0;
-        char** v = getNextArgs (i, &c, argc, argv);
-        int    r = f.fc (sgs, c, v);
-        free (v);
-        if (r < 0)
-          return 1;
-        i += r;
-        break;
+int sgGetProjectSets (SGstate* sgs) {
+  scl_file* f = scl_open ("r", "sgproject.json");
+  if (!f) {
+  }
+  char* content;
+  scl_read_malloc (f, (void**)&content, -1);
+  if (!content) {
+  }
+
+  cJSON* projectJSON = cJSON_Parse (content);
+  if (!projectJSON) {
+    fprintf (stderr, "Failed to parse project json!\n\t%s\n",
+             cJSON_GetErrorPtr());
+    return 1;
+  }
+  if (projectJSON->type != cJSON_Object) {
+    fprintf (stderr, "project json root is not an object\n");
+    exit (2);
+  }
+  if (!projectJSON->child) {
+    fprintf (stderr, "project json root does not have a child node\n");
+    exit (2);
+  }
+  cJSON* itr = projectJSON->child;
+  while (itr) {
+    if (!strcmp (itr->string, "monitorWidth") && itr->type == cJSON_Number) {
+      sgs->width = itr->valueint;
+      if (sgs->width < 1 || sgs->width > 1080) {
+        fprintf (
+            stderr,
+            "project monitor width is outside acceptable bounds\n\t%i is not "
+            "within such bounds\n",
+            sgs->width);
+        exit (2);
       }
+    } else if (!strcmp (itr->string, "monitorHeight") &&
+               itr->type == cJSON_Number) {
+      sgs->height = itr->valueint;
+      if (sgs->height < 1 || sgs->height > 1080) {
+        fprintf (
+            stderr,
+            "project monitor height is outside acceptable bounds\n\t%i is not "
+            "within such bounds\n",
+            sgs->height);
+        exit (2);
+      }
+    } else if (!strcmp (itr->string, "name") && itr->type == cJSON_String) {
+      sgs->name = (char*)scl_strcopy (itr->valuestring);
     }
+    itr = itr->next;
   }
-  char* realreal = io_fullpath (sgs->projectDir);
-  free ((void*)sgs->projectDir);
-  sgs->projectDir = realreal;
-
-  if (io_changedir (sgs->projectDir)) {
-    errorf ("Failed to change to target directory\n");
-    return 1;
+  if (!sgs->width || !sgs->height) {
+    fprintf (stderr,
+             "Project settings doesnt set monitor width and height. Using "
+             "default: 96x96.\n");
+    sgs->width  = 96;
+    sgs->height = 96;
+  }
+  if (!sgs->name) {
+    sgs->name = (char*)scl_strcopy ("stormground");
   }
 
-  h_buffer projectContent = io_read ("sgproject.json");
-  if (!projectContent.data) {
-    errorf ("Could not open sgproject.json in (%s)\n", sgs->projectDir);
-    return 1;
-  }
-  sgs->projectFileContent = projectContent;
-
-  FILE* pmain = fopen ("main.lua", "r");
-  if (!pmain) {
-    errorf ("Could not open main.lua in (%s)\n", sgs->projectDir);
-    return 1;
-  }
-  fclose (pmain);
-
-  return 0;
+  cJSON_Delete (projectJSON);
 }

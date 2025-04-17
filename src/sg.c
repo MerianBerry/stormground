@@ -11,11 +11,9 @@
 #include <math.h>
 
 #include "sgshader.h"
-#include "sgcli.h"
 #include "sginput.h"
 #include "sgapi.h"
 #include "sgimage.h"
-#include "cJSON/cJSON.h"
 
 #define shad(name)                                    \
   extern char const _binary_shaders_##name##_start[]; \
@@ -53,8 +51,8 @@ struct SSBONOPRIM {
 static SGprimitive tprim;
 
 typedef struct PackedVert {
-  h_vec2 p;
-  h_vec3 c;
+  scl_vec2 p;
+  scl_vec3 c;
 } PackedVert;
 
 /*long sgPackTriangles (uint32_t VAO, uint32_t VBO) {
@@ -94,142 +92,25 @@ typedef struct PackedVert {
   return pvc;
 }*/
 
-#define funny(name)                                              \
-  printf ("case %u: /* " name " */ return GLFW_MOUSE_BUTTON_\n", \
-          str_hash (name))
-
 int main (int argc, char** argv) {
-#if 0
-  funny ("left");
-  funny ("right");
-  funny ("middle");
-  funny ("button1");
-  funny ("button2");
-  funny ("button3");
-  funny ("button4");
-  funny ("button5");
-  funny ("button6");
-  funny ("button7");
-  funny ("button8");
-
-#endif
-#if 0
-  funny ("lshift");
-  funny ("rshift");
-  funny ("lcontrol");
-  funny ("rcontrol");
-  funny ("lalt");
-  funny ("ralt");
-  funny ("lbracket");
-  funny ("rbracket");
-  funny ("space");
-  funny ("backspace");
-  funny ("tab");
-  funny ("enter");
-  funny ("minus");
-  funny ("equal");
-  funny ("up");
-  funny ("down");
-  funny ("left");
-  funny ("right");
-  funny ("comma");
-  funny ("period");
-  funny ("escape");
-  funny ("slash");
-  funny ("backslash");
-  funny ("semicolon");
-  funny ("delete");
-  funny ("page up");
-  funny ("page down");
-  funny ("home");
-  funny ("end");
-  funny ("insert");
-
-
-
-  int ii;
-  for (ii = 48; ii <= 57; ++ii) {
-    char const s[2] = {(char)ii, '\0'};
-    printf ("case %u: /* %c */ return GLFW_KEY_%c;\n", str_hash (s), ii, ii);
-    /*uint32_t   hash = str_hash (s);
-    printf ("%c = %u\n", (char)ii, hash);*/
-  }
-#endif
-
-  state = (SGstate){0};
+  state          = (SGstate){0};
+  state.mappings = scl_htabnew();
 
   ssboBuf = malloc (sizeof (struct SSBO));
   if (!ssboBuf) {
-    errorf ("Failed to allocate ssbo buffer.\n");
+    fprintf (stderr, "Failed to allocate ssbo buffer.\n");
     return 1;
   }
   memset (ssboBuf, 0, sizeof (struct SSBO));
 
   ssboBuf->primv[0] = tprim;
 
-  state.tfps       = 60.f;
-  state.projectDir = (char*)str_cpy (".", npos);
-  state.ssbo       = ssboBuf;
+  state.tfps = 60.f;
+  state.ssbo = ssboBuf;
 
-  if (doTheDoThing (&state, argc, argv)) {
+  if (sgRunCli (&state, argc, argv)) {
     return 1;
   }
-  cJSON* projectJSON = cJSON_ParseWithLength (state.projectFileContent.data,
-                                              state.projectFileContent.size);
-  if (!projectJSON) {
-    errorf ("Failed to parse project json!\n\t%s\n", cJSON_GetErrorPtr());
-    return 1;
-  }
-  if (projectJSON->type != cJSON_Object) {
-    errorf ("project json root is not an object\n");
-    exit (2);
-  }
-  if (!projectJSON->child) {
-    errorf ("project json root does not have a child node\n");
-    exit (2);
-  }
-  cJSON* itr = projectJSON->child;
-  while (itr) {
-    if (!strcmp (itr->string, "monitorWidth") && itr->type == cJSON_Number) {
-      state.width = itr->valueint;
-      if (state.width < 1 || state.width > 1080) {
-        errorf (
-            "project monitor width is outside acceptable bounds\n\t%i is not "
-            "within such bounds\n",
-            state.width);
-        exit (2);
-      }
-    } else if (!strcmp (itr->string, "monitorHeight") &&
-               itr->type == cJSON_Number) {
-      state.height = itr->valueint;
-      if (state.height < 1 || state.height > 1080) {
-        errorf (
-            "project monitor height is outside acceptable bounds\n\t%i is not "
-            "within such bounds\n",
-            state.height);
-        exit (2);
-      }
-    } else if (!strcmp (itr->string, "name") && itr->type == cJSON_String) {
-      state.name = (char*)str_cpy (itr->valuestring, npos);
-    }
-    itr = itr->next;
-  }
-  if (!state.width || !state.height) {
-    fprintf (stderr,
-             "Project settings doesnt set monitor width and height. Using "
-             "default: 96x96.\n");
-    state.width  = 96;
-    state.height = 96;
-    // errorf ("Project settings is missing monitor width and height\n");
-    // exit (2);
-  }
-  if (!state.name) {
-    state.name = (char*)str_cpy ("stormground", npos);
-  }
-
-  cJSON_Delete (projectJSON);
-
-  /* char* fpath = io_fullpath ("~/hello/./yes"); */
 
   glfwInit();
   glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -301,7 +182,7 @@ int main (int argc, char** argv) {
       sgCompileShader (GL_VERTEX_SHADER, _binary_shaders_main_vert_start,
                        _binary_shaders_main_vert_size);
   if (!vShader) {
-    errorf ("Vertex shader compile fail\n");
+    fprintf (stderr, "Vertex shader compile fail\n");
     glfwTerminate();
     exit (3);
   }
@@ -312,7 +193,7 @@ int main (int argc, char** argv) {
       sgCompileShader (GL_FRAGMENT_SHADER, _binary_shaders_main_frag_start,
                        _binary_shaders_main_frag_size);
   if (!fShader) {
-    errorf ("Fragment shader compile fail\n");
+    fprintf (stderr, "Fragment shader compile fail\n");
     glfwTerminate();
     exit (3);
   }
@@ -322,7 +203,7 @@ int main (int argc, char** argv) {
       sgCompileShader (GL_COMPUTE_SHADER, _binary_shaders_main_comp_start,
                        _binary_shaders_main_comp_size);
   if (!cShader) {
-    errorf ("Compute shader compile fail\n");
+    fprintf (stderr, "Compute shader compile fail\n");
     glfwTerminate();
     exit (3);
   }
@@ -331,7 +212,7 @@ int main (int argc, char** argv) {
   uint32_t shaderProgram =
       sgLinkShaderProgram (shaders, sizeof (shaders) / sizeof (shaders[0]));
   if (!shaderProgram) {
-    errorf ("Failed to link shader program\n");
+    fprintf (stderr, "Failed to link shader program\n");
     glfwTerminate();
     exit (4);
   }
@@ -340,7 +221,7 @@ int main (int argc, char** argv) {
 
   uint32_t computeProgram = sgLinkShaderProgram (&cShader, 1);
   if (!computeProgram) {
-    errorf ("Failed to link compute program\n");
+    fprintf (stderr, "Failed to link compute program\n");
     glfwTerminate();
     exit (4);
   }
@@ -398,12 +279,12 @@ int main (int argc, char** argv) {
   SGscript sgscr = {0};
   sgDoFile (&sgscr, &state, "main.lua");
 
-  h_timepoint ls      = timenow();
-  double      cputime = 0.0;
-  float       delta   = 0.0;
-  size_t      frame   = 0;
-  double      fps     = 0.0;
+  double cputime = 0.0;
+  float  delta   = 0.0;
+  size_t frame   = 0;
+  double fps     = 0.0;
   while (1) {
+    double ls = scl_clock();
     if (glfwWindowShouldClose (state.win)) {
       state.runstate = SG_RUNSTATE_STOP;
     }
@@ -478,9 +359,9 @@ int main (int argc, char** argv) {
     sgAdvanceInputs();
     glfwPollEvents();
 
-    cputime = timeduration (timenow(), ls, milliseconds_e);
-    t_waitms (maxf ((1.0 / (state.tfps * 1.01)) * 1000.0 - cputime, 0));
-    double _t = timeduration (timenow(), ls, milliseconds_e);
+    cputime = (scl_clock() - ls) * 1000.0;
+    scl_waitms (maxf ((1.0 / (state.tfps * 1.01)) * 1000.0 - cputime, 0));
+    double _t = (scl_clock() - ls) * 1000.0;
     fps       = fps * 0.95 + (1.0 / _t * 1000.0) * 0.05;
     if (frame % 180 == 0) {
       /*printf ("x: %lf, y: %lf\n", x, y);
@@ -491,13 +372,11 @@ int main (int argc, char** argv) {
     delta = _t;
     state.time += _t / 1000.0;
     state.delta = delta;
-    ls          = timenow();
   }
 
   glDeleteVertexArrays (1, &VAO);
 
   free ((void*)state.name);
-  free ((void*)state.projectFileContent.data);
   free ((void*)state.projectDir);
 
   glfwDestroyWindow (state.win);

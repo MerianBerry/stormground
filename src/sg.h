@@ -11,12 +11,11 @@
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
-#define HYDROGEN_ALL
-#include "hydrogen/hydrogen.h"
+#include "scl.h"
 
 #define SG_MAJOR        1
 #define SG_MINOR        2
-#define SG_VERNAME      "1.2"
+#define SG_VERNAME      "1.4"
 
 #define SG_GAMEPAD_LAST GLFW_JOYSTICK_8
 
@@ -55,10 +54,10 @@ typedef struct SGtexture {
 } SGtexture;
 
 typedef struct SGtriangle {
-  h_vec2  p1;
-  h_vec2  p2;
-  h_vec2  p3;
-  SGcolor c;
+  scl_vec2 p1;
+  scl_vec2 p2;
+  scl_vec2 p3;
+  SGcolor  c;
 } SGtriangle;
 
 enum {
@@ -69,12 +68,12 @@ enum {
 };
 
 typedef struct SGprimitive {
-  float  c[3];
-  h_vec2 p1;
-  h_vec2 p2;
-  h_vec2 p3;
-  h_vec2 p4;
-  int    t;
+  float    c[3];
+  scl_vec2 p1;
+  scl_vec2 p2;
+  scl_vec2 p3;
+  scl_vec2 p4;
+  int      t;
 } SGprimitive;
 
 typedef struct SSBO {
@@ -95,10 +94,11 @@ typedef struct SGstate {
   char        keys[GLFW_KEY_LAST + 1];
   int         activeGpads[SG_GAMEPAD_LAST + 1];
   SGtexture   mon;
+  scl_htab*   mappings;
+  scl_htab*   bmaps;
   char        buttons[GLFW_MOUSE_BUTTON_LAST + 1];
   GLFWwindow* win;
-  char*       projectDir;
-  h_buffer    projectFileContent;
+  char const* projectDir;
   char*       name;
   SGscript*   main;
   SSBO*       ssbo;
@@ -122,3 +122,7 @@ enum {
   SG_USAGE_MANDK   = 0,
   SG_USAGE_GAMEPAD,
 };
+
+int sgRunCli (SGstate* sgs, int argc, char** argv);
+
+int sgGetProjectSets (SGstate* sgs);

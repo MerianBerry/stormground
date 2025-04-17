@@ -29,7 +29,7 @@ mingw:
 
 #=======================BUILD======================#
 
-all: format
+all:
 	mkdir -p build
 	@echo #============LIB stage=============#
 
@@ -40,13 +40,10 @@ all: format
 #	@$(MAKE) $(MKCLIFLAGS) -C src PLAT=$(PLAT) ALL=echo
 	$(MAKE) $(MKCLIFLAGS) -C src PLAT=$(PLAT)
 
-format: $(SOURCES)
-	$(if $(shell $(WHICH) clang-format), $(shell clang-format -i -style=file $(SOURCES)))
-
 clean:
 	rm -rf build
 	$(MAKE) -C lib clean
 	$(MAKE) -C src clean
 
-.PHONY: format
+.PHONY:
 #end of file

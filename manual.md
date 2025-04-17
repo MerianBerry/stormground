@@ -242,12 +242,12 @@ Sets the draw color of any shapes from the call of the function, and then on. If
 
 - `axes` field (table): Table with the accessable axes.
 
-  - `rightTrigger` field (number): Right trigger axis.
-  - `leftTrigger` field (number): Left trigger axis.
-  - `leftX` field (number): Left joystick X axis.
-  - `leftY` field (number): Left joystick Y axis.
-  - `rightX` field (number): Right joystick X axis.
-  - `rightY` field (number): Right joystick Y axis.
+  - `lx` field (number): Left joystick X axis.
+  - `ly` field (number): Left joystick Y axis.
+  - `rx` field (number): Right joystick X axis.
+  - `ry` field (number): Right joystick Y axis.
+  - `ltrigger` field (number): Left trigger axis.
+  - `rtrigger` field (number): Right trigger axis.
 
 - `buttons` field (table): Table with the accessable buttons.
 
@@ -255,16 +255,16 @@ Sets the draw color of any shapes from the call of the function, and then on. If
   - `b` field (string): B/Circle button.
   - `x` field (string): X/Square button.
   - `y` field (string): Y/Triangle button.
-  - `leftBumper` field (string): Left bumper button.
-  - `rightBumper` field (string): Right bumper button.
+  - `lbumper` field (string): Left bumper button.
+  - `rbumper` field (string): Right bumper button.
   - `back` field (string): Back/Share button.
   - `start` field (string): Start/Options button.
   - `guide` field (string): Guide/PS button.
-  - `leftThumb` field (string): Left Joystick/Thumbstick button.
-  - `rightThumb` field (string): Right Joystick/Thumbstick button.
-  - `dpadUp` field (string): DPAD up button.
-  - `dpadRight` field (string): DPAD right button.
-  - `dpadDown` field (string): DPAD down button.
-  - `dpadLeft` field (string): DPAD left button.
+  - `lstick` field (string): Left Joystick/Thumbstick button.
+  - `rstick` field (string): Right Joystick/Thumbstick button.
+  - `up` field (string): DPAD up button.
+  - `right` field (string): DPAD right button.
+  - `down` field (string): DPAD down button.
+  - `left` field (string): DPAD left button.
 
 Button fields hold `pressed`, `released`, `held` or `not pressed`, just like return values of the `getButton` function.

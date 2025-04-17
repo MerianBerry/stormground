@@ -3,12 +3,14 @@
 #include "sg.h"
 
 enum {
-  SG_NOHOLD = 0,
-  SG_PRESS,
-  SG_HOLD,
-  SG_RELEASE,
-  SG_REPEAT,
+  SG_NOHOLD  = 0,
+  SG_PRESS   = 1,
+  SG_RELEASE = 2,
+  SG_HOLD    = 3,
+  SG_REPEAT  = 4,
 };
+
+void sgInputOpenLibs (lua_State *L);
 
 void sgSetInputState (SGstate *state);
 

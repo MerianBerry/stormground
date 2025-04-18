@@ -68,8 +68,8 @@ typedef struct SGpos {
 } SGpos;
 
 typedef struct SGvertex {
-  SGpos   p;
-  SGcolor c;
+  unsigned short p[3];
+  unsigned char  c[4];
 } SGvertex;
 
 typedef struct SGrenderPipe {

@@ -80,7 +80,8 @@ int main (int argc, char** argv) {
 #endif
 
   glfwMakeContextCurrent (state.win);
-  glfwSwapInterval (0);
+  // 1: vsync, 0: instant
+  glfwSwapInterval (1);
 
   sgSetInputState (&state);
   glfwSetWindowUserPointer (state.win, &state);
@@ -117,9 +118,11 @@ int main (int argc, char** argv) {
     double ls = scl_clock();
     if (glfwWindowShouldClose (state.win)) {
       state.runstate = SG_RUNSTATE_STOP;
-    }
-    if (state.runstate == SG_RUNSTATE_STOP)
       break;
+    }
+
+    sgAdvanceInputs();
+    glfwPollEvents();
 
     ++frame;
 
@@ -127,7 +130,6 @@ int main (int argc, char** argv) {
     float aspect1 = (float)W / (float)H;
     float aspect2 = (float)state.width / (float)state.height;
     float daspect = aspect1 / aspect2;
-    /* y = -(y - H); */
     float fx, fy, fx2, fy2, fw, fh;
     if (daspect > 1.0) {
       fw = (float)W / daspect;
@@ -157,12 +159,10 @@ int main (int argc, char** argv) {
     if (lua_pcall (L, 0, 0, 0)) {
       return fprintf (stderr, "script error: %s\n", lua_tostring (L, -1)), 5;
     }
+    double luatime = (scl_clock() - ls) * 1000.0;
 
     sgDrawRenderPipe (&state, W, H);
     glfwSwapBuffers (state.win);
-
-    sgAdvanceInputs();
-    glfwPollEvents();
 
     cputime = (scl_clock() - ls) * 1000.0;
     scl_waitms (maxf ((1.0 / (state.tfps * 1.01)) * 1000.0 - cputime, 0));
@@ -172,7 +172,7 @@ int main (int argc, char** argv) {
       /*printf ("x: %lf, y: %lf\n", x, y);
       printf ("fx: %f, fy: %f\n", fx, fy);
       printf ("fx2: %f, fy2: %f\n", fx2, fy2);*/
-      /* printf ("FPS: %0.0lf\nCPU time: %0.03lfms\n", fps, cputime); */
+      // printf ("FPS: %0.0lf\nLUA time: %0.03lfms\n", fps, luatime);
     }
     delta = _t;
     state.time += _t / 1000.0;

@@ -1,9 +1,10 @@
-#version 410 core
+#version 330 core
 
-out vec4 FragColor;
+layout (location = 0) out vec4 FragColor;
 
-in vec3           vPos;
-in vec4           col;
+in vec3 vPos;
+in vec4 col;
+
 uniform sampler2D depth;
 
 void main() {

@@ -45,18 +45,15 @@
 */
 
 static const SGvertex base[] = {
-    {
-     {0, 0, 0},
-     {255, 255, 255, 255},
-     },
-    {
-     {20, 0, 0},
-     {255, 255, 255, 255},
-     },
-    {
-     {0, 20, 0},
-     {255, 255, 255, 255},
-     }
+    {.p = {0, 0, 0},   .c = {255, 0, 2, 255}},
+    {.p = {96, 0, 0},  .c = {255, 0, 2, 255}},
+    {.p = {0, 96, 0},  .c = {255, 0, 2, 255}},
+    {.p = {0, 0, 0},   .c = {0, 255, 1, 128}},
+    {.p = {96, 0, 0},  .c = {0, 255, 1, 128}},
+    {.p = {96, 96, 0}, .c = {0, 255, 1, 128}},
+    {.p = {36, 0, 0},  .c = {0, 0, 255, 32} },
+    {.p = {36, 96, 0}, .c = {0, 0, 255, 32} },
+    {.p = {96, 96, 0}, .c = {0, 0, 255, 32} },
 };
 
 #define SG_DEPTH 0
@@ -145,24 +142,32 @@ int sgInitRenderPipe (SGstate *sgs) {
   }
   sgs->rp.vbuf = buf;
   memcpy (buf, base, sizeof (base));
-  sgs->rp.verts += 3;
+  sgs->rp.verts += sizeof (base) / sizeof (base[0]);
 
   glCreateVertexArrays (1, &vao);
   glCreateBuffers (1, &vbo);
 
-  glNamedBufferData (vbo, sizeof (SGvertex) * n, buf, GL_STATIC_DRAW);
+  glBindBuffer (GL_ARRAY_BUFFER, vbo);
+  glBufferData (GL_ARRAY_BUFFER, sizeof (SGvertex) * n, buf, GL_DYNAMIC_DRAW);
 
   glBindVertexArray (vao);
-
+  glEnableVertexAttribArray (0);
   glVertexAttribPointer (0, 3, GL_SHORT, GL_FALSE, sizeof (SGvertex), 0);
-  glEnableVertexArrayAttrib (vao, 0);
 
-  glVertexAttribPointer (1, 4, GL_BYTE, GL_FALSE, sizeof (SGvertex), (void *)6);
-  glEnableVertexArrayAttrib (vao, 1);
+  glEnableVertexAttribArray (1);
+  glVertexAttribPointer (1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof (SGvertex),
+                         (void *)offsetof (SGvertex, c));
+
   glEnable (GL_DEPTH_TEST);
   glDepthFunc (GL_LEQUAL);
-  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable (GL_BLEND);
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  glBindBuffer (GL_ARRAY_BUFFER, 0);
+  glBindVertexArray (0);
+  glBindFramebuffer (GL_FRAMEBUFFER, 0);
+
+  // glEnable (GL_FRAMEBUFFER_SRGB);
 
   sgs->rp.npeels = 4;
 
@@ -175,29 +180,27 @@ int sgInitRenderPipe (SGstate *sgs) {
 }
 
 int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
-  glViewport (0, 0, sgs->width, sgs->height);
-
   glBindFramebuffer (GL_FRAMEBUFFER, sgs->rp.fbos[SG_FBO]);
-  glUseProgram (sgs->rp.program);
-  glClearColor (0, 0, 0, 0);
+  glViewport (0, 0, sgs->width, sgs->height);
+  glClearColor (0, 0, 0, 1);
   glClearDepth (1.0);
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glBindVertexArray (sgs->rp.vao);
-  glBindBuffer (GL_ARRAY_BUFFER, sgs->rp.vbo);
+  glUseProgram (sgs->rp.program);
 
   glActiveTexture (GL_TEXTURE0 + 0); // Bind depth to unit 0
   glBindTexture (GL_TEXTURE_2D, sgs->rp.texs[SG_DCOPY]);
 
   glUniform1i (sgs->rp.udepth, 0); // Depth bound to unit 0
-  glUniform2f (sgs->rp.uscreen, (float)w, (float)h);
-
+  glUniform2f (sgs->rp.uscreen, sgs->width, sgs->height);
+  glBindBuffer (GL_ARRAY_BUFFER, sgs->rp.vbo);
   glBufferSubData (GL_ARRAY_BUFFER, 0, sizeof (SGvertex) * sgs->rp.verts,
                    sgs->rp.vbuf);
 
-  glDrawArrays (GL_TRIANGLES, 0, sgs->rp.verts);
-  /*int i;
+  glBindVertexArray (sgs->rp.vao);
+  int i;
   for (i = 0; i < sgs->rp.npeels; i++) {
+    glDrawArrays (GL_TRIANGLES, 0, sgs->rp.verts);
     // Copy the active fbo to the secondary fbo.
     glBindFramebuffer (GL_READ_FRAMEBUFFER, sgs->rp.fbos[SG_FBO]);
     glBindFramebuffer (GL_DRAW_FRAMEBUFFER, sgs->rp.fbos[SG_FCOPY]);
@@ -208,11 +211,28 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
                        SG_MAX_MONWIDTH, SG_MAX_MONHEIGHT, GL_COLOR_BUFFER_BIT,
                        GL_NEAREST);
   }
+  glBindFramebuffer (GL_READ_FRAMEBUFFER, sgs->rp.fbos[SG_FBO]);
+  glBindFramebuffer (GL_DRAW_FRAMEBUFFER, 0);
+  glClearColor (0, 0, 0, 1);
+  glClear (GL_COLOR_BUFFER_BIT);
 
-  glBindFramebuffer (GL_DRAW_FRAMEBUFFER, sgs->rp.fbos[SG_FBO]);
-  glBindFramebuffer (GL_READ_FRAMEBUFFER, sgs->rp.fbos[SG_FCOPY]);
-  glBlitFramebuffer (0, 0, sgs->width, sgs->height, 0, 0, w, h,
+  float x0, x1, y0, y1;
+  x0 = -1, x1 = 1, y0 = -1, y1 = 1;
+  if (sgs->aspect > 1.f) {
+    x0 /= sgs->aspect;
+    x1 /= sgs->aspect;
+  } else {
+    y0 *= sgs->aspect;
+    y1 *= sgs->aspect;
+  }
+  x0 = (x0 + 1.f) / 2 * w;
+  x1 = (x1 + 1.f) / 2 * w;
+  y0 = (y0 + 1.f) / 2 * h;
+  y1 = (y1 + 1.f) / 2 * h;
+
+  glViewport (0, 0, w, h);
+  glBlitFramebuffer (0, 0, sgs->width, sgs->height, x0, y0, x1, y1,
                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
-  glBindFramebuffer (GL_FRAMEBUFFER, sgs->rp.fbos[SG_FBO]);*/
+  glBindFramebuffer (GL_FRAMEBUFFER, 0);
   return 0;
 }

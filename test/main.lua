@@ -1,4 +1,5 @@
 local tick = 0
+local w, h = stormground.getScreen()
 function onTick()
   x,y=stormground.getCursor()
   if stormground.getKey("space") == "pressed" then
@@ -7,11 +8,13 @@ function onTick()
   if stormground.getScroll() ~= 0 then
     print(stormground.getScroll())
   end
-  for u = 0, 95 do
-    for v = 0, 95 do
-      stormground.setColor(u, v, 0)
-      stormground.drawRectangle(u, v, 1, 1)
-    end
-  end
+  local x, y = stormground.getCursor()
+  stormground.setColor(255,255,255)
+  local r =math.sqrt((x-w/2)^2 + (y-h/2)^2)
+  local th = math.atan((y-h/2), (x-w/2))
+  stormground.drawLine(w/2,h/2,x,y)
+  stormground.setColor(255, 0, 0, 128)
+  stormground.drawCircle(w/2,h/2, r/3, r, -th)
+  
   tick = tick+1
 end

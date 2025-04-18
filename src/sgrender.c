@@ -248,12 +248,29 @@ static void dr (SGstate *sg, short x, short y, short w, short h) {
   sg->rp.verts += 6;
 }
 
+static void dt (SGstate *sg, short x, short y, short x1, short y1, short x2,
+                short y2) {
+  unsigned short const cd      = sg->rp.cd;
+  const SGcolor        ccol    = sg->rp.ccol;
+  SGvertex             verts[] = {
+                  {{x, y},   cd, ccol},
+                  {{x1, y1}, cd, ccol},
+                  {{x2, y2}, cd, ccol},
+  };
+  if (sg->rp.verts >= 0xfff9)
+    return;
+  memcpy (sg->rp.vbuf + sg->rp.verts, verts, sizeof (verts));
+  sg->rp.verts += 3;
+}
+
+#define dq(sg, x, y, x1, y1, x2, y2, x3, y3) \
+  dt (sg, x, y, x1, y1, x2, y2);             \
+  dt (sg, x1, y1, x2, y2, x3, y3)
+
 static int l_setColor (lua_State *L) {
-  CommonAPIHeader (L);
-  if (!sgs)
-    return lua_pushnil (L), 1;
   int t = lua_gettop (L);
-  if (t < 3)
+  CommonAPIHeader (L);
+  if (!sgs || t < 3)
     return lua_pushnil (L), 1;
   SGcolor c;
   c.a = 0xff;
@@ -267,10 +284,8 @@ static int l_setColor (lua_State *L) {
 static int l_drawRectangle (lua_State *L) {
   short x, y, w, h;
   CommonAPIHeader (L);
-  if (!sgs)
-    return lua_pushnil (L), 1;
   int t = lua_gettop (L);
-  if (t < 4)
+  if (!sgs || t < 4)
     return lua_pushnil (L), 1;
   x = lua_tonumber (L, 1);
   y = lua_tonumber (L, 2);
@@ -284,6 +299,91 @@ static int l_drawRectangle (lua_State *L) {
     dr (sgs, x, y, w, 1);
     dr (sgs, x, y + h - 1, w, 1);
   }
+  return 0;
+}
+
+#define dif(x, x1) (x > x1 ? (x - x1) : (x1 - x))
+
+static int l_drawLine (lua_State *L) {
+  short x, y, x1, y1;
+  int   t = lua_gettop (L);
+  CommonAPIHeader (L);
+  if (!sgs || t < 4)
+    return lua_pushnil (L), 1;
+  x  = lua_tonumber (L, 1);
+  y  = lua_tonumber (L, 2);
+  x1 = lua_tonumber (L, 3);
+  y1 = lua_tonumber (L, 4);
+  if (x != x1) {
+    unsigned short const cd   = sgs->rp.cd;
+    const SGcolor        ccol = sgs->rp.ccol;
+    int                  dx, dy;
+    if (dif (y, y1) > dif (x, x1))
+      dx = 1, dy = 0;
+    else
+      dx = 0, dy = 1;
+    SGvertex verts[] = {
+        {{x + dx, y + dy},   cd, ccol},
+        {{x, y},             cd, ccol},
+        {{x1 + dx, y1 + dy}, cd, ccol},
+        {{x, y},             cd, ccol},
+        {{x1, y1},           cd, ccol},
+        {{x1 + dx, y1 + dy}, cd, ccol},
+    };
+    if (sgs->rp.verts >= 0xfff9)
+      return 0;
+    memcpy (sgs->rp.vbuf + sgs->rp.verts, verts, sizeof (verts));
+    sgs->rp.verts += 6;
+  } else
+    dr (sgs, x, y, 1, y1 - y);
+  return 0;
+}
+
+static float const pi2 = 6.283185f;
+
+static int l_drawArc (lua_State *L) {
+  float x, y, o, i, of, a, s, d;
+  int   t = lua_gettop (L);
+  CommonAPIHeader (L);
+  if (!sgs || t < 3)
+    return lua_pushnil (L), 1;
+  i  = 0;
+  of = 0;
+  a  = pi2;
+  s  = mini (sgs->width, sgs->height) / 4.f;
+  x  = lua_tonumber (L, 1);
+  y  = lua_tonumber (L, 2);
+  o  = lua_tonumber (L, 3);
+  if (t >= 4)
+    i = lua_tonumber (L, 4);
+  if (t >= 5)
+    a = lua_tonumber (L, 5);
+  if (t >= 6)
+    of = lua_tonumber (L, 6);
+  if (t >= 7)
+    s = lua_tonumber (L, 7);
+  float sa = pi2 / s;
+  float ba = of;
+  a        = clampf (a, -pi2, pi2);
+  d        = (a >= 0) ? 1 : -1;
+  // Math bullshittery
+  int   j;
+  float sc, sn, x0, y0, x1, y1;
+  sc = ba;
+  x1 = cosf (sc), y1 = sinf (sc);
+  for (j = 0; j < floorf (a * d / (pi2 / s)); j++) {
+    sc = ba + sa * j * d;
+    sn = ba + sa * (j + 1) * d;
+    x0 = cosf (sc), y0 = sinf (sc), x1 = cosf (sn), y1 = sinf (sn);
+    dq (sgs, x + x0 * o, y - y0 * o, x + x0 * i, y - y0 * i, x + x1 * o,
+        y - y1 * o, x + x1 * i, y - y1 * i);
+  }
+  // Draw a quad for the end of the arc exactly
+  x0 = x1, y0 = y1;
+  sn = a + of;
+  x1 = cosf (sn), y1 = sinf (sn);
+  dq (sgs, x + x0 * o, y - y0 * o, x + x0 * i, y - y0 * i, x + x1 * o,
+      y - y1 * o, x + x1 * i, y - y1 * i);
   return 0;
 }
 
@@ -352,9 +452,9 @@ static int sgDrawStr (SGstate *sg, char const *str, float _x, float _y,
 static int l_drawText (lua_State *L) {
   int         x, y, scale;
   char const *str;
+  int         t = lua_gettop (L);
   CommonAPIHeader (L);
-  int t = lua_gettop (L);
-  if (t < 3)
+  if (!sgs || t < 3)
     return lua_pushnil (L), 1;
   if (lua_type (L, 3) != LUA_TSTRING)
     return lua_pushstring (L, "expected a string"), lua_error (L), 1;
@@ -372,6 +472,8 @@ static int l_drawText (lua_State *L) {
 static const luaL_Reg libfuncs[] = {
     {"setColor",      l_setColor     },
     {"drawRectangle", l_drawRectangle},
+    {"drawLine",      l_drawLine     },
+    {"drawCircle",    l_drawArc      },
     {"drawText",      l_drawText     },
     {NULL,            NULL           }
 };

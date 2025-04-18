@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "sginput.h"
-#include "sgimage.h"
-#include <string.h>
+#include "sgrender.h"
 
 #define LUA_IMPL
 #include "minilua.h"
@@ -491,6 +490,7 @@ lua_State* sgNewScript (SGstate* sgs) {
   lua_newtable (L);
 
   sgInputOpenLibs (L);
+  sgRenderOpenLibs (L);
 
   lua_setglobal (L, "stormground");
   return L;

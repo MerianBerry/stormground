@@ -81,7 +81,7 @@ int main (int argc, char** argv) {
 
   glfwMakeContextCurrent (state.win);
   // 1: vsync, 0: instant
-  glfwSwapInterval (1);
+  glfwSwapInterval (0);
 
   sgSetInputState (&state);
   glfwSetWindowUserPointer (state.win, &state);
@@ -111,6 +111,7 @@ int main (int argc, char** argv) {
   }
 
   double cputime = 0.0;
+  double luatime = 0.0;
   float  delta   = 0.0;
   size_t frame   = 0;
   double fps     = 0.0;
@@ -149,19 +150,23 @@ int main (int argc, char** argv) {
     state.curx   = fx2;
     state.cury   = fy2;
     state.aspect = daspect;
-    int i;
+    double gputims[180];
+    int    i;
     /*if (state.gpads[1].connected &&
         state.gpads[1].buttons[GLFW_GAMEPAD_BUTTON_A] == SG_HOLD) {
       notef ("Pressed A! %.3f\n",
              state.gpads[1].gstate.axes[GLFW_GAMEPAD_AXIS_LEFT_Y]);
     }*/
+    double lls = scl_clock();
     lua_getglobal (L, "onTick");
     if (lua_pcall (L, 0, 0, 0)) {
       return fprintf (stderr, "script error: %s\n", lua_tostring (L, -1)), 5;
     }
-    double luatime = (scl_clock() - ls) * 1000.0;
+    luatime = luatime * 0.98 + ((scl_clock() - lls) * 1000.0) * 0.02;
 
+    double fs = scl_clock();
     sgDrawRenderPipe (&state, W, H);
+    gputims[frame % 180] = (scl_clock() - fs) * 1000.0;
     glfwSwapBuffers (state.win);
 
     cputime = (scl_clock() - ls) * 1000.0;
@@ -172,7 +177,12 @@ int main (int argc, char** argv) {
       /*printf ("x: %lf, y: %lf\n", x, y);
       printf ("fx: %f, fy: %f\n", fx, fy);
       printf ("fx2: %f, fy2: %f\n", fx2, fy2);*/
-      // printf ("FPS: %0.0lf\nLUA time: %0.03lfms\n", fps, luatime);
+      double gputime = 0.0;
+      for (int i = 0; i < 180; i++)
+        gputime += gputims[i];
+      gputime /= 180.0;
+      printf ("FPS: %0.0lf\nLUA time: %0.03lfms\nGPU time: %0.03lfms\n", fps,
+              luatime, gputime);
     }
     delta = _t;
     state.time += _t / 1000.0;

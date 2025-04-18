@@ -61,25 +61,22 @@ typedef struct SGtexture {
   short    wrap_t;
 } SGtexture;
 
-typedef struct SGpos {
-  unsigned short x;
-  unsigned short y;
-  unsigned short d;
-} SGpos;
-
 typedef struct SGvertex {
-  unsigned short p[3];
-  unsigned char  c[4];
+  short          p[2];
+  unsigned short d;
+  SGcolor        c[4];
 } SGvertex;
 
 typedef struct SGrenderPipe {
-  SGvertex* vbuf;
-  unsigned  texs[4];
-  unsigned  fbos[2];
-  unsigned  vbo, vao, udepth, uscreen;
-  unsigned  program;
-  unsigned  verts;
-  char      npeels;
+  SGvertex*      vbuf;
+  unsigned       texs[4];
+  unsigned       fbos[2];
+  unsigned       vbo, vao, udepth, uscreen;
+  unsigned       program;
+  unsigned       verts;
+  SGcolor        ccol;
+  unsigned short cd;
+  char           npeels;
 } SGrenderPipe;
 
 typedef struct Gamepad {

@@ -1,16 +1,12 @@
 #include "sginput.h"
 
+#include "sgapi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include "minilua.h"
 
 static SGstate *sgstate;
-
-#define CommonAPIHeader(state)                           \
-  lua_getglobal ((state), "__SGSTATE");                  \
-  SGstate *sgs = (SGstate *)lua_tointeger ((state), -1); \
-  lua_pop ((state), 1)
 
 #define kkey(k, c) scl_htabset (sgstate->mappings, k, (void *)(intptr_t)(c))
 #define kbut(b, c) scl_htabset (sgstate->bmaps, b, (void *)(intptr_t)(c))

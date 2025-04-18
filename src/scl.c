@@ -1,4 +1,4 @@
-#define _XOPEN_SOURCE 700
+//#  define _XOPEN_SOURCE 700
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
@@ -19,6 +19,9 @@
 #else
 #  include <dirent.h>
 #  include <unistd.h>
+#  ifdef __APPLE__
+#    incldue < libproc.h>
+#  endif
 
 typedef struct timespec timespec_t;
 typedef struct stat     stat_t;
@@ -163,6 +166,8 @@ static BOOLEAN _nanosleep (LONGLONG ns) {
 #endif
 
 void scl_waitms (double ms) {
+  if (ms <= 0)
+    return;
 #if defined(__unix__) || defined(__APPLE__)
   timespec_t ts = {2000, 0};
   ts.tv_sec     = ms / 1000.0;
@@ -188,11 +193,15 @@ void scl_waitms (double ms) {
 
 #ifdef _WIN32
 static LARGE_INTEGER base_clock = {.QuadPart = 0};
+#else
+static double base_clock = 0.0;
 #endif
 
 void scl_resetclock() {
 #ifdef _WIN32
   QueryPerformanceCounter (&base_clock);
+#else
+  base_clock = scl_clock();
 #endif
 }
 
@@ -206,7 +215,7 @@ double scl_clock() {
 #elif defined(__unix__) || defined(__APPLE__)
   timespec_t ts;
   timespec_get (&ts, 1);
-  return (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000.0;
+  return ((double)ts.tv_sec + (double)ts.tv_nsec / 1000000000.0) - base_clock;
 #endif
 }
 
@@ -432,10 +441,13 @@ char const *scl_execdir() {
 #ifdef _WIN32
   char buf[PATH_MAX + 1];
   memset (buf, 0, sizeof (buf));
-  GetModuleFileName (NULL, buf, PATH_MAX);
+  GetModuleFileName (NULL, buf, PATH_MAX - 1);
+#elif defined(__APPLE__)
+  char buf[PATH_MAX];
+  proc_pidpath (getpid(), buf, PATH_MAX);
 #else
   char    buf[PATH_MAX];
-  ssize_t count  = readlink ("/proc/self/exe", buf, PATH_MAX);
+  ssize_t count = readlink ("/proc/self/exe", buf, PATH_MAX);
 #endif
   return scl_parentpath (buf);
 }
@@ -494,15 +506,15 @@ static int scl_scandir_ (char const *dir, char const *mask, char ***buf_,
   } while (FindNextFile (hFind, &ffd) != 0);
   FindClose (hFind);
 #else
-  DIR    *handle = opendir (dir);
+  DIR *handle = opendir (dir);
   while (handle) {
-      struct dirent *dp;
-      if ((dp = readdir (handle))) {
-        if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
-          struct stat file_stat;
-          char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
-          if (!stat (path, &file_stat)) {
-            if (S_ISDIR (file_stat.st_mode))
+    struct dirent *dp;
+    if ((dp = readdir (handle))) {
+      if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
+        struct stat file_stat;
+        char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
+        if (!stat (path, &file_stat)) {
+          if (S_ISDIR (file_stat.st_mode))
             scl_scandir_ (path, mask, &buf, &dsect, &n, &m);
           else if (scl_strmatch (dp->d_name, mask))
             scl_addScanRI (buf, dsect, n, m, path);
@@ -510,8 +522,8 @@ static int scl_scandir_ (char const *dir, char const *mask, char ***buf_,
         }
       }
     } else {
-        closedir (handle);
-        handle = NULL;
+      closedir (handle);
+      handle = NULL;
     }
   }
 #endif
@@ -562,20 +574,20 @@ static int scl_glob_ (char const *dir, char const *mask, char ***buf_,
 #else
   DIR *handle = opendir (dir);
   while (handle) {
-      struct dirent *dp;
-      if ((dp = readdir (handle))) {
-        if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
-          struct stat file_stat;
-          char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
-          if (!stat (path, &file_stat)) {
-            if (scl_strmatch (dp->d_name, mask))
+    struct dirent *dp;
+    if ((dp = readdir (handle))) {
+      if (!!strcmp (dp->d_name, ".") && !!strcmp (dp->d_name, "..")) {
+        struct stat file_stat;
+        char const *path = scl_fmt ("%s/%s", dir, dp->d_name);
+        if (!stat (path, &file_stat)) {
+          if (scl_strmatch (dp->d_name, mask))
             scl_addScanRI (buf, dsect, n, m, path);
           free ((void *)path);
         }
       }
     } else {
-        closedir (handle);
-        handle = NULL;
+      closedir (handle);
+      handle = NULL;
     }
   }
 #endif

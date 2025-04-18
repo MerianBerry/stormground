@@ -21,6 +21,7 @@ static int W = 1280;
 static int H = 720;
 
 int main (int argc, char** argv) {
+  scl_resetclock();
   int r          = 0;
   state          = (SGstate){0};
   state.mappings = scl_htabnew();
@@ -166,21 +167,25 @@ int main (int argc, char** argv) {
 
     double fs = scl_clock();
     sgDrawRenderPipe (&state, W, H);
-    gputims[frame % 180] = (scl_clock() - fs) * 1000.0;
+    gputims[frame % 120] = (scl_clock() - fs) * 1000.0;
     glfwSwapBuffers (state.win);
 
-    cputime = (scl_clock() - ls) * 1000.0;
-    scl_waitms (maxf ((1.0 / (state.tfps * 1.01)) * 1000.0 - cputime, 0));
-    double _t = (scl_clock() - ls) * 1000.0;
-    fps       = fps * 0.95 + (1.0 / _t * 1000.0) * 0.05;
-    if (frame % 180 == 0) {
+    // cputime = (scl_clock() - ls) * 1000.0;
+    double cur = scl_clock();
+    double _t  = (cur - ls) * 1000.0;
+    if (_t < 1000.0 / state.tfps)
+      scl_waitms (1000.0 / state.tfps - _t);
+    _t = (scl_clock() - ls) * 1000.0;
+
+    fps = fps * 0.95 + (1.0 / _t * 1000.0) * 0.05;
+    if (frame % 120 == 0) {
       /*printf ("x: %lf, y: %lf\n", x, y);
       printf ("fx: %f, fy: %f\n", fx, fy);
       printf ("fx2: %f, fy2: %f\n", fx2, fy2);*/
       double gputime = 0.0;
-      for (int i = 0; i < 180; i++)
+      for (int i = 0; i < 120; i++)
         gputime += gputims[i];
-      gputime /= 180.0;
+      gputime /= 120.0;
       printf ("FPS: %0.0lf\nLUA time: %0.03lfms\nGPU time: %0.03lfms\n", fps,
               luatime, gputime);
     }

@@ -39,6 +39,9 @@ Command const* sg_matchcmd (char const* name) {
 
 static int sg_help (SGstate* sgs, int argc, char** argv) {
   if (argc < 1) {
+    int i;
+    for (i = 0; i < sizeof (cmds) / sizeof (cmds[0]); i++) {
+    }
   }
 }
 

@@ -93,13 +93,13 @@ int sgInitRenderPipe (SGstate *sgs) {
   unsigned texs[4];
   glGenTextures (4, texs);
   glBindTexture (GL_TEXTURE_2D, texs[SG_DEPTH]);
-  glTexImage2D (GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SG_MAX_MONWIDTH,
-                SG_MAX_MONHEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SG_MAX_MONWIDTH + 20,
+                SG_MAX_MONHEIGHT + 20, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
   glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glBindTexture (GL_TEXTURE_2D, texs[SG_COLOR]);
-  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, SG_MAX_MONWIDTH, SG_MAX_MONHEIGHT, 0,
-                GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, SG_MAX_MONWIDTH + 20,
+                SG_MAX_MONHEIGHT + 20, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
   glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -204,7 +204,7 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
   glBindFramebuffer (GL_READ_FRAMEBUFFER, sgs->rp.fbos[SG_FBO]);
   glBindFramebuffer (GL_DRAW_FRAMEBUFFER, 0);
   // Clear screen framebuffer
-  glClearColor (0, 0, 0, 1);
+  glClearColor (0.1, 0.1, 0.1, 1);
   glClear (GL_COLOR_BUFFER_BIT);
 
   float x0, x1, y0, y1;

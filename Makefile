@@ -36,7 +36,7 @@ mingw:
 #=======================BUILD======================#
 
 all: builddir
-	@$(MAKE) $(MKCLIFLAGS) -Csrc CC=$(CC) SG_EXE="$(SG_EXE)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" 
+	@$(MAKE) $(MKCLIFLAGS) -Csrc PLAT=$(PLAT) CC=$(CC) SG_EXE="$(SG_EXE)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" 
 
 debug:
 	@$(MAKE) $(MKCLIFLAGS) OFLAGS="-g"

@@ -1,6 +1,7 @@
 #include "sg.h"
 #ifdef _WIN32
 #  include <dwmapi.h>
+#  define GLFW_EXPOSE_NATIVE_WIN32
 #  include "GLFW/glfw3native.h"
 #endif
 
@@ -28,12 +29,12 @@ int main (int argc, char** argv) {
   state.bmaps    = scl_htabnew();
   state.tfps     = 60.f;
 
-  /*if (sgRunCli (&state, argc, argv)) {
-    return 1;
-  }*/
-
   state.width  = 96;
   state.height = 96;
+
+  if ((r = sgRunCli (&state, argc, argv)) || state.runstate) {
+    return r;
+  }
 
   if (!state.name) {
     state.name = (char*)scl_strcopy ("Stormground 1.4");
@@ -178,10 +179,8 @@ int main (int argc, char** argv) {
     _t = (scl_clock() - ls) * 1000.0;
 
     fps = fps * 0.95 + (1.0 / _t * 1000.0) * 0.05;
+#if 0
     if (frame % 120 == 0) {
-      /*printf ("x: %lf, y: %lf\n", x, y);
-      printf ("fx: %f, fy: %f\n", fx, fy);
-      printf ("fx2: %f, fy2: %f\n", fx2, fy2);*/
       double gputime = 0.0;
       for (int i = 0; i < 120; i++)
         gputime += gputims[i];
@@ -189,6 +188,7 @@ int main (int argc, char** argv) {
       printf ("FPS: %0.0lf\nLUA time: %0.03lfms\nGPU time: %0.03lfms\n", fps,
               luatime, gputime);
     }
+#endif
     delta = _t;
     state.time += _t / 1000.0;
     state.delta = delta;
@@ -197,7 +197,6 @@ int main (int argc, char** argv) {
   // glDeleteVertexArrays (1, &VAO);
 
   free ((void*)state.name);
-  free ((void*)state.projectDir);
 
   glfwDestroyWindow (state.win);
   glfwTerminate();

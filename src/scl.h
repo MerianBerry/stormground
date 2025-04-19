@@ -166,8 +166,6 @@ void const *scl_htabnext (scl_htab const *h, char const *key);
 
 scl_htab *scl_htabcopy (scl_htab const *h);
 
-unsigned char scl_log2i (unsigned x);
-
 typedef struct xml_elem_s xml_elem;
 
 typedef struct xml_view_s {
@@ -302,9 +300,9 @@ float dot3d (scl_vec3 a, scl_vec3 b);
 
 int powi (int x, int y);
 
-double minf (double x, double y);
+float minf (float x, float y);
 
-double maxf (double x, double y);
+float maxf (float x, float y);
 
 float clampf (float x, float y, float z);
 
@@ -322,6 +320,7 @@ float ceilf (float x);
 
 float roundf (float x);
 
+unsigned char log2i (unsigned x);
 #ifdef __cplusplus
 }
 #endif

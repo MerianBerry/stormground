@@ -1,4 +1,5 @@
 local tick = 0
+--stormground.setScreen(160, 96)
 local w, h = stormground.getScreen()
 function onTick()
   x,y=stormground.getCursor()

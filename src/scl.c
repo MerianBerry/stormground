@@ -396,7 +396,7 @@ long scl_wtime (char const *path) {
   if (stat (path, &s) == -1) {
     return 0;
   }
-  return s.st_mtim.tv_sec;
+  return s.st_mtime;
 #elif defined(_WIN32)
   return 0;
 #endif
@@ -915,9 +915,8 @@ typedef struct scl_htab {
 #define hisnbig(t)      ((t)->hnum > ((t)->hsz >> 3) && (t->hsz > HTAB_MIN))
 #define hisoptimal(t) \
   (!hisnstrained (t) && !hisnbig (t) && (t->hsz) >= HTAB_MIN)
-#define hoptimal(t)                                   \
-  ((scl_log2i ((t)->hnum) + 2 <= HTAB_MIN) ? HTAB_MIN \
-                                           : (scl_log2i ((t)->hnum) + 2))
+#define hoptimal(t) \
+  ((log2i ((t)->hnum) + 2 <= HTAB_MIN) ? HTAB_MIN : (log2i ((t)->hnum) + 2))
 #define hfreenode(n)       (free ((void *)(n)->key), free ((void *)(n)))
 #define hnodei(t, hash)    modi (hash, 1 << (t)->hsz)
 #define gnodehash(t, hash) ((t)->ht[hnodei (t, hash)])
@@ -1041,13 +1040,6 @@ scl_htab *scl_htabcopy (scl_htab const *h) {
     scl_htabset (out, k, ptr);
   }
   return out;
-}
-
-unsigned char scl_log2i (unsigned x) {
-  unsigned char r = 0;
-  while (x >>= 1)
-    r++;
-  return r;
 }
 
 #define XML_FREE_PATCH     0
@@ -2009,11 +2001,11 @@ int powi (int x, int y) {
   return o;
 }
 
-double minf (double x, double y) {
+float minf (float x, float y) {
   return (x < y) ? x : y;
 }
 
-double maxf (double x, double y) {
+float maxf (float x, float y) {
   return (x > y) ? x : y;
 }
 
@@ -2047,4 +2039,11 @@ float ceilf (float x) {
 
 float roundf (float x) {
   return (float)(int)(x + 0.5f);
+}
+
+unsigned char log2i (unsigned x) {
+  unsigned char r = 0;
+  while (x >>= 1)
+    r++;
+  return r;
 }

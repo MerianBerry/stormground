@@ -121,5 +121,3 @@ enum {
 };
 
 int sgRunCli (SGstate* sgs, int argc, char** argv);
-
-int sgGetProjectSets (SGstate* sgs);

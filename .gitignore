@@ -8,6 +8,7 @@ build
 *.res
 *.zip
 *tar.gz
+.clangd
 src/shaders/*.h
 gmon.out
 profile.txt

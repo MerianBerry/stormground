@@ -49,8 +49,6 @@ lua_State* sgNewScript (SGstate* sgs) {
   lua_getglobal (L, "os");
   lua_pushnil (L);
   lua_setfield (L, -2, "execute");
-  lua_pushnil (L);
-  lua_setfield (L, -2, "exit");
   lua_pop (L, 1);
 
   lua_pushinteger (L, (intptr_t)sgs);

@@ -11,6 +11,7 @@ function onTick()
   end
   local x, y = stormground.getCursor()
   stormground.setColor(255,255,255)
+  stormground.drawText(0, 0, "Hello")
   local r =math.sqrt((x-w/2)^2 + (y-h/2)^2)
   local th = math.atan((y-h/2), (x-w/2))
   stormground.drawLine(w/2,h/2,x,y)

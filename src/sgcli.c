@@ -9,6 +9,7 @@
 
 static int sg_help (SGstate*, int argc, char** argv);
 static int sg_run (SGstate*, int argc, char** argv);
+static int sg_version (SGstate*, int argc, char** argv);
 static int sgGetProjectSets (SGstate* sgs);
 
 typedef int (*CmdFunction) (SGstate*, int, char**);
@@ -21,8 +22,9 @@ typedef struct Command {
 } Command;
 
 static const Command cmds[] = {
-    {"help", "Prints usage of stormground.",     sg_help, {"-h", NULL}},
-    {"run",  "Runs stormground in a directory.", sg_run,  {"-r", NULL}},
+    {"help",    "Prints usage of stormground.",     sg_help,    {"-h", NULL}},
+    {"run",     "Runs stormground in a directory.", sg_run,     {"-r", NULL}},
+    {"version", "Prints version info.",             sg_version, {"-v", NULL}},
 };
 
 Command const* sg_matchcmd (char const* name) {
@@ -99,6 +101,14 @@ static int sg_run (SGstate* sgs, int argc, char** argv) {
            r;
   if ((r = sgGetProjectSets (sgs)))
     return r;
+  return 0;
+}
+
+static int sg_version (SGstate* sgs, int argc, char** argv) {
+  sgs->runstate = SG_RUNSTATE_STOP;
+  if (argc < 0)
+    return sg_printcmd (sg_matchcmd ("version")), 0;
+  printf ("Stormground v" SG_VERNAME "\n");
   return 0;
 }
 

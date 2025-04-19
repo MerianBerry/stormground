@@ -1,5 +1,5 @@
 local tick = 0
---stormground.setScreen(160, 96)
+stormground.setScreen(160, 96)
 local w, h = stormground.getScreen()
 function onTick()
   x,y=stormground.getCursor()
@@ -16,7 +16,7 @@ function onTick()
   local th = math.atan((y-h/2), (x-w/2))
   stormground.drawLine(w/2,h/2,x,y)
   stormground.setColor(255, 0, 0, 128)
-  stormground.drawCircle(w/2,h/2, r/3, r, -th)
+  stormground.drawCircle(w/2,h/2,r, r/2, -th)
   stormground.drawLine(0, 0, w, h)
   
   tick = tick+1

@@ -4,7 +4,6 @@ build
 *.o
 *.exe
 *.dll
-*.a
 *.res
 *.zip
 *tar.gz

@@ -239,8 +239,9 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
     y1 *= sgs->aspect;
   }
 
-  float const u = ((float)sgs->width - 2.5) / SG_MAX_MONWIDTH;
-  float const v = ((float)sgs->height - 2.5) / SG_MAX_MONHEIGHT;
+  // I have no clue
+  float const u = ((float)sgs->width) / SG_MAX_MONWIDTH / 1.016;
+  float const v = ((float)sgs->height) / SG_MAX_MONHEIGHT / 1.026;
 
   struct {
     float p[2];

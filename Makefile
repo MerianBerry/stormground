@@ -16,7 +16,6 @@ OFLAGS:= -O2
 IDIRS:= 
 CFLAGS:= $(CSTANDARD) $(OFLAGS) $(IDIRS)
 LDFLAGS:= 
-LDDIRS:= -L../lib
 SG_EXE:= sg
 
 #==================TARGET SETTINGS=================#
@@ -28,10 +27,13 @@ guess:
 	@$(MAKE) $(MKCLIFLAGS) `$(UNAME)` OFLAGS="$(OFLAGS)"
 
 Linux linux:
-	@$(MAKE) $(MKCLIFLAGS) all CSTANDARD="-std=gnu11" OFLAGS="$(OFLAGS)" LDFLAGS="$(LDDIRS) -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm"
+	@$(MAKE) $(MKCLIFLAGS) all CSTANDARD="-std=gnu11" OFLAGS="$(OFLAGS)" LDFLAGS="-L../lib/linux -lglfw3 -lGL -lpthread -lX11 -lXrandr -lXi -ldl -lm"
 
 mingw:
-	$(MAKE) $(MKCLIFLAGS) all PLAT=mingw OFLAGS="$(OFLAGS)" SG_EXE=sg.exe CC="x86_64-w64-mingw32-gcc" LDFLAGS="$(LDDIRS) -lglfw3mingw -lm -lopengl32 -lgdi32 -ldwmapi"
+	@$(MAKE) $(MKCLIFLAGS) all PLAT=mingw OFLAGS="$(OFLAGS)" SG_EXE=sg.exe CC="x86_64-w64-mingw32-gcc" LDFLAGS="-L../lib/mingw -lglfw3mingw -lm -lopengl32 -lgdi32 -ldwmapi"
+
+Darwin:
+	@$(MAKE) $(MKCLIFLAGS) all PLAT=Darwin OFLAGS-"$(OFLAGS)" SG_EXE=sg CC=clang LDFLAGS="-L../lib/darwin -lglfw3 -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo"
 
 #=======================BUILD======================#
 

@@ -10,6 +10,8 @@
 #include "sgimage.h"
 #include "shaders/main_vert.h"
 #include "shaders/main_frag.h"
+#include "shaders/blit_vert.h"
+#include "shaders/blit_frag.h"
 
 /* DEPTH PEELING OIT RENDERING:
   using a "custom" depth buffer, we render
@@ -58,6 +60,18 @@ static const SGvertex base[] = {
     {.p = {96, 96}, 2, .c = {0, 0, 255, 32} },
 };
 
+static const struct {
+  float p[2];
+  float uv[2];
+} blitbuf[] = {
+    {{0, 0}, {0, 0}},
+    {{1, 0}, {1, 0}},
+    {{1, 1}, {1, 1}},
+    {{0, 0}, {0, 0}},
+    {{1, 1}, {1, 1}},
+    {{0, 1}, {0, 1}}
+};
+
 #define SG_DEPTH 0
 #define SG_COLOR 1
 #define SG_DCOPY 2
@@ -67,28 +81,47 @@ static const SGvertex base[] = {
 #define SG_FCOPY 1
 
 int sgInitRenderPipe (SGstate *sgs) {
-  unsigned vbo, vao, fbo, fbocopy;
+  unsigned vbo, vao, vb2, va2, fbo;
+
+  // MAIN SHADER PROGRAM
   uint32_t vShader = sgCompileShader (
       GL_VERTEX_SHADER, (char const *)shaders_main_vert, shaders_main_vert_len);
   if (!vShader)
-    return fprintf (stderr, "Vertex shader compile fail\n"), 3;
+    return 3;
 
   uint32_t fShader =
       sgCompileShader (GL_FRAGMENT_SHADER, (char const *)shaders_main_frag,
                        shaders_main_frag_len);
   if (!fShader)
-    return fprintf (stderr, "Fragment shader compile fail\n"), 3;
+    return 3;
 
   unsigned shaders[] = {vShader, fShader};
-  unsigned prog =
-      sgLinkShaderProgram (shaders, sizeof (shaders) / sizeof (shaders[0]));
+  unsigned prog      = sgLinkShaderProgram (shaders, 2);
   if (!prog)
-    return fprintf (stderr, "Failed to link shader program.\n"), 4;
+    return 4;
   glDeleteShader (vShader);
   glDeleteShader (fShader);
-
-  sgs->rp.udepth  = glGetUniformLocation (prog, "depth");
   sgs->rp.uscreen = glGetUniformLocation (prog, "screen");
+  sgs->rp.program = prog;
+
+  // BLIT SHADER PROGRAM
+  vShader = sgCompileShader (GL_VERTEX_SHADER, (char const *)shaders_blit_vert,
+                             shaders_blit_vert_len);
+  if (!vShader)
+    return 3;
+  fShader =
+      sgCompileShader (GL_FRAGMENT_SHADER, (char const *)shaders_blit_frag,
+                       shaders_blit_frag_len);
+  if (!fShader)
+    return 3;
+  shaders[0] = vShader, shaders[1] = fShader;
+  prog = sgLinkShaderProgram (shaders, 2);
+  if (!prog)
+    return 4;
+  glDeleteShader (vShader);
+  glDeleteShader (fShader);
+  sgs->rp.blit = prog;
+  sgs->rp.utex = glGetUniformLocation (prog, "tex");
 
   unsigned texs[4];
   glGenTextures (4, texs);
@@ -115,15 +148,6 @@ int sgInitRenderPipe (SGstate *sgs) {
   if (glCheckFramebufferStatus (GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     return fprintf (stderr, "Framebuffers are not complete.\n"), 4;
 
-  /*glBindFramebuffer (GL_FRAMEBUFFER, fbos[SG_FCOPY]);
-  glFramebufferTexture2D (GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
-                          texs[SG_DCOPY], 0);
-  glFramebufferTexture2D (GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                          texs[SG_CCOPY], 0);
-
-  if (glCheckFramebufferStatus (GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    return fprintf (stderr, "Framebuffers are not complete.\n"), 4;*/
-
   int const n   = 1 << SG_MAX_VERTS;
   SGvertex *buf = malloc (sizeof (SGvertex) * n);
   if (!buf) {
@@ -135,23 +159,30 @@ int sgInitRenderPipe (SGstate *sgs) {
   memcpy (buf, base, sizeof (base));
   sgs->rp.verts += sizeof (base) / sizeof (base[0]);
 
-  glCreateVertexArrays (1, &vao);
-  glCreateBuffers (1, &vbo);
-
+  glGenVertexArrays (1, &vao);
+  glGenBuffers (1, &vbo);
   glBindBuffer (GL_ARRAY_BUFFER, vbo);
   glBufferData (GL_ARRAY_BUFFER, sizeof (SGvertex) * n, buf, GL_DYNAMIC_DRAW);
-
   glBindVertexArray (vao);
   glEnableVertexAttribArray (0);
   glVertexAttribPointer (0, 2, GL_SHORT, GL_FALSE, sizeof (SGvertex), 0);
-
   glEnableVertexAttribArray (1);
   glVertexAttribPointer (1, 1, GL_UNSIGNED_SHORT, GL_TRUE, sizeof (SGvertex),
                          (void *)4);
-
   glEnableVertexAttribArray (2);
   glVertexAttribPointer (2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof (SGvertex),
                          (void *)6);
+
+  glGenVertexArrays (1, &va2);
+  glGenBuffers (1, &vb2);
+  glBindBuffer (GL_ARRAY_BUFFER, vb2);
+  glBufferData (GL_ARRAY_BUFFER, sizeof (float[4]) * 6, NULL, GL_STATIC_DRAW);
+  glBindVertexArray (va2);
+  glVertexAttribPointer (0, 2, GL_FLOAT, GL_FALSE, sizeof (float[4]), 0);
+  glEnableVertexAttribArray (0);
+  glVertexAttribPointer (1, 2, GL_FLOAT, GL_FALSE, sizeof (float[4]),
+                         (void *)sizeof (float[2]));
+  glEnableVertexAttribArray (1);
 
   glEnable (GL_DEPTH_TEST);
   glDepthFunc (GL_GEQUAL);
@@ -164,11 +195,12 @@ int sgInitRenderPipe (SGstate *sgs) {
 
   // glEnable (GL_FRAMEBUFFER_SRGB);
 
-  sgs->rp.npeels = 6;
+  // sgs->rp.npeels = 6;
 
-  sgs->rp.vbo     = vbo;
-  sgs->rp.vao     = vao;
-  sgs->rp.program = prog;
+  sgs->rp.vbo = vbo;
+  sgs->rp.vao = vao;
+  sgs->rp.vb2 = vb2;
+  sgs->rp.va2 = va2;
   memcpy (sgs->rp.fbos, fbos, sizeof (fbos));
   memcpy (sgs->rp.texs, texs, sizeof (texs));
   sgs->rp.cd = 0;
@@ -188,25 +220,15 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
 
   glUseProgram (sgs->rp.program);
 
-  // glActiveTexture (GL_TEXTURE0 + 0); // Bind depth to unit 0
-  // glBindTexture (GL_TEXTURE_2D, sgs->rp.texs[SG_DCOPY]);
-
-  glUniform1i (sgs->rp.udepth, 0); // Depth bound to unit 0
   glUniform2f (sgs->rp.uscreen, sgs->width, sgs->height);
+  glBindVertexArray (sgs->rp.vao);
   glBindBuffer (GL_ARRAY_BUFFER, sgs->rp.vbo);
   glBufferSubData (GL_ARRAY_BUFFER, 0, sizeof (SGvertex) * sgs->rp.verts,
                    sgs->rp.vbuf);
 
-  glBindVertexArray (sgs->rp.vao);
-
   glDrawArrays (GL_TRIANGLES, 0, sgs->rp.verts);
 
-  glBindFramebuffer (GL_READ_FRAMEBUFFER, sgs->rp.fbos[SG_FBO]);
-  glBindFramebuffer (GL_DRAW_FRAMEBUFFER, 0);
-  // Clear screen framebuffer
-  glClearColor (0.1, 0.1, 0.1, 1);
-  glClear (GL_COLOR_BUFFER_BIT);
-
+  // FINAL BLITTING
   float x0, x1, y0, y1;
   x0 = -1, x1 = 1, y0 = -1, y1 = 1;
   if (sgs->aspect > 1.f) {
@@ -216,16 +238,40 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
     y0 *= sgs->aspect;
     y1 *= sgs->aspect;
   }
-  x0 = (x0 + 1.f) / 2 * w;
-  x1 = (x1 + 1.f) / 2 * w;
-  y0 = (y0 + 1.f) / 2 * h;
-  y1 = (y1 + 1.f) / 2 * h;
 
-  // Copy the virtual screen to the actual screen
-  glViewport (0, 0, w, h);
-  glBlitFramebuffer (0, 0, sgs->width, sgs->height, x0, y0, x1, y1,
-                     GL_COLOR_BUFFER_BIT, GL_NEAREST);
+  float const u = ((float)sgs->width - 2.5) / SG_MAX_MONWIDTH;
+  float const v = ((float)sgs->height - 2.5) / SG_MAX_MONHEIGHT;
+
+  struct {
+    float p[2];
+    float uv[2];
+  } verts[] = {
+      {{x0, y0}, {0, 0}},
+      {{x1, y0}, {u, 0}},
+      {{x1, y1}, {u, v}},
+      {{x0, y0}, {0, 0}},
+      {{x1, y1}, {u, v}},
+      {{x0, y1}, {0, v}}
+  };
+
   glBindFramebuffer (GL_FRAMEBUFFER, 0);
+  glViewport (0, 0, w, h);
+  // Clear screen framebuffer
+  glClearColor (0.1, 0.1, 0.1, 1);
+  glClear (GL_COLOR_BUFFER_BIT);
+  glUseProgram (sgs->rp.blit);
+  // Activate and use texture unit 0
+  glActiveTexture (GL_TEXTURE0 + 0);
+  glBindTexture (GL_TEXTURE_2D, sgs->rp.texs[SG_COLOR]);
+  glUniform1i (sgs->rp.utex, 0);
+  // Upload the blit quad data
+  glBindVertexArray (sgs->rp.va2);
+  glBindBuffer (GL_ARRAY_BUFFER, sgs->rp.vb2);
+  glBufferSubData (GL_ARRAY_BUFFER, 0, sizeof (verts), verts);
+
+  glDrawArrays (GL_TRIANGLES, 0, 6);
+
+  // Reset
   sgs->rp.verts = 0;
   sgs->rp.cd    = 0;
   return 0;
@@ -274,8 +320,9 @@ static void dl (SGstate *sgs, short x, short y, short x1, short y1) {
       return;
     memcpy (sgs->rp.vbuf + sgs->rp.verts, verts, sizeof (verts));
     sgs->rp.verts += 6;
-  } else
+  } else {
     dr (sgs, x, y, 1, y1 - y);
+  }
 }
 
 static int l_setColor (lua_State *L) {

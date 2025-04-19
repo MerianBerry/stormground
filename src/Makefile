@@ -13,7 +13,7 @@ SG_EXE:= sg
 W32_RES= resources/resource.res
 
 SG_OBJECTS= scl.o sg.o sgapi.o sgcli.o sgimage.o sginput.o sgrender.o sgshader.o cJSON.o glad.o
-SH_HEADERS= shaders/main_vert.h shaders/main_frag.h
+SH_HEADERS= shaders/main_vert.h shaders/main_frag.h shaders/blit_vert.h shaders/blit_frag.h
 
 ifeq ($(PLAT), mingw)
 SG_OBJECTS:= $(SG_OBJECTS) $(W32_RES)
@@ -33,7 +33,10 @@ $(SG_EXE):
 	@echo CC $(SG_OBJECTS)
 	@$(CC) $(SG_OBJECTS) $(LDFLAGS) -o $@
 
-shaders/main_%.h: shaders/main.%
+shaders/%_vert.h: shaders/%.vert 
+	@echo xxd $<
+	@xxd -i $< $@
+shaders/%_frag.h: shaders/%.frag 
 	@echo xxd $<
 	@xxd -i $< $@
 
@@ -57,5 +60,5 @@ glad.o: glad.c
 
 #========================MISC======================#
 clean:
-	rm -rf *.o $(SH_HEADERS)
+	rm -rf *.o $(SH_HEADERS) $(W32_RES)
 #end of file

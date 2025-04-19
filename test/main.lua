@@ -17,6 +17,7 @@ function onTick()
   stormground.drawLine(w/2,h/2,x,y)
   stormground.setColor(255, 0, 0, 128)
   stormground.drawCircle(w/2,h/2, r/3, r, -th)
+  stormground.drawLine(0, 0, w, h)
   
   tick = tick+1
 end

@@ -71,8 +71,8 @@ typedef struct SGrenderPipe {
   SGvertex*      vbuf;
   unsigned       texs[4];
   unsigned       fbos[2];
-  unsigned       vbo, vao, udepth, uscreen;
-  unsigned       program;
+  unsigned       vbo, vao, vb2, va2, uscreen, utex;
+  unsigned       program, blit;
   unsigned       verts;
   SGcolor        ccol;
   unsigned short cd;

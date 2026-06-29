@@ -60,5 +60,5 @@ glad.o: glad.c
 
 #========================MISC======================#
 clean:
-	rm -rf *.o $(SH_HEADERS) $(W32_RES)
+	rm -f *.o $(SH_HEADERS) $(W32_RES)
 #end of file

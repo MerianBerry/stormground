@@ -1,23 +1,14 @@
 local tick = 0
-stormground.setScreen(160, 96)
+stormground.setScreen(256, 128)
 local w, h = stormground.getScreen()
+local wsize = 5
 function onTick()
   x,y=stormground.getCursor()
-  if stormground.getKey("space") == "pressed" then
-    print "hello"
-  end
-  if stormground.getScroll() ~= 0 then
-    print(stormground.getScroll())
-  end
-  local x, y = stormground.getCursor()
+  wsize = math.max(wsize + stormground.getScroll()*1.5, 0)
+  --wsize = tick
+
   stormground.setColor(255,255,255)
-  stormground.drawText(0, 0, "Hello")
-  local r =math.sqrt((x-w/2)^2 + (y-h/2)^2)
-  local th = math.atan((y-h/2), (x-w/2))
-  stormground.drawLine(w/2,h/2,x,y)
-  stormground.setColor(255, 0, 0, 128)
-  stormground.drawCircle(w/2,h/2,r, r/2, -th)
-  stormground.drawLine(0, 0, w, h)
+  stormground.drawCircle(x, y, wsize, wsize-1.4)
   
   tick = tick+1
 end

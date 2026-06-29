@@ -52,7 +52,7 @@ builddir:
 	@mkdir -p build
 
 clean:
-	rm -rf build src/*.o
+	rm -rf build
 	@$(MAKE) $(MKCLIFLAGS) -C src clean
 
 .PHONY: shaders

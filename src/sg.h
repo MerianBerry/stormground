@@ -19,13 +19,13 @@
 
 #define SG_GAMEPAD_LAST  GLFW_JOYSTICK_8
 
-#define SG_MAX_MONHEIGHT 720
-#define SG_MAX_MONWIDTH  1280
+#define SG_MAX_MONHEIGHT 1080
+#define SG_MAX_MONWIDTH  1920
 
 #define SG_MAX_PEELS     8
 
 #define SG_MIN_VERTS     8
-#define SG_MAX_VERTS     24
+#define SG_MAX_VERTS     22
 
 typedef struct lua_State lua_State;
 

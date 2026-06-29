@@ -23,6 +23,7 @@ static int H = 720;
 
 int main (int argc, char** argv) {
   scl_resetclock();
+
   int r          = 0;
   state          = (SGstate){0};
   state.mappings = scl_htabnew();
@@ -144,6 +145,11 @@ int main (int argc, char** argv) {
       fh = (float)H * daspect;
       fx = 0;
       fy = ((float)H - fh) / 2.f;
+    } else {
+      fw = W;
+      fh = H;
+      fx = 0;
+      fy = 0;
     }
     fx2          = (state.fakeCurX - fx) / fw * state.width;
     fy2          = (state.fakeCurY - fy) / fh * state.height;

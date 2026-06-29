@@ -65,6 +65,8 @@ void scl_resetclock();
 // Returns a time point in seconds
 double scl_clock();
 
+char const *scl_fmt_static (char const *fmt, ...);
+
 char const *scl_vfmt (char const *fmt, va_list args);
 
 char const *scl_fmt (char const *fmt, ...);

@@ -49,8 +49,8 @@ static int l_getCursor (lua_State *L) {
 
 static int l_getRealCursor (lua_State *L) {
   CommonAPIHeader (L);
-  lua_pushnumber (L, (double)sgs->fakeCurX);
-  lua_pushnumber (L, (double)sgs->fakeCurY);
+  lua_pushnumber (L, (double)sgs->realCurX);
+  lua_pushnumber (L, (double)sgs->realCurY);
   return 2;
 }
 
@@ -207,7 +207,7 @@ static int l_getInputMethod (lua_State *L) {
   return 1;
 }
 
-static const luaL_Reg libfuncs[] = {
+static luaL_Reg const libfuncs[] = {
     {"getDelta",       l_getDelta      },
     {"getTime",        l_getTime       },
     {"getCursor",      l_getCursor     },

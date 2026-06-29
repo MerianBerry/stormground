@@ -219,7 +219,7 @@ double scl_clock() {
 #endif
 }
 
-static char const *scl_vfmt_static (char const *fmt, va_list args) {
+char const *scl_vfmt_static (char const *fmt, va_list args) {
   static char buf[4096];
   va_list     copy;
   int         size = vsnprintf ((void *)buf, sizeof (buf) - 1, fmt, args);
@@ -227,7 +227,7 @@ static char const *scl_vfmt_static (char const *fmt, va_list args) {
   return buf;
 }
 
-static char const *scl_fmt_static (char const *fmt, ...) {
+char const *scl_fmt_static (char const *fmt, ...) {
   char const *msg;
   va_list     args;
   va_start (args, fmt);
@@ -1273,7 +1273,7 @@ static char const xctypes[] = {
   0,0,0,0,0,0,0,0, /* 40-47 */
   /* 4 */
   4,4,4,4,4,4,4,4, /* 48-55 */
-  4,4,0,0,0,0,0,0, /* 56-63 */
+  4,4,2,0,0,0,0,0, /* 56-63 */
   /* 5 */
   0,2,2,2,2,2,2,2, /* 64-71 */
   2,2,2,2,2,2,2,2, /* 72-79 */
@@ -1463,7 +1463,7 @@ xml_doc *xml_load_string (char const *str) {
 }
 
 xml_doc *xml_load_file (char const *path) {
-  scl_file *f = scl_open ("r", "cached.xml");
+  scl_file *f = scl_open ("r", path);
   if (!f) {
     return NULL;
   }
@@ -1703,10 +1703,10 @@ char const *xml_print (xml_doc *doc) {
   if (!doc)
     return NULL;
 
-  // char const prologue[] = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
-  char const prologue[] = "";
-  int        size       = 512;
-  char      *out        = (char *)malloc (size);
+  char const prologue[] = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
+  // char const prologue[] = "";
+  int   size = 512;
+  char *out  = (char *)malloc (size);
   memset (out, 0, size);
   memcpy (out, prologue, sizeof (prologue) - 1);
   char *wp = out + sizeof (prologue) - 1;

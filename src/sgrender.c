@@ -48,7 +48,7 @@
 
 */
 
-static const SGvertex base[] = {
+static SGvertex const base[] = {
     {.p = {0, 0},   0, .c = {255, 0, 0, 255}},
     {.p = {96, 0},  0, .c = {255, 0, 0, 255}},
     {.p = {0, 96},  0, .c = {255, 0, 0, 255}},
@@ -63,13 +63,13 @@ static const SGvertex base[] = {
 static const struct {
   float p[2];
   float uv[2];
-} blitbuf[] = {
-    {{0, 0}, {0, 0}},
-    {{1, 0}, {1, 0}},
-    {{1, 1}, {1, 1}},
-    {{0, 0}, {0, 0}},
-    {{1, 1}, {1, 1}},
-    {{0, 1}, {0, 1}}
+} quadbuf[] = {
+    {{-1, -1}, {0, 0}},
+    {{1, -1},  {1, 0}},
+    {{1, 1},   {1, 1}},
+    {{-1, -1}, {0, 0}},
+    {{1, 1},   {1, 1}},
+    {{-1, 1},  {0, 1}}
 };
 
 #define SG_DEPTH 0
@@ -156,8 +156,8 @@ int sgInitRenderPipe (SGstate *sgs) {
     exit (1);
   }
   sgs->rp.vbuf = buf;
-  memcpy (buf, base, sizeof (base));
-  sgs->rp.verts += sizeof (base) / sizeof (base[0]);
+  // memcpy (buf, base, sizeof (base));
+  // sgs->rp.verts += sizeof (base) / sizeof (base[0]);
 
   glGenVertexArrays (1, &vao);
   glGenBuffers (1, &vbo);
@@ -176,18 +176,14 @@ int sgInitRenderPipe (SGstate *sgs) {
   glGenVertexArrays (1, &va2);
   glGenBuffers (1, &vb2);
   glBindBuffer (GL_ARRAY_BUFFER, vb2);
-  glBufferData (GL_ARRAY_BUFFER, sizeof (float[4]) * 6, NULL, GL_STATIC_DRAW);
+  glBufferData (GL_ARRAY_BUFFER, sizeof (float[4]) * 6, quadbuf,
+                GL_STATIC_DRAW);
   glBindVertexArray (va2);
-  glVertexAttribPointer (0, 2, GL_FLOAT, GL_FALSE, sizeof (float[4]), 0);
   glEnableVertexAttribArray (0);
+  glVertexAttribPointer (0, 2, GL_FLOAT, GL_FALSE, sizeof (float[4]), 0);
+  glEnableVertexAttribArray (1);
   glVertexAttribPointer (1, 2, GL_FLOAT, GL_FALSE, sizeof (float[4]),
                          (void *)sizeof (float[2]));
-  glEnableVertexAttribArray (1);
-
-  glEnable (GL_DEPTH_TEST);
-  glDepthFunc (GL_GEQUAL);
-  glEnable (GL_BLEND);
-  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glBindBuffer (GL_ARRAY_BUFFER, 0);
   glBindVertexArray (0);
@@ -219,6 +215,10 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram (sgs->rp.program);
+  glEnable (GL_DEPTH_TEST);
+  glDepthFunc (GL_GEQUAL);
+  glEnable (GL_BLEND);
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   glUniform2f (sgs->rp.uscreen, sgs->width, sgs->height);
   glBindVertexArray (sgs->rp.vao);
@@ -261,6 +261,8 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
   glClearColor (0.1, 0.1, 0.1, 1);
   glClear (GL_COLOR_BUFFER_BIT);
   glUseProgram (sgs->rp.blit);
+  glDisable (GL_DEPTH);
+  glDisable (GL_BLEND);
   // Activate and use texture unit 0
   glActiveTexture (GL_TEXTURE0 + 0);
   glBindTexture (GL_TEXTURE_2D, sgs->rp.texs[SG_COLOR]);
@@ -281,13 +283,13 @@ int sgDrawRenderPipe (SGstate *sgs, int w, int h) {
 static void dt (SGstate *sg, short x, short y, short x1, short y1, short x2,
                 short y2) {
   unsigned short const cd      = sg->rp.cd;
-  const SGcolor        ccol    = sg->rp.ccol;
+  SGcolor const        ccol    = sg->rp.ccol;
   SGvertex             verts[] = {
-                  {{x, y},   cd, ccol},
-                  {{x1, y1}, cd, ccol},
-                  {{x2, y2}, cd, ccol},
+      {{x, y},   cd, ccol},
+      {{x1, y1}, cd, ccol},
+      {{x2, y2}, cd, ccol},
   };
-  if (sg->rp.verts >= 0xfff9)
+  if (sg->rp.verts >= (1 << SG_MAX_VERTS) - 10)
     return;
   memcpy (sg->rp.vbuf + sg->rp.verts, verts, sizeof (verts));
   sg->rp.verts += 3;
@@ -303,7 +305,7 @@ static void dt (SGstate *sg, short x, short y, short x1, short y1, short x2,
 static void dl (SGstate *sgs, short x, short y, short x1, short y1) {
   if (x != x1) {
     unsigned short const cd   = sgs->rp.cd;
-    const SGcolor        ccol = sgs->rp.ccol;
+    SGcolor const        ccol = sgs->rp.ccol;
     int                  dx, dy;
     if (dif (y, y1) > dif (x, x1))
       dx = 1, dy = 0;
@@ -317,7 +319,7 @@ static void dl (SGstate *sgs, short x, short y, short x1, short y1) {
         {{x1, y1},           cd, ccol},
         {{x1 + dx, y1 + dy}, cd, ccol},
     };
-    if (sgs->rp.verts >= 0xfff9)
+    if (sgs->rp.verts >= (1 << SG_MAX_VERTS) - 10)
       return;
     memcpy (sgs->rp.vbuf + sgs->rp.verts, verts, sizeof (verts));
     sgs->rp.verts += 6;
@@ -404,19 +406,23 @@ static int l_drawLine (lua_State *L) {
 
 static float const pi2 = 6.283185f;
 
+static int sgDrawStr (SGstate *sg, char const *str, float _x, float _y,
+                      float size);
+
 static int l_drawArc (lua_State *L) {
   float x, y, o, i, of, a, s, d;
   int   t = lua_gettop (L);
   CommonAPIHeader (L);
   if (!sgs || t < 3)
     return lua_pushnil (L), 1;
-  i  = 0;
-  of = 0;
-  a  = pi2;
-  s  = mini (sgs->width, sgs->height) / 4.f;
-  x  = lua_tonumber (L, 1);
-  y  = lua_tonumber (L, 2);
-  o  = lua_tonumber (L, 3);
+  i         = 0;
+  of        = 0;
+  a         = pi2;
+  x         = lua_tonumber (L, 1);
+  y         = lua_tonumber (L, 2);
+  o         = lua_tonumber (L, 3);
+  float mxy = mini (sgs->width, sgs->height);
+  s         = logf (o) / logf (1.1);
   if (t >= 4)
     i = lua_tonumber (L, 4);
   if (t >= 5)
@@ -430,6 +436,8 @@ static int l_drawArc (lua_State *L) {
   a        = clampf (a, -pi2, pi2);
   d        = (a >= 0) ? 1 : -1;
   // Math bullshittery
+  x += 0.5;
+  y += 0.5;
   int   j;
   float sc, sn, x0, y0, x1, y1;
   sc = ba;
@@ -438,8 +446,8 @@ static int l_drawArc (lua_State *L) {
     sc = ba + sa * j * d;
     sn = ba + sa * (j + 1) * d;
     x0 = cosf (sc), y0 = sinf (sc), x1 = cosf (sn), y1 = sinf (sn);
-    dq (sgs, x + x0 * o, y - y0 * o, x + x0 * i, y - y0 * i, x + x1 * o,
-        y - y1 * o, x + x1 * i, y - y1 * i);
+    dq (sgs, (x + x0 * o), (y - y0 * o), (x + x0 * i), (y - y0 * i),
+        (x + x1 * o), (y - y1 * o), (x + x1 * i), (y - y1 * i));
   }
   // Draw a quad for the end of the arc exactly
   x0 = x1, y0 = y1;
@@ -532,7 +540,7 @@ static int l_drawText (lua_State *L) {
   return 0;
 }
 
-static const luaL_Reg libfuncs[] = {
+static luaL_Reg const libfuncs[] = {
     {"setColor",      l_setColor     },
     {"drawTriangle",  l_drawTriangle },
     {"drawRectangle", l_drawRectangle},

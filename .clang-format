@@ -1,52 +1,65 @@
-BasedOnStyle: Google
+---
+BasedOnStyle: LLVM
 
+IndentWidth: 2
+MaxEmptyLinesToKeep: 2
+
+ColumnLimit: 80
+TabWidth: 2
+UseCRLF: true
+UseTab: Never
+
+---
 Language: Cpp
 PointerAlignment: Left
 
-SortIncludes: false
-ColumnLimit: 80
-AlignAfterOpenBracket: Align
-AlignArrayOfStructures: Left
-AlignConsecutiveAssignments: true
-AlignConsecutiveDeclarations: true
-AlignTrailingComments: true
+SortIncludes:
+  Enabled: false
+
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: Consecutive
 AlignConsecutiveMacros: AcrossEmptyLines
 AlignEscapedNewlines: Left
-AlignOperands: AlignAfterOperator
-
+AlignOperands: DontAlign
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 3
 AllowAllArgumentsOnNextLine: true
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: None
 AllowShortLoopsOnASingleLine: false
-
+AllowShortLambdasOnASingleLine: Empty
 AlwaysBreakBeforeMultilineStrings: true
-BinPackArguments: true
-BinPackParameters: true
+BinPackArguments: false
+BinPackParameters: BinPack
+BreakBeforeBraces: Attach
+
+InsertTrailingCommas: None
 IndentCaseLabels: false
 IndentGotoLabels: false
 IndentPPDirectives: AfterHash
-IndentWidth: 2
-MaxEmptyLinesToKeep: 1
 SeparateDefinitionBlocks: Always
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
 SpaceBeforeAssignmentOperators: true
-SpaceBeforeParens: NonEmptyParentheses
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterControlStatements: false
+  AfterPlacementOperator: true
 SpaceBeforeSquareBrackets: false
 SpaceInEmptyBlock: false
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
-SpacesInAngles: false
+SpacesInAngles: Never
 SpacesInCStyleCastParentheses: false
 SpacesInConditionalStatement: false
-SpacesInContainerLiterals: true
+SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 QualifierAlignment: Custom
-QualifierOrder: ['inline', 'static', 'type', 'const']
-TabWidth: 2
-UseCRLF: true
-UseTab: Never
+QualifierOrder: ['inline', 'static', 'const', 'type']
+ContinuationIndentWidth: 2

@@ -7,12 +7,12 @@
 #include <string.h>
 #include <limits.h>
 
-static int sg_help (SGstate*, int argc, char** argv);
-static int sg_run (SGstate*, int argc, char** argv);
-static int sg_version (SGstate*, int argc, char** argv);
-static int sgGetProjectSets (SGstate* sgs);
+static int sg_help (int argc, char** argv);
+static int sg_run (int argc, char** argv);
+static int sg_version (int argc, char** argv);
+static int sgGetProjectSets();
 
-typedef int (*CmdFunction) (SGstate*, int, char**);
+typedef int (*CmdFunction) (int, char**);
 
 typedef struct Command {
   char const* name;
@@ -21,7 +21,7 @@ typedef struct Command {
   char const* aliass[3];
 } Command;
 
-static const Command cmds[] = {
+static Command const cmds[] = {
     {"help",    "Prints usage of stormground.",     sg_help,    {"-h", NULL}},
     {"run",     "Runs stormground in a directory.", sg_run,     {"-r", NULL}},
     {"version", "Prints version info.",             sg_version, {"-v", NULL}},
@@ -32,7 +32,7 @@ Command const* sg_matchcmd (char const* name) {
   for (i = 0; i < sizeof (cmds) / sizeof (cmds[0]); i++) {
     char aliased = 0;
     int  j;
-    for (j = 0; cmds[i].aliass && cmds[i].aliass[j]; j++) {
+    for (j = 0; cmds[i].aliass[j]; j++) {
       if (!strcmp (cmds[i].aliass[j], name)) {
         aliased = 1;
         break;
@@ -47,17 +47,15 @@ Command const* sg_matchcmd (char const* name) {
 static void sg_printcmd (Command const* cmd) {
   int j;
   printf ("%s", cmd->name);
-  if (cmd->aliass) {
-    printf (" [");
-    for (j = 0; cmd->aliass[j]; j++)
-      printf ("%s,", cmd->aliass[j]);
-    printf ("\b]");
-  }
+  printf (" [");
+  for (j = 0; cmd->aliass[j]; j++)
+    printf ("%s,", cmd->aliass[j]);
+  printf ("\b]");
   printf (": %s\n", cmd->desc);
 }
 
-static int sg_help (SGstate* sgs, int argc, char** argv) {
-  sgs->runstate = SG_RUNSTATE_STOP;
+static int sg_help (int argc, char** argv) {
+  _state.runstate = SG_RUNSTATE_STOP;
   if (argc < 1) {
     int i;
     printf ("Usage: sg <command> [<args>]\n\n");
@@ -73,12 +71,12 @@ static int sg_help (SGstate* sgs, int argc, char** argv) {
   Command const* cmd = sg_matchcmd (argv[0]);
   if (!cmd) {
     printf ("Unknown command \"%s\".\n", argv[0]);
-    return sg_help (sgs, 0, NULL);
+    return sg_help (0, NULL);
   }
-  return cmd->cf (sgs, -1, NULL);
+  return cmd->cf (-1, NULL);
 }
 
-static int sg_run (SGstate* sgs, int argc, char** argv) {
+static int sg_run (int argc, char** argv) {
   int r;
   if (argc < 0) {
     sg_printcmd (sg_matchcmd ("run"));
@@ -92,39 +90,39 @@ static int sg_run (SGstate* sgs, int argc, char** argv) {
     return 0;
   }
   if (argc == 0) {
-    sgs->projectDir = ".";
+    _state.projectDir = ".";
   } else
-    sgs->projectDir = argv[0];
-  if ((r = scl_chdir (sgs->projectDir)))
+    _state.projectDir = argv[0];
+  if ((r = scl_chdir (_state.projectDir)))
     return fprintf (stderr, "Failed to change dir to \"%s\"\n",
-                    scl_realpath (sgs->projectDir)),
+                    scl_realpath (_state.projectDir)),
            r;
-  if ((r = sgGetProjectSets (sgs)))
+  if ((r = sgGetProjectSets()))
     return r;
   return 0;
 }
 
-static int sg_version (SGstate* sgs, int argc, char** argv) {
-  sgs->runstate = SG_RUNSTATE_STOP;
+static int sg_version (int argc, char** argv) {
+  _state.runstate = SG_RUNSTATE_STOP;
   if (argc < 0)
     return sg_printcmd (sg_matchcmd ("version")), 0;
   printf ("Stormground v" SG_VERNAME "\n");
   return 0;
 }
 
-int sgRunCli (SGstate* sgs, int argc, char** argv) {
+int sgRunCli (int argc, char** argv) {
   if (argc < 2) {
-    return sg_run (sgs, 0, NULL);
+    return sg_run (0, NULL);
   }
   Command const* cmd = sg_matchcmd (argv[1]);
   if (!cmd) {
     fprintf (stderr, "Unrecognized command \"%s\"\n", argv[1]);
-    return sg_help (NULL, 0, NULL), 1;
+    return sg_help (0, NULL), 1;
   }
-  return cmd->cf (sgs, argc - 2, argv + 2);
+  return cmd->cf (argc - 2, argv + 2);
 }
 
-static int sgGetProjectSets (SGstate* sgs) {
+static int sgGetProjectSets() {
   // Project jsons are nolonger required
   if (!scl_exists ("sgproject.json"))
     return 0;
@@ -150,27 +148,27 @@ static int sgGetProjectSets (SGstate* sgs) {
   cJSON* itr = projectJSON->child;
   while (itr) {
     if (!strcmp (itr->string, "monitorWidth") && itr->type == cJSON_Number) {
-      sgs->width = itr->valueint;
-      if (sgs->width > SG_MAX_MONWIDTH)
+      _state.width = itr->valueint;
+      if (_state.width > SG_MAX_MONWIDTH)
         printf (
             "Window width parameter is too high, and will be clamped (%i)\n",
             SG_MAX_MONWIDTH);
-      sgs->width = clampf (sgs->width, 6, SG_MAX_MONWIDTH);
+      _state.width = clampf (_state.width, 6, SG_MAX_MONWIDTH);
     } else if (!strcmp (itr->string, "monitorHeight") &&
                itr->type == cJSON_Number) {
-      sgs->height = itr->valueint;
-      if (sgs->height > SG_MAX_MONHEIGHT)
+      _state.height = itr->valueint;
+      if (_state.height > SG_MAX_MONHEIGHT)
         printf (
             "Window height parameter is too high, and will be clamped (%i)\n",
             SG_MAX_MONHEIGHT);
-      sgs->height = clampf (sgs->height, 6, SG_MAX_MONHEIGHT);
+      _state.height = clampf (_state.height, 6, SG_MAX_MONHEIGHT);
     } else if (!strcmp (itr->string, "name") && itr->type == cJSON_String) {
-      sgs->name = (char*)scl_strcopy (itr->valuestring);
+      _state.name = (char*)scl_strcopy (itr->valuestring);
     }
     itr = itr->next;
   }
-  if (!sgs->name)
-    sgs->name = (char*)scl_strcopy ("Stormground " SG_VERNAME);
+  if (!_state.name)
+    _state.name = (char*)scl_strcopy ("Stormground " SG_VERNAME);
 
   cJSON_Delete (projectJSON);
   return 0;

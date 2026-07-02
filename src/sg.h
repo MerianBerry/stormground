@@ -1,23 +1,19 @@
 #pragma once
 
-#if defined(__unix__) || defined(__APPLE__)
-#  define _THEPOSIX 1
-#  include <unistd.h>
-#elif defined(_WIN32)
-#  define _THEWINDOWS 1
-#  include "resources/rc.h"
-
-#endif
-
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
+#include "glad/gl.h"
+#include <SDL3/SDL_video.h>
+#include <SDL3/SDL_events.h>
 #include "scl.h"
+#include "keycodes.h"
 
-#define SG_MAJOR         1
-#define SG_MINOR         2
-#define SG_VERNAME       "1.4"
+#define SG_MAJOR       1
+#define SG_MINOR       5
+#define SG_VERNAME     "1.5"
 
-#define SG_GAMEPAD_LAST  GLFW_JOYSTICK_8
+#define SG_BUTTON_LAST 4
+
+// 2 gamepads max
+#define SG_GAMEPAD_LAST  1
 
 #define SG_MAX_MONHEIGHT 1080
 #define SG_MAX_MONWIDTH  1920
@@ -80,44 +76,48 @@ typedef struct SGrenderPipe {
 } SGrenderPipe;
 
 typedef struct Gamepad {
-  GLFWgamepadstate gstate;
-  char             buttons[GLFW_GAMEPAD_BUTTON_LAST + 1];
-  char*            name;
-  char             connected;
+  SDL_Gamepad* gp;
+  char         buttons[SDL_GAMEPAD_BUTTON_COUNT];
+  float        axes[SDL_GAMEPAD_AXIS_COUNT];
+  char*        name;
+  char         connected;
 } Gamepad;
 
-typedef struct SGstate {
-  Gamepad      gpads[SG_GAMEPAD_LAST + 1];
-  char         keys[GLFW_KEY_LAST + 1];
-  int          activeGpads[SG_GAMEPAD_LAST + 1];
-  char         buttons[GLFW_MOUSE_BUTTON_LAST + 1];
-  SGrenderPipe rp;
-  scl_htab*    mappings;
-  scl_htab*    bmaps;
-  GLFWwindow*  win;
-  char const*  projectDir;
-  char*        name;
-  SGscript*    main;
-  double       tfps;
-  double       time;
-  double       realCurX, realCurY;
-  double       fakeCurX, fakeCurY;
-  int          runstate;
-  float        aspect;
-  int          width;
-  int          height;
-  int          curx;
-  int          cury;
-  int          scrollx, scrolly;
-  SGcolor      col;
-  float        delta;
-  char         usage;
-} SGstate;
+extern struct SGstate {
+  Gamepad gpads[SG_GAMEPAD_LAST + 1];
+  int     activeGpads[SG_GAMEPAD_LAST + 1];
+  char    keys[SG_KEY_LAST + 1];
+  // 5 mouse buttons
+  char          buttons[SG_BUTTON_LAST + 1];
+  SGrenderPipe  rp;
+  scl_htab*     mappings;
+  scl_htab*     bmaps;
+  SDL_Window*   win;
+  SDL_GLContext ctx;
+  const char*   projectDir;
+  char*         name;
+  SGscript*     main;
+  double        tfps;
+  double        time;
+  double        realCurX, realCurY;
+  double        fakeCurX, fakeCurY;
+  int           runstate;
+  float         aspect;
+  int           width;
+  int           height;
+  int           curx;
+  int           cury;
+  float         scrollx, scrolly;
+  int           winw, winh;
+  SGcolor       col;
+  float         delta;
+  char          usage;
+} _state;
 
 enum {
   SG_RUNSTATE_STOP = 1,
-  SG_USAGE_MANDK   = 0,
+  SG_USAGE_MANDK = 0,
   SG_USAGE_GAMEPAD,
 };
 
-int sgRunCli (SGstate* sgs, int argc, char** argv);
+int sgRunCli(int argc, char** argv);

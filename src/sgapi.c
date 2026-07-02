@@ -1,4 +1,4 @@
-//#define _XOPEN_SOURCE 700
+// #define _XOPEN_SOURCE 700
 #include "sgapi.h"
 
 #include <stdio.h>
@@ -10,39 +10,36 @@
 #include "minilua.h"
 
 int l_close (lua_State* L) {
-  CommonAPIHeader (L);
-  sgs->runstate = SG_RUNSTATE_STOP;
+  _state.runstate = SG_RUNSTATE_STOP;
   return 0;
 }
 
 int l_setScreen (lua_State* L) {
   int t = lua_gettop (L);
-  CommonAPIHeader (L);
-  if (!sgs || t < 2)
+  if (t < 2)
     return lua_pushnil (L), 1;
-  sgs->width  = clampf (lua_tonumber (L, 1), 6.f, SG_MAX_MONWIDTH);
-  sgs->height = clampf (lua_tonumber (L, 2), 6.f, SG_MAX_MONHEIGHT);
+  _state.width  = clampf (lua_tonumber (L, 1), 6.f, SG_MAX_MONWIDTH);
+  _state.height = clampf (lua_tonumber (L, 2), 6.f, SG_MAX_MONHEIGHT);
   return 0;
 }
 
 int l_setCursor (lua_State* L) {
   int t = lua_gettop (L);
-  CommonAPIHeader (L);
-  if (!sgs || t < 2)
+  if (t < 2)
     return lua_pushnil (L), 1;
-  sgs->fakeCurX = lua_tonumber (L, 1);
-  sgs->fakeCurY = lua_tonumber (L, 2);
+  _state.fakeCurX = lua_tonumber (L, 1);
+  _state.fakeCurY = lua_tonumber (L, 2);
   return 0;
 }
 
-static const luaL_Reg libfuncs[] = {
+static luaL_Reg const libfuncs[] = {
     {"close",     l_close    },
     {"setScreen", l_setScreen},
     {"setCursor", l_setCursor},
     {NULL,        NULL       },
 };
 
-lua_State* sgNewScript (SGstate* sgs) {
+lua_State* sgNewScript() {
   lua_State* L = luaL_newstate();
   luaL_openlibs (L);
 
@@ -50,9 +47,6 @@ lua_State* sgNewScript (SGstate* sgs) {
   lua_pushnil (L);
   lua_setfield (L, -2, "execute");
   lua_pop (L, 1);
-
-  lua_pushinteger (L, (intptr_t)sgs);
-  lua_setglobal (L, "__SGSTATE");
 
   lua_newtable (L);
 

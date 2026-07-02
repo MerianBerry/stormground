@@ -2,9 +2,9 @@
 #define SG_RENDER_H
 #include "sg.h"
 
-int sgInitRenderPipe (SGstate *sgs);
+int sgInitRenderPipe();
 
-int sgDrawRenderPipe (SGstate *sgs, int w, int h);
+int sgDrawRenderPipe();
 
-int sgRenderOpenLibs (lua_State *L);
+int sgRenderOpenLibs (lua_State* L);
 #endif

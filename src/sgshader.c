@@ -10,8 +10,8 @@ uint32_t sgCompileShader (int stage, char const* source, int size) {
   int  success;
   char infolog[512];
   glGetShaderiv (shader, GL_COMPILE_STATUS, &success);
+  glGetShaderInfoLog (shader, sizeof (infolog), NULL, infolog);
   if (!success) {
-    glGetShaderInfoLog (shader, sizeof (infolog), NULL, infolog);
     fprintf (stderr, "Shader Compile Failed: %s\n", infolog);
     return 0;
   }
